@@ -187,6 +187,48 @@ def class_converter(input_str):
     return obj
 
 #------------------------------------------------------------------------------
+def class_automatic_factory(factory_name):
+    """ a conversion that will import a class and instantiate it
+    it assumes that the constructor takes a config dict as parametor to the
+    constructor
+    """
+    def inner_fn(input_str):
+        if not input_str:
+            return None
+        parts = input_str.split('.')
+        try:
+            # first try as a complete module
+            package = __import__(input_str)
+        except ImportError:
+            # it must be a class from a module
+            if len(parts) == 1:
+                # since it has only one part, it must be a class from __main__
+                parts = ('__main__', input_str)
+            package = __import__('.'.join(parts[:-1]), globals(), locals(), [])
+        class_obj = package
+        for name in parts[1:]:
+            class_obj = getattr(class_obj, name)
+        # we'll derive a new class from class_obj to add an aggregator that
+        # will instantiate the target class.
+
+        def create_factory(config, local_config, args):
+            def factory():
+                return class_obj(local_config)
+            return factory
+
+        class ClassAggregationProxy(object):
+            required_config = Namespace()
+            required_config.add_aggregation(factory_name,
+                                            create_factory)
+
+            @classmethod
+            def to_str(cls):
+                return input_str
+
+        return ClassAggregationProxy
+    return inner_fn
+
+#------------------------------------------------------------------------------
 def class_instantiator(instantiated_name):
     """ a conversion that will import a class and instantiate it
     it assumes that the constructor takes a config dict as parametor to the
