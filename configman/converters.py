@@ -187,10 +187,9 @@ def class_converter(input_str):
     return obj
 
 #------------------------------------------------------------------------------
-def class_automatic_factory(factory_name):
-    """ a conversion that will import a class and instantiate it
-    it assumes that the constructor takes a config dict as parametor to the
-    constructor
+def automatic_class_factory(factory_name):
+    """this converter will take an option that holds a class and create an
+    aggregation that is a factory function for the class.
     """
     def inner_fn(input_str):
         if not input_str:
@@ -216,7 +215,7 @@ def class_automatic_factory(factory_name):
                 return class_obj(local_config)
             return factory
 
-        class ClassAggregationProxy(object):
+        class ClassAggregationProxy(class_obj):
             required_config = Namespace()
             required_config.add_aggregation(factory_name,
                                             create_factory)
