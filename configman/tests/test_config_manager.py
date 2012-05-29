@@ -324,6 +324,43 @@ class TestCase(unittest.TestCase):
         self.assertEqual(c.option_definitions.c.extra.default, 3.14159)
         self.assertEqual(c.option_definitions.c.extra.value, 2.89)
 
+    def test_overlay_config_4b_UncopyableComponent(self):
+        """test overlay dict w/deep source dict with un-deepcopyable object"""
+        class UncopyableComponent(RequiredConfig):
+            required_config = Namespace()
+            required_config.add_option('uncopyable', default=getopt)
+
+        n = config_manager.Namespace()
+        n.add_option('a', 1, doc='the a')
+        n.b = 17
+        n.c = config_manager.Namespace()
+        n.c.add_option(
+          'extra',
+          doc='the x',
+          default=UncopyableComponent  # has uncopyable requirement
+        )
+        g = {'a': 2, }
+        c = config_manager.ConfigurationManager([n], [g],
+                                    use_admin_controls=True,
+                                    #use_config_files=False,
+                                    use_auto_help=False,
+                                    argv_source=[])
+        self.assertEqual(c.option_definitions.a, n.a)
+        self.assertTrue(isinstance(c.option_definitions.b,
+                                   config_manager.Option))
+        self.assertEqual(c.option_definitions.a.value, 2)
+        self.assertEqual(c.option_definitions.b.value, 17)
+        self.assertEqual(c.option_definitions.b.default, 17)
+        self.assertEqual(c.option_definitions.b.name, 'b')
+        self.assertEqual(c.option_definitions.c.extra.name, 'extra')
+        self.assertEqual(c.option_definitions.c.extra.doc, 'the x')
+        self.assertEqual(c.option_definitions.c.extra.default,
+                         UncopyableComponent)
+        self.assertEqual(c.option_definitions.c.extra.value,
+                         UncopyableComponent)
+        self.assertEqual(c.option_definitions.c.uncopyable.value,
+                         getopt)
+
     def test_overlay_config_5(self):
         """test namespace definition w/getopt"""
         n = config_manager.Namespace()
@@ -1081,7 +1118,7 @@ c.string =   from ini
                                                  'argument 2',
                                                  'argument 3'])
         conf = c.get_config()
-        self.assertEqual(conf.keys(), ['admin', 'application'])  
+        self.assertEqual(conf.keys(), ['admin', 'application'])
 
     def test_print_conf(self):
         n = config_manager.Namespace()
@@ -1408,7 +1445,7 @@ c.string =   from ini
     def test_namespaces_with_conflicting_class_converters(self):
         rc = Namespace()
         rc.namespace('source')
-        rc.source.add_option('cls', 
+        rc.source.add_option('cls',
                              default='configman.tests.test_config_manager.T1',
                              from_string_converter=class_converter)
         rc.namespace('destination')
@@ -1422,7 +1459,7 @@ c.string =   from ini
            {'source': {'cls': 'configman.tests.test_config_manager.T1'},
                        'destination': {'cls': 'configman.tests.test_config_manager.T2'}},
            {'source': {'cls': 'configman.tests.test_config_manager.T3'},
-                       'destination': {'cls': 'configman.tests.test_config_manager.T1'}},           
+                       'destination': {'cls': 'configman.tests.test_config_manager.T1'}},
           ],
           use_admin_controls=True,
           use_auto_help=False,
@@ -1439,4 +1476,4 @@ c.string =   from ini
         self.assertEqual(len(conf.destination), 2)
         self.assertEqual(conf.destination.a, 11)
         self.assertEqual(conf.destination.cls, T1)
-        
+

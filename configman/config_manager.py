@@ -475,8 +475,16 @@ class ConfigurationManager(object):
                     try:
                         for o_key, o_val in \
                                 val.value.get_required_config().iteritems():
-                            source_namespace.__setattr__(o_key, 
-                                                         copy.deepcopy(o_val))
+                            try:
+                                source_namespace.__setattr__(
+                                  o_key,
+                                  copy.deepcopy(o_val)
+                                )
+                            except (copy.Error, TypeError), x:
+                                # some objects (like modules) are not deep
+                                # copyable. For those, we choose to not copy,
+                                # but go ahead and save the reference.
+                                source_namespace.__setattr__(o_key, o_val)
                     except AttributeError:
                         pass  # there are no required_options for this class
                 else:
