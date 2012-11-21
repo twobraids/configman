@@ -51,6 +51,11 @@ can_handle = (basestring,
               json
              )
 
+def confirm_handleable(candidate):
+    if isinstance(candidate, basestring):
+        return candidate.endswith(file_name_extension)
+    return type(candidate) in can_handle
+
 file_name_extension = 'json'
 
 

@@ -75,15 +75,27 @@ except ImportError:
 # a list of modules that can handle that type.
 class DispatchByType(collections.defaultdict):
     def get_handlers(self, candidate):
-        handlers_set = set()
+        certified_handlers_set = set()
         for key, handler_list in self.iteritems():
+            handler_set = set(handler_list)
             if (self._is_instance_of(candidate, key) or (candidate is key) or
                     (inspect.ismodule(key) and candidate is key)):
-                handlers_set.update(handler_list)
-        if not handlers_set:
+                handler_set = self._confirm_handleable(candidate, handler_set)
+                certified_handlers_set.update(handler_set)
+        if not certified_handlers_set:
             raise NoHandlerForType("no hander for %s is available" %
                                    candidate)
-        return handlers_set
+        return certified_handlers_set
+
+    def _confirm_handleable(self, candidate, handler_set):
+        remove_set = set()
+        for a_handler in handler_set:
+            try:
+                if not a_handler.confirm_handleable(candidate):
+                    remove_set.add(a_handler)
+            except AttributeError:
+                pass
+        return handler_set.difference(remove_set)
 
     @staticmethod
     def _is_instance_of(candidate, some_type):

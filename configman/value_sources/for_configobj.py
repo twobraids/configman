@@ -57,6 +57,12 @@ can_handle = (configobj,
              )
 
 
+def confirm_handleable(candidate):
+    if isinstance(candidate, basestring):
+        return candidate.endswith(file_name_extension)
+    return type(candidate) in can_handle
+
+
 class ConfigObjWithIncludes(configobj.ConfigObj):
     """This derived class is an extention to ConfigObj that adds nested
     includes to ini files.  Here's an example:

@@ -67,6 +67,12 @@ can_handle = (basestring,
 file_name_extension = 'conf'
 
 
+def confirm_handleable(candidate):
+    if isinstance(candidate, basestring):
+        return candidate.endswith(file_name_extension)
+    return type(candidate) in can_handle
+
+
 class NotAConfigFileError(ValueException):
     pass
 

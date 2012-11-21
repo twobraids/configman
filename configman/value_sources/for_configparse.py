@@ -56,6 +56,12 @@ can_handle = (ConfigParser,
              )
 
 
+def confirm_handleable(candidate):
+    if isinstance(candidate, basestring):
+        return candidate.endswith(file_name_extension)
+    return type(candidate) in can_handle
+
+
 class LoadingIniFileFailsException(ValueException):
     pass
 
