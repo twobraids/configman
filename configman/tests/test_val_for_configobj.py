@@ -95,7 +95,8 @@ foo=bar  # other comment
                 o = for_configobj.ValueSource(tmp_filename)
                 r = {'othersection': {'foo': 'bar'},
                      'name': 'Peter',
-                     'awesome': ''}
+                     'awesome': '',
+                     '__source': tmp_filename}
                 assert o.get_values(None, None) == r
                 # in the case of this implementation of a ValueSource,
                 # the two parameters to get_values are dummies.  That may
@@ -121,6 +122,10 @@ foo=bar  # other comment
         """)
 
             try:
+                expected = {'othersection': {'foo': 'bar'},
+                            'name': 'Peter',
+                            'awesome': '',
+                            '__source': tmp_filename}
                 o = for_configobj.ValueSource(tmp_filename)
                 c = config_manager.ConfigurationManager([],
                                             use_admin_controls=True,
@@ -129,13 +134,9 @@ foo=bar  # other comment
                                             argv_source=[])
 
                 self.assertEqual(o.get_values(c, False),
-                                 {'othersection': {'foo': 'bar'},
-                                 'name': 'Peter',
-                                 'awesome': ''})
+                                 expected)
                 self.assertEqual(o.get_values(c, True),
-                                 {'othersection': {'foo': 'bar'},
-                                 'name': 'Peter',
-                                 'awesome': ''})
+                                 expected)
             finally:
                 if os.path.isfile(tmp_filename):
                     os.remove(tmp_filename)
@@ -232,6 +233,7 @@ aaa='2011-05-04T15:10:00'
                     f.write(contents)
                 o = for_configobj.ValueSource(ini_file_name)
                 expected_dict = {
+                  '__source': ini_file_name,
                   'source': {
                     'dbhostname': 'myserver',
                     'dbname': 'some_database',
@@ -287,6 +289,7 @@ aaa='2011-05-04T15:10:00'
                     f.write(contents)
                 o = for_configobj.ValueSource(ini_file_name)
                 expected_dict = {
+                  '__source': f.name,
                   'dbhostname': 'myserver',
                   'dbname': 'some_database',
                   'dbuser': 'dwight',
@@ -348,6 +351,7 @@ aaa='2011-05-04T15:10:00'
                   'dbname': 'some_database',
                   'dbuser': 'dwight',
                   'dbpassword': 'secrets',
+                  '__source': ini_file_name,
                   'destination': {
                     'dbhostname': 'myserver',
                     'dbname': 'some_database',

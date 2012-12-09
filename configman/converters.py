@@ -337,6 +337,8 @@ from_string_converters = {
 
 #------------------------------------------------------------------------------
 def py_obj_to_str(a_thing):
+    if hasattr(a_thing, 'to_str'):
+        return a_thing.to_str()
     if a_thing is None:
         return ''
     if inspect.ismodule(a_thing):
@@ -345,8 +347,6 @@ def py_obj_to_str(a_thing):
         return a_thing.__name__
     if a_thing.__module__ == "__main__":
         return a_thing.__name__
-    if hasattr(a_thing, 'to_str'):
-        return a_thing.to_str()
     return "%s.%s" % (a_thing.__module__, a_thing.__name__)
 
 

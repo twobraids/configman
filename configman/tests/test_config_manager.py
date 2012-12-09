@@ -48,14 +48,21 @@ import getopt
 
 import configman.config_manager as config_manager
 from configman.dotdict import DotDict, DotDictWithAcquisition
-from configman import Namespace, RequiredConfig
+from configman import (
+    Namespace,
+    RequiredConfig,
+    QUIT_ON_ERROR,
+    RAISE_EXCEPTION_ON_ERROR,
+    NOTE_ERROR_ON_STDERR
+)
 from configman.converters import class_converter
 import configman.datetime_util as dtu
 from configman.config_exceptions import NotAnOptionError
 from configman.value_sources.source_exceptions import (
   AllHandlersFailedException,
-  UnknownFileExtensionException
+  UnknownFileExtensionException,
 )
+from configman.config_exceptions import NotAnOptionError
 import configman.value_sources
 import configman.value_sources.for_configparse
 
@@ -798,13 +805,18 @@ c.string =   from ini
 
         n = config_manager.Namespace()
         n.admin = config_manager.Namespace()
-        n.add_option('application',
-                           MyApp,
-                           'the app object class')
-        c = config_manager.ConfigurationManager([n],
-                                    use_admin_controls=True,
-                                    use_auto_help=False,
-                                    argv_source=[])
+        n.add_option(
+            'application',
+            MyApp,
+            'the app object class'
+        )
+        c = config_manager.ConfigurationManager(
+            definition_source=[n],
+            #values_source_list=[{}],
+            use_admin_controls=True,
+            use_auto_help=False,
+            argv_source=[]
+        )
         self.assertEqual(c.app_name, MyApp.app_name)
         self.assertEqual(c.app_version, MyApp.app_version)
         self.assertEqual(c.app_description, MyApp.app_description)
@@ -929,7 +941,7 @@ c.string =   from ini
         e = (
              ('admin.print_conf', 'print_conf', None),
              ('admin.dump_conf', 'dump_conf', ''),
-             ('admin.conf', 'conf', './config.ini'),
+             ('admin.conf', 'conf', None),
              ('application', 'application', MyApp),
              ('password', 'password', 'fred'),
              ('sub.name', 'name', 'ethel'))
@@ -1466,7 +1478,8 @@ c.string =   from ini
             IOError,
             config_manager.ConfigurationManager,
             (n, getopt,),
-            argv_source=['--admin.conf=x.ini']
+            argv_source=['--admin.conf=x.ini'],
+            missing_config_file_error_action=RAISE_EXCEPTION_ON_ERROR
         )
 
         # but check we can still do it if the file exists
@@ -1483,3 +1496,22 @@ c.string =   from ini
                 self.assertEqual(config.toplevel.password, 'something')
         finally:
             os.remove('x.ini')
+
+    def test_not_an_option_error_exception(self):
+        n = config_manager.Namespace()
+        n.add_option(
+            'an_option',
+            default=10,
+            doc='just another option',
+        )
+        s = DotDict()
+        s.an_option = 16
+        s.fred = 23
+
+        self.assertRaises(
+            NotAnOptionError,
+            config_manager.ConfigurationManager,
+            definition_source=n,
+            values_source_list=[s],
+            option_error_action=RAISE_EXCEPTION_ON_ERROR
+        )

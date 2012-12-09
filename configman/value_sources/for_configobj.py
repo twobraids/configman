@@ -132,7 +132,7 @@ class ConfigObjWithIncludes(configobj.ConfigObj):
             super(ConfigObjWithIncludes, self)._load(infile, configspec)
 
 
-class LoadingIniFileFailsException(ValueException):
+class LoadingIniFileFailsException(Exception):
     pass
 
 
@@ -160,14 +160,16 @@ class ValueSource(object):
         if (isinstance(source, basestring) and
             source.endswith(file_name_extension)):
             try:
-                #self.config_obj = configobj.ConfigObj(source)
                 self.config_obj = ConfigObjWithIncludes(source)
+                # save filename for future error reporting
+                self.config_obj["__source"] = source
             except Exception, x:
                 raise LoadingIniFileFailsException(
                   "ConfigObj cannot load ini: %s" % str(x))
         else:
             raise CantHandleTypeException(
-                        "ConfigObj doesn't know how to handle %s." % source)
+                "the 'for_configobj' modules isn't even going to try to "
+                "handle %s." % source)
 
     def get_values(self, config_manager, ignore_mismatches):
         """Return a nested dictionary representing the values in the ini file.
@@ -178,6 +180,7 @@ class ValueSource(object):
                 app = config_manager._get_option('admin.application')
                 source = "%s%s" % (app.value.app_name, file_name_extension)
                 self.config_obj = configobj.ConfigObj(source)
+                self.config_obj['__source'] = source
                 self.delayed_parser_instantiation = False
             except AttributeError:
                 # we don't have enough information to get the ini file

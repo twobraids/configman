@@ -59,7 +59,7 @@ from .. import converters as conv
 from source_exceptions import ValueException, CantHandleTypeException
 
 
-class GetOptFailureException(ValueException):
+class GetOptFailureException(Exception):
     pass
 
 can_handle = (getopt,
@@ -105,7 +105,7 @@ class ValueSource(object):
                                                      short_options_str,
                                                      long_options_list)
         except getopt.GetoptError, x:
-            raise NotAnOptionError(str(x))
+            raise NotAnOptionError("From command line: %s" % x)
         command_line_values = dotdict.DotDict()
         for opt_name, opt_val in getopt_options:
             if opt_name.startswith('--'):
@@ -122,6 +122,7 @@ class ValueSource(object):
                 command_line_values[name] = not option_.default
             else:
                 command_line_values[name] = opt_val
+        command_line_values.__source = 'command line'
         return command_line_values
 
     def getopt_create_opts(self, option_definitions):

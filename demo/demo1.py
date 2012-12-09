@@ -45,7 +45,7 @@
 # we run the application.
 
 import sys
-from configman import ConfigurationManager, Namespace
+from configman import ConfigurationManager, Namespace, QUIT_ON_OPTION_ERROR 
 
 
 # the following three functions are the business logic of the application.
@@ -89,7 +89,10 @@ definition_source.add_option('action',
 # commandline.
 c = ConfigurationManager(definition_source,
                          app_name='demo1',
-                         app_description=__doc__)
+                         app_description=__doc__,
+                         #ignore_mismatch=True)
+                         ignore_mismatch=False,
+                         option_error_action=QUIT_ON_OPTION_ERROR)
 
 # fetch the DOM-like instance that gives access to the configuration info
 config = c.get_config()

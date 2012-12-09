@@ -96,7 +96,8 @@ foo=bar  ; other comment
             o = ValueSource(tmp_filename)
             r = {'othersection.foo': 'bar',
                  'name': 'Peter',
-                 'awesome': ''}
+                 'awesome': '',
+                 '__source': tmp_filename}
             assert o.get_values(None, None) == r
             # in the case of this implementation of a ValueSource,
             # the two parameters to get_values are dummies.  That may
@@ -141,6 +142,10 @@ foo=bar  ; other comment
         """)
 
         try:
+            expected = {'othersection.foo': 'bar',
+                        'name': 'Peter',
+                        'awesome': '',
+                        '__source': tmp_filename}
             o = ValueSource(tmp_filename)
             c = config_manager.ConfigurationManager([],
                                         use_admin_controls=True,
@@ -149,13 +154,9 @@ foo=bar  ; other comment
                                         argv_source=[])
 
             self.assertEqual(o.get_values(c, False),
-                             {'othersection.foo': 'bar',
-                              'name': 'Peter',
-                              'awesome': ''})
+                             expected)
             self.assertEqual(o.get_values(c, True),
-                             {'othersection.foo': 'bar',
-                              'name': 'Peter',
-                              'awesome': ''})
+                             expected)
         finally:
             if os.path.isfile(tmp_filename):
                 os.remove(tmp_filename)
@@ -164,7 +165,7 @@ foo=bar  ; other comment
         n = self._some_namespaces()
         c = config_manager.ConfigurationManager(
           [n],
-          [ConfigParser],
+          [],
           use_admin_controls=False,
           #use_config_files=False,
           use_auto_help=False,

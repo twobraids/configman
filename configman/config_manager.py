@@ -59,6 +59,11 @@ from namespace import Namespace
 from config_file_future_proxy import ConfigFileFutureProxy
 from required_config import RequiredConfig
 
+# actions to take if an NotAnOptionError or missing config file happens
+IGNORE_ERROR = 0
+QUIT_ON_ERROR = 1
+RAISE_EXCEPTION_ON_ERROR = 2
+NOTE_ERROR_ON_STDERR = 3
 
 #==============================================================================
 class ConfigurationManager(object):
@@ -77,6 +82,9 @@ class ConfigurationManager(object):
                  app_version='',
                  app_description='',
                  config_pathname='.',
+                 ignore_mismatch=False,
+                 option_error_action=QUIT_ON_ERROR,
+                 missing_config_file_error_action=NOTE_ERROR_ON_STDERR,
                  ):
         """create and initialize a configman object.
 
@@ -115,7 +123,23 @@ class ConfigurationManager(object):
           app_description - assigns a description for the app to be used in
                             the help output.
           config_pathname - a hard coded path to the directory of or the full
-                            path and name of the configuration file."""
+                            path and name of the configuration file.
+          ignore_mismatch - allow any options from any source and ignore
+                            any that are undefined, unneeded or don't make
+                            sense.
+          option_error_action - if 'ignore_mismatch' is False, take an
+                                action if a bad option is detected:
+                                QUIT_ON_ERROR,
+                                RAISE_EXCEPTION_ON_ERROR,
+                                NOTE_ERROR_ON_STDERR,
+                                IGNORE_ERROR
+          missing_config_file_error_action - if a config file is not found,
+                                take this action:
+                                QUIT_ON_ERROR,
+                                RAISE_EXCEPTION_ON_ERROR,
+                                NOTE_ERROR_ON_STDERR,
+                                IGNORE_ERROR
+        """
         # instead of allowing mutables as default keyword argument values...
         if definition_source is None:
             definition_source_list = []
@@ -124,6 +148,9 @@ class ConfigurationManager(object):
             definition_source_list = list(definition_source)
         else:
             definition_source_list = [definition_source]
+
+        self._option_error_action = option_error_action
+        self.missing_config_file_action = missing_config_file_error_action
 
         if argv_source is None:
             argv_source = sys.argv[1:]
@@ -214,7 +241,10 @@ class ConfigurationManager(object):
         self._walk_expanding_class_options()
 
         # third pass to get values - complain about bad options
-        self._overlay_value_sources(ignore_mismatches=False)
+        try:
+            self._overlay_value_sources(ignore_mismatches=ignore_mismatch)
+        except exc.NotAnOptionError, x:
+            self.act_on_error(self._option_error_action, x)
 
         if use_auto_help and self._get_option('help').value:
             self.output_summary()
@@ -438,6 +468,17 @@ class ConfigurationManager(object):
 
     #--------------------------------------------------------------------------
     @staticmethod
+    def act_on_error(action, exception):
+        if action == QUIT_ON_ERROR:
+            print >>sys.stderr, exception
+            sys.exit(-1)
+        elif action == NOTE_ERROR_ON_STDERR:
+            print >>sys.stderr, exception
+        elif action == RAISE_EXCEPTION_ON_ERROR:
+            raise exception
+
+    #--------------------------------------------------------------------------
+    @staticmethod
     def _walk_and_close(a_dict):
         for val in a_dict.itervalues():
             if isinstance(val, collections.Mapping):
@@ -500,8 +541,10 @@ class ConfigurationManager(object):
                                     '%s.ini' % self.app_name)
             else:
                 # there is no app_name yet
-                # we'll punt and use 'config'
-                return os.path.join(self.config_pathname, 'config.ini')
+                # we'll punt and leave it empty
+                return None
+        # since it isn't a directory, we'll assume that it's a full
+        # pathname to an actual configuration file.
         return self.config_pathname
 
     #--------------------------------------------------------------------------
@@ -551,6 +594,8 @@ class ConfigurationManager(object):
         if destination is None:
             destination = self.option_definitions
         for key, val in source.items():
+            if key.startswith('__'):
+                continue
             try:
                 sub_destination = destination
                 for subkey in key.split('.'):
@@ -559,9 +604,24 @@ class ConfigurationManager(object):
                 if ignore_mismatches:
                     continue
                 if key == subkey:
-                    raise exc.NotAnOptionError('%s is not an option' % key)
-                raise exc.NotAnOptionError('%s subpart %s is not an option' %
-                                       (key, subkey))
+                    if "__source" in source:
+                        raise exc.NotAnOptionError(
+                            'From %s: "%s" is not an option' %
+                            (source['__source'], key)
+                        )
+                    else:
+                        raise exc.NotAnOptionError('"%s" is not an option'
+                                                   % key)
+                if "__source" in source:
+                    raise exc.NotAnOptionError(
+                        'From %s: "%s" subpart "%s" is not an option' %
+                        (source['__source'], key, subkey)
+                    )
+                else:
+                    raise exc.NotAnOptionError(
+                        '"%s" subpart "%s" is not an option' %
+                        (key, subkey)
+                    )
             except TypeError:
                 pass
             if isinstance(sub_destination, Namespace):

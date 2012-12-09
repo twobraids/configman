@@ -89,13 +89,14 @@ class TestCase(unittest.TestCase):
             f.write('limit=20\n')
             f.write('\n')
         try:
+            expected = {'limit': '20', '__source': tmp_filename}
             o = for_conf.ValueSource(tmp_filename)
-            assert o.values == {'limit': '20'}, o.values
+            assert o.values == expected,  o.values
             # in the case of this implementation of a ValueSource,
             # the two parameters to get_values are dummies.  That may
             # not be true for all ValueSource implementations
-            self.assertEqual(o.get_values(1, False), {'limit': '20'})
-            self.assertEqual(o.get_values(2, True), {'limit': '20'})
+            self.assertEqual(o.get_values(1, False), expected)
+            self.assertEqual(o.get_values(2, True), expected)
         finally:
             if os.path.isfile(tmp_filename):
                 os.remove(tmp_filename)

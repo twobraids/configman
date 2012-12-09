@@ -83,9 +83,10 @@ class ValueSource(object):
             # will return a Context Manager Type.
             opener = candidate
         else:
-            raise CantHandleTypeException("Conf doesn't know how to handle"
-                                                     " %s." % str(candidate))
-        self.values = {}
+            raise CantHandleTypeException(
+                "the 'for_conf' module isn't even going to try to handle"
+                " %s." % str(candidate))
+        self.values = {'__source': candidate}
         try:
             with opener() as f:
                 previous_key = None

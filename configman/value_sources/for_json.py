@@ -54,7 +54,7 @@ can_handle = (basestring,
 file_name_extension = 'json'
 
 
-class LoadingJsonFileFailsException(ValueException):
+class LoadingJsonFileFailsException(Exception):
     pass
 
 
@@ -64,8 +64,7 @@ class ValueSource(object):
         self.values = None
         if source is json:
             try:
-                app = the_config_manager._get_option(
-                                                      'admin.application')
+                app = the_config_manager._get_option('admin.application')
                 source = "%s.%s" % (app.value.app_name, file_name_extension)
             except (AttributeError, KeyError):
                 raise NotEnoughInformationException("Can't setup an json "
@@ -76,6 +75,7 @@ class ValueSource(object):
             try:
                 with open(source) as fp:
                     self.values = json.load(fp)
+                self.values['__source'] = source  # for future error reporting
             except IOError, x:
                 # The file doesn't exist.  That's ok, we'll give warning
                 # but this isn't a fatal error
@@ -86,7 +86,8 @@ class ValueSource(object):
                 raise LoadingJsonFileFailsException("Cannot load json: %s" %
                                                     str(x))
         else:
-            raise NoHandlerForType("json can't handle: %s" %
+            raise NoHandlerForType("the 'for_json' module isn't even going "
+                                   "to try to handle: %s" %
                                       str(source))
 
     def get_values(self, config_manager, ignore_mismatches):

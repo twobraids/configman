@@ -57,7 +57,7 @@ can_handle = (ConfigParser,
              )
 
 
-class LoadingIniFileFailsException(ValueException):
+class LoadingIniFileFailsException(Exception):
     pass
 
 
@@ -86,6 +86,7 @@ class ValueSource(object):
             source.endswith(file_name_extension)):
             try:
                 self.configparser = self._create_parser(source)
+                self._source = source
             except Exception, x:
                 # FIXME: this doesn't give you a clue why it fail.
                 #  Was it because the file didn't exist (IOError) or because it
@@ -113,13 +114,14 @@ class ValueSource(object):
             try:
                 app = config_manager._get_option('admin.application')
                 source = "%s%s" % (app.value.app_name, file_name_extension)
+                self._source = source
                 self.configparser = self._create_parser(source)
                 self.delayed_parser_instantiation = False
             except (AttributeError, NotAnOptionError):
                 # we don't have enough information to get the ini file
                 # yet.  we'll ignore the error for now
                 return {}
-        options = {}
+        options = {'__source': self._source}
         for a_section in self.configparser.sections():
             if a_section == self.top_level_section_name:
                 prefix = ''

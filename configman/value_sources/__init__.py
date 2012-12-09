@@ -55,21 +55,21 @@ import for_getopt
 import for_json
 import for_conf
 import for_mapping
-import for_configparse
 
 # please replace with dynamic discovery
 for_handlers = [for_mapping,
                 for_getopt,
                 for_json,
                 for_conf,
-                for_configparse,
                ]
 try:
     import for_configobj
     for_handlers.append(for_configobj)
 except ImportError:
     # the module configobj is not present
-    pass
+    import for_configparse
+    for_handlers.append(for_configparse)
+
 
 
 # create a dispatch table of types/objects to modules.  Each type should have
@@ -125,13 +125,20 @@ for a_handler in for_handlers:
 def wrap(value_source_list, a_config_manager):
     wrapped_sources = []
     for a_source in value_source_list:
-        if a_source is ConfigFileFutureProxy:
+        if (a_source is ConfigFileFutureProxy \
+            and a_config_manager.missing_config_file_action):
             a_source = a_config_manager._get_option('admin.conf').value
+            if a_source is None:
+                continue
             # if you have specified an admin.conf value that is different
             # from the default, the raise hell if the file doesn't exist
             default = a_config_manager._get_option('admin.conf').default
-            if a_source and a_source != default and not os.path.isfile(a_source):
-                raise IOError(a_source)
+            if (a_source and a_source != default
+                        and not os.path.isfile(a_source)):
+                a_config_manager.act_on_error(
+                    a_config_manager.missing_config_file_action,
+                    IOError(a_source)
+                )
 
         handlers = type_handler_dispatch.get_handlers(a_source)
         wrapped_source = None
@@ -143,7 +150,7 @@ def wrap(value_source_list, a_config_manager):
                 wrapped_source = a_handler.ValueSource(a_source,
                                                        a_config_manager)
                 break
-            except ValueException, x:
+            except Exception, x:
                 # a failure is not necessarily fatal, we need to try all of
                 # the handlers.  It's only fatal when they've all failed
                 error_history.append(str(x))

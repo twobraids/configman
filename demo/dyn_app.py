@@ -81,10 +81,13 @@ class DynApp(RequiredConfig):
         super(DynApp, self).__init__()
         self.config = config
 
+    @classmethod
+    def to_str(kls):
+        return 'dyn_app.DynApp'
+
     def main(self):
         # the config object now has reference to a source and destination
         # classes. We need to instantiate the classes
-        print self.config.source.storage
         source = self.config.source.storage(self.config)
         destination = self.config.destination.storage(self.config)
         # this is the actual functional part of the script.  Read rows from

@@ -50,6 +50,7 @@ class ValueSource(object):
     def __init__(self, source, the_config_manager=None):
         if source is os.environ:
             self.always_ignore_mismatches = True
+            os.environ['__source'] = 'os.environ'
         elif isinstance(source, collections.Mapping):
             self.always_ignore_mismatches = False
         else:
