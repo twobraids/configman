@@ -71,7 +71,6 @@ except ImportError:
     for_handlers.append(for_configparse)
 
 
-
 # create a dispatch table of types/objects to modules.  Each type should have
 # a list of modules that can handle that type.
 class DispatchByType(collections.defaultdict):
@@ -125,8 +124,9 @@ for a_handler in for_handlers:
 def wrap(value_source_list, a_config_manager):
     wrapped_sources = []
     for a_source in value_source_list:
-        if (a_source is ConfigFileFutureProxy \
-            and a_config_manager.missing_config_file_action):
+        #if (a_source is ConfigFileFutureProxy
+            #and a_config_manager.missing_config_file_action):
+        if a_source is ConfigFileFutureProxy:
             a_source = a_config_manager._get_option('admin.conf').value
             if a_source is None:
                 continue
@@ -135,6 +135,7 @@ def wrap(value_source_list, a_config_manager):
             default = a_config_manager._get_option('admin.conf').default
             if (a_source and a_source != default
                         and not os.path.isfile(a_source)):
+                print 'missing file code acted on', a_config_manager.missing_config_file_action
                 a_config_manager.act_on_error(
                     a_config_manager.missing_config_file_action,
                     IOError(a_source)
@@ -145,8 +146,6 @@ def wrap(value_source_list, a_config_manager):
         error_history = []
         for a_handler in handlers:
             try:
-                #print "the source:", a_source
-                #print "the handler:", a_handler
                 wrapped_source = a_handler.ValueSource(a_source,
                                                        a_config_manager)
                 break

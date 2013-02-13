@@ -45,12 +45,14 @@ import ConfigParser
 import io
 from cStringIO import StringIO
 import getopt
+import mock
 
 import configman.config_manager as config_manager
 from configman.dotdict import DotDict, DotDictWithAcquisition
 from configman import (
     Namespace,
     RequiredConfig,
+    IGNORE_ERROR,
     QUIT_ON_ERROR,
     RAISE_EXCEPTION_ON_ERROR,
     NOTE_ERROR_ON_STDERR
@@ -1454,9 +1456,7 @@ c.string =   from ini
         self.assertEqual(conf.destination.cls, T1)
 
     def test_admin_conf_missing_file_ioerror(self):
-        """if you specify an `--admin.conf=...` file that doesn't exist it
-        should not let you get away with it.
-        """
+        """Exception on missing config file"""
         class MyApp(config_manager.RequiredConfig):
             app_name = 'fred'
             app_version = '1.0'
@@ -1474,6 +1474,7 @@ c.string =   from ini
             'the app object class'
         )
 
+        print "test: test_admin_conf_missing_file_ioerror"
         self.assertRaises(
             IOError,
             config_manager.ConfigurationManager,
@@ -1496,6 +1497,95 @@ c.string =   from ini
                 self.assertEqual(config.toplevel.password, 'something')
         finally:
             os.remove('x.ini')
+
+    def test_admin_conf_missing_file_quit(self):
+        """Quit on missing config file"""
+        class MyApp(config_manager.RequiredConfig):
+            app_name = 'fred'
+            app_version = '1.0'
+            app_description = "my app"
+            required_config = config_manager.Namespace()
+            required_config.namespace('toplevel')
+            required_config.toplevel.add_option('password', 'fred', 'the password')
+
+
+        n = config_manager.Namespace()
+        n.admin = config_manager.Namespace()
+        n.add_option(
+            'application',
+            MyApp,
+            'the app object class'
+        )
+
+        with mock.patch('configman.config_manager.sys.exit') as exit:
+            try:
+                c = config_manager.ConfigurationManager(
+                    (n, getopt,),
+                    argv_source=['--admin.conf=x.ini'],
+                    missing_config_file_error_action=QUIT_ON_ERROR
+                )
+            except Exception:
+                pass  # we mocked out the exit, another error handler gets
+                      # invoked so we need to eat that error to get to our
+                      # test if the sys.exit call was done.
+            exit.assert_called_once_with(-1)
+
+    def test_admin_conf_missing_file_ignore(self):
+        """ignore missing config file"""
+        class MyApp(config_manager.RequiredConfig):
+            app_name = 'fred'
+            app_version = '1.0'
+            app_description = "my app"
+            required_config = config_manager.Namespace()
+            required_config.namespace('toplevel')
+            required_config.toplevel.add_option('password', 'fred', 'the password')
+
+
+        n = config_manager.Namespace()
+        n.admin = config_manager.Namespace()
+        n.add_option(
+            'application',
+            MyApp,
+            'the app object class'
+        )
+
+        c = config_manager.ConfigurationManager(
+            (n, getopt,),
+            argv_source=['--admin.conf=x.ini'],
+            missing_config_file_error_action=IGNORE_ERROR
+        )
+
+    def test_admin_conf_missing_file_note_stderr(self):
+        """note on stderr missing config file"""
+        class MyApp(config_manager.RequiredConfig):
+            app_name = 'fred'
+            app_version = '1.0'
+            app_description = "my app"
+            required_config = config_manager.Namespace()
+            required_config.namespace('toplevel')
+            required_config.toplevel.add_option('password', 'fred', 'the password')
+
+
+        n = config_manager.Namespace()
+        n.admin = config_manager.Namespace()
+        n.add_option(
+            'application',
+            MyApp,
+            'the app object class'
+        )
+
+        temp = sys.stderr
+        strerr = StringIO()
+        sys.stderr = strerr
+        try:
+            c = config_manager.ConfigurationManager(
+                (n, getopt,),
+                argv_source=['--admin.conf=x.ini'],
+                missing_config_file_error_action=NOTE_ERROR_ON_STDERR
+            )
+            self.assertEqual(strerr.getvalue(), 'x.ini')
+        finally:
+            sys.stderr = temp
 
     def test_not_an_option_error_exception(self):
         n = config_manager.Namespace()

@@ -470,7 +470,6 @@ class ConfigurationManager(object):
     @staticmethod
     def act_on_error(action, exception):
         if action == QUIT_ON_ERROR:
-            print >>sys.stderr, exception
             sys.exit(-1)
         elif action == NOTE_ERROR_ON_STDERR:
             print >>sys.stderr, exception

@@ -163,6 +163,11 @@ class ValueSource(object):
                 self.config_obj = ConfigObjWithIncludes(source)
                 # save filename for future error reporting
                 self.config_obj["__source"] = source
+            except IOError, x:
+                config_manager.act_on_error(
+                    config_manager.missing_config_file_action,
+                    x
+                )
             except Exception, x:
                 raise LoadingIniFileFailsException(
                   "ConfigObj cannot load ini: %s" % str(x))
