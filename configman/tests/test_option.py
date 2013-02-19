@@ -44,6 +44,7 @@ import configman.converters as conv
 import configman.datetime_util as dtu
 from configman.option import Option
 from configman.config_exceptions import CannotConvertError, OptionError
+from configman.dotdict import DotDict
 
 
 class TestCase(unittest.TestCase):
@@ -141,11 +142,16 @@ class TestCase(unittest.TestCase):
         self.assertEqual(o.from_string_converter,
                          dtu.datetime_from_ISO_string)
         self.assertEqual(o.value, d)
+        self.assertEqual(o.annotation, '')
+        self.assertEqual(o.facets, {})
 
         data = {
           'default': '1.0',
           'doc': "lucy's height",
           'from_string_converter': float,
+          'annotation': 'this option is critical for security.',
+          'facets': DotDict({'importance': 'high',
+                     'type': 'measurement'})
         }
         o = Option('now', **data)
         self.assertEqual(o.name, 'now')
@@ -153,6 +159,18 @@ class TestCase(unittest.TestCase):
         self.assertEqual(o.doc, "lucy's height")
         self.assertEqual(o.from_string_converter, float)
         self.assertEqual(o.value, 1.0)
+        self.assertEqual(o.facets.importance, 'high')
+        self.assertEqual(o.facets.type, 'measurement')
+
+        data = {
+          'default': '1.0',
+          'doc': "lucy's height",
+          'from_string_converter': float,
+          'annotation': 'this option is critical for security.',
+          'facets': 'this is not a mapping'
+        }
+        self.assertRaises(TypeError, Option, 'thingy', data)
+
 
     def test_option_constructor_more_complex_default_converters(self):
         data = {

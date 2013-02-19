@@ -36,14 +36,41 @@
 #
 # ***** END LICENSE BLOCK *****
 
-import collections
+from collections import Mapping
 
 import converters as conv
 from config_exceptions import CannotConvertError, OptionError
+from dotdict import DotDict
 
 
 #==============================================================================
 class Option(object):
+    """The Option class defines the settable initialization values for a
+    within a namespace.
+
+    Components:
+        name - the string by which to refer to this option
+        default - the future value of this option if the user never sets the
+                  value at run time.  If no 'from_string_converter' function,
+                  is specified, the type of the default will be used.
+        doc - a one sentence summary of the use of this Option.  This is the
+              string that will be shown to the user as the output of 'help'
+        from_string_converter - a function that will turn a string
+                                representation of the Option value into the
+                                proper typpe.
+        short_form - an alternative short name for this Option. It is only used
+                     for the single dash form of command line arguments.
+        exclude_from_print_conf - a boolean to prevent a this option's value
+                                  from being printed if the configuration is
+                                  dumped to stdout.
+        exclude_from_dump_conf - a boolean to prevent this Option's value from
+                                 being put into a configuration file.
+        annotation - a more extensive description of the use of this Option.
+        facets - a mapping of domains to values. This can be used to categorize
+                 Options. Not used internally, it is for constructing app
+                 support structure for documentation and setup/install apps
+                 for larger systems.
+        """
     #--------------------------------------------------------------------------
     def __init__(self,
                  name,
@@ -54,6 +81,8 @@ class Option(object):
                  short_form=None,
                  exclude_from_print_conf=False,
                  exclude_from_dump_conf=False,
+                 annotation='',
+                 facets=DotDict(),
                  ):
         self.name = name
         self.short_form = short_form
@@ -75,7 +104,15 @@ class Option(object):
             self.default = self.from_string_converter(self.default)
         self.exclude_from_print_conf = exclude_from_print_conf
         self.exclude_from_dump_conf = exclude_from_dump_conf
+        self.annotation = annotation
+        if isinstance(facets, DotDict):
+            self.facets = facets
+        elif isinstance(facets, Mapping):
+            self.facets = DotDict(facets)
+        else:
+            raise TypeError('facets must be of a Mapping type')
 
+    #--------------------------------------------------------------------------
     def __eq__(self, other):
         if isinstance(other, Option):
             return (self.name == other.name
@@ -89,6 +126,7 @@ class Option(object):
                     self.value == other.value
                     )
 
+    #--------------------------------------------------------------------------
     def __repr__(self):  # pragma: no cover
         if self.default is None:
             return '<Option: %r>' % self.name
@@ -111,7 +149,7 @@ class Option(object):
                 raise CannotConvertError(val)
         elif isinstance(val, Option):
             self.value = val.default
-        elif isinstance(val, collections.Mapping) and 'default' in val:
+        elif isinstance(val, Mapping) and 'default' in val:
             self.set_value(val["default"])
         else:
             self.value = val
@@ -152,6 +190,11 @@ class Option(object):
 
 #==============================================================================
 class Aggregation(object):
+    """An Aggregation is essentially like a property in a Python class.  Rather
+    than being a value that is set by the user of this class, it is calculated
+    at the very end by applying a function to the final values of Options.
+
+    This is handy for setting up object factories or connection resources."""
     #--------------------------------------------------------------------------
     def __init__(self,
                  name,

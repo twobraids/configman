@@ -107,10 +107,14 @@ class ValueSource(object):
                 d = d[x]
             if isinstance(val, Option):
                 for okey, oval in val.__dict__.iteritems():
-                    try:
-                        d[okey] = conv.to_string_converters[type(oval)](oval)
-                    except KeyError:
-                        d[okey] = str(oval)
+                    if isinstance(oval, collections.Mapping):
+                        oval = conv.mapping_to_str(oval)
+                    else:
+                        try:
+                            d[okey] = \
+                                conv.to_string_converters[type(oval)](oval)
+                        except KeyError:
+                            d[okey] = str(oval)
                 d['default'] = d['value']
             elif isinstance(val, Aggregation):
                 d['name'] = val.name

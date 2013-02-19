@@ -40,6 +40,7 @@ import unittest
 import tempfile
 from configman import converters
 from configman import RequiredConfig, Namespace, ConfigurationManager
+from configman.dotdict import DotDict
 
 # the following two classes are used in test_classes_in_namespaces_converter1
 # and need to be declared at module level scope
@@ -214,6 +215,32 @@ class TestCase(unittest.TestCase):
         converter_fn = converters.from_string_converters[type(d)]
         dd = converter_fn(s)
         self.assertEqual(dd, d)
+
+    def test_dict_conversions_2(self):
+        d = {
+          'a': 1,
+          'b': 'fred',
+          'c': 3.1415,
+          'd': DotDict({'x': 17,
+                        'y': 'wilma',
+                        'z': '2.89'})
+        }
+        e = {
+          'a': 1,
+          'b': 'fred',
+          'c': 3.1415,
+          'd': {'x': 17,
+                'y': 'wilma',
+                'z': '2.89'}
+        }
+        converter_fn = converters.to_string_converters[type(d)]
+        s = converter_fn(d)
+
+        # round  trip
+        converter_fn = converters.from_string_converters[type(d)]
+        dd = converter_fn(s)
+        self.assertEqual(dd, e)
+
 
     def test_classes_in_namespaces_converter_1(self):
         converter_fn = converters.classes_in_namespaces_converter('HH%d')

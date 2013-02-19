@@ -41,8 +41,9 @@ import re
 import datetime
 import types
 import inspect
-import collections
 import json
+
+from collections import Mapping
 
 from required_config import RequiredConfig
 from namespace import Namespace
@@ -355,6 +356,23 @@ def list_to_str(a_list):
     return ', '.join(to_string_converters[type(x)](x) for x in a_list)
 
 #------------------------------------------------------------------------------
+def mapping_to_dict(a_mapping):
+    """safe copy of a generic mapping into a regular old dict instance.
+    This is useful for converting arbitrary mappings to dict that can be
+    serialized into a json structure"""
+    d = {}
+    for key, value in a_mapping.iteritems():
+        if isinstance(value, Mapping):
+            d[key] = mapping_to_dict(value)
+        else:
+            d[key] = value
+    return d
+
+#------------------------------------------------------------------------------
+def mapping_to_str(a_mapping):
+    return json.dumps(mapping_to_dict(a_mapping))
+
+#------------------------------------------------------------------------------
 to_string_converters = {
     int: str,
     float: str,
@@ -363,7 +381,7 @@ to_string_converters = {
     list: list_to_str,
     tuple: list_to_str,
     bool: lambda x: 'True' if x else 'False',
-    dict: json.dumps,
+    dict: mapping_to_str,
     datetime.datetime: datetime_util.datetime_to_ISO_string,
     datetime.date: datetime_util.date_to_ISO_string,
     datetime.timedelta: datetime_util.timedelta_to_str,
