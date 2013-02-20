@@ -1361,8 +1361,44 @@ c.string =   from ini
         finally:
             os.remove('x.ini')
 
-    def test_bad_options(self):
-        """tests _check_for_mismatches"""
+    #def test_bad_options(self):
+        #"""tests _check_for_mismatches"""
+        #rc = Namespace()
+        #rc.namespace('source')
+        #rc.source.add_option('cls',
+                             #default='configman.tests.test_config_manager.T1',
+                             #from_string_converter=class_converter)
+        #rc.namespace('destination')
+        #rc.destination.add_option('cls',
+                                  #default='configman.tests.test_config_manager.T2',
+                                  #from_string_converter=class_converter)
+        #self.assertRaises( #  'classy' is not an option
+            #NotAnOptionError,
+            #config_manager.ConfigurationManager,
+            #rc,
+            #[{'source': {'clos': 'configman.tests.test_config_manager.T2'},
+              #'destination': {'cls': 'configman.tests.test_config_manager.T3'}},
+             #{'source': {'cls': 'configman.tests.test_config_manager.T1'},
+                         #'destination': {'cls': 'configman.tests.test_config_manager.T2'}},
+             #{'source': {'classy': 'configman.tests.test_config_manager.T3'},
+                         #'destination': {'cls': 'configman.tests.test_config_manager.T1'}},
+            #],
+        #)
+        #self.assertRaises(  # 'sourness' not a namespace
+            #NotAnOptionError,
+            #config_manager.ConfigurationManager,
+            #rc,
+            #[{'source': {'clos': 'configman.tests.test_config_manager.T2'},
+              #'destination': {'cls': 'configman.tests.test_config_manager.T3'}},
+             #{'sourness': {'cls': 'configman.tests.test_config_manager.T1'},
+                         #'destination': {'cls': 'configman.tests.test_config_manager.T2'}},
+             #{'source': {'cls': 'configman.tests.test_config_manager.T3'},
+                         #'destination': {'cls': 'configman.tests.test_config_manager.T1'}},
+            #],
+        #)
+
+    def test_acquisition(self):
+        """"""
         rc = Namespace()
         rc.namespace('source')
         rc.source.add_option('cls',
@@ -1372,28 +1408,13 @@ c.string =   from ini
         rc.destination.add_option('cls',
                                   default='configman.tests.test_config_manager.T2',
                                   from_string_converter=class_converter)
-        self.assertRaises( #  'classy' is not an option
-            NotAnOptionError,
-            config_manager.ConfigurationManager,
+        cm =  config_manager.ConfigurationManager(
             rc,
-            [{'source': {'clos': 'configman.tests.test_config_manager.T2'},
-              'destination': {'cls': 'configman.tests.test_config_manager.T3'}},
-             {'source': {'cls': 'configman.tests.test_config_manager.T1'},
-                         'destination': {'cls': 'configman.tests.test_config_manager.T2'}},
-             {'source': {'classy': 'configman.tests.test_config_manager.T3'},
-                         'destination': {'cls': 'configman.tests.test_config_manager.T1'}},
+            [
+                {'cls': 'configman.tests.test_config_manager.T2'},
             ],
         )
-        self.assertRaises(  # 'sourness' not a namespace
-            NotAnOptionError,
-            config_manager.ConfigurationManager,
-            rc,
-            [{'source': {'clos': 'configman.tests.test_config_manager.T2'},
-              'destination': {'cls': 'configman.tests.test_config_manager.T3'}},
-             {'sourness': {'cls': 'configman.tests.test_config_manager.T1'},
-                         'destination': {'cls': 'configman.tests.test_config_manager.T2'}},
-             {'source': {'cls': 'configman.tests.test_config_manager.T3'},
-                         'destination': {'cls': 'configman.tests.test_config_manager.T1'}},
-            ],
-        )
+        c = cm.get_config()
+        self.assertEqual(c.source.cls, T2)
+
 

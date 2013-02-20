@@ -472,13 +472,16 @@ class ConfigurationManager(object):
                             )
                             # make sure it is in the form of a DotDict
                             if not isinstance(val_src_dict, DotDict):
-                                val_src_dict = DotDict(val_src_dict)
+                                val_src_dict = \
+                                    DotDictWithAcquisition(val_src_dict)
                             # get the Option for this key
                             opt = self.option_definitions[key]
                             # overlay the default with the new value from
-                            # the value source
+                            # the value source.  This assignment may come
+                            # via acquisition, so the key given may not have
+                            # been an exact match for what was returned.
                             opt.default = val_src_dict[key]
-                        except KeyError:
+                        except KeyError, x:
                             pass  # okay, that source doesn't have this value
 
             # expansion process:
@@ -520,22 +523,39 @@ class ConfigurationManager(object):
                     continue
             except AttributeError:
                 # ok, this values source doesn't have the concept
+                # always igoring mismatches, we won't tolerate mismatches
                 pass
+            # make a set of all the keys from a value source in the form
+            # of strings like this: 'x.y.z'
             value_source_mapping = a_value_source.get_values(self, True)
             value_source_keys_set = set([
                 k for k in
                 DotDict(value_source_mapping).keys_breadth_first()
             ])
+            # make a set of the keys that didn't match any of the known
+            # keys in the requirements
             unmatched_keys = value_source_keys_set.difference(known_keys)
-            if unmatched_keys:
-                if len(unmatched_keys) > 1:
-                    raise exc.NotAnOptionError(
-                        "%s are not valid Options" % unmatched_keys
-                    )
-                else:
-                    raise exc.NotAnOptionError(
-                        "%s is not a valid Option" % unmatched_keys.pop()
-                    )
+            # some of the unmatched keys may actually be ok because the were
+            # used during acquisition.
+            # remove keys of the form 'y.z' if they match a known key of the
+            # form 'x.y.z'
+            for key in unmatched_keys.copy():
+                key_is_okay = reduce(
+                    lambda x, y: x or y,
+                    (known_key.endswith(key) for known_key in known_keys)
+                )
+                if key_is_okay:
+                    unmatched_keys.remove(key)
+            # anything left in the unmatched_key set is a badly formed key.
+            # raise hell...
+            if len(unmatched_keys) > 1:
+                raise exc.NotAnOptionError(
+                    "%s are not valid Options" % unmatched_keys
+                )
+            elif len(unmatched_keys) == 1:
+                raise exc.NotAnOptionError(
+                    "%s is not a valid Option" % unmatched_keys.pop()
+                )
 
     #--------------------------------------------------------------------------
     @staticmethod

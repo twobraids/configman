@@ -205,23 +205,71 @@ class DotDictWithAcquisition(DotDict):
     """This mapping, a derivative of DotDict, has special semantics when
     nested with mappings of the same type.
 
-        d = DotDict()
+        d = DotDictWithAcquisition()
         d.a = 23
-        d.dd = DotDict()
+        d.dd = DotDictWithAcquisition()
         assert d.dd.a == 23
 
-    Nested instances of DotDict, when faced with a key not within the local
-    mapping, will defer to the parent DotDict to find a key.  Only if the key
-    is not found in the root of the nested mappings will the KeyError be
-    raised.  This is similar to the "acquisition" system found in Zope.
+    Nested instances of DotDictWithAcquisition, when faced with a key not
+    within the local mapping, will defer to the parent DotDict to find a key.
+    Only if the key is not found in the root of the nested mappings will the
+    KeyError be raised.  This is similar to the "acquisition" system found in
+    Zope.
 
-        d = DotDict()
-        d.dd = DotDict()
+        d = DotDictWithAcquisition()
+        d.dd = DotDictWithAcquisition()
         try:
             d.dd.x
         except KeyError:
             print "'x' was not found in d.dd or in d"
+
+    When used with keys of the form 'x.y.z', acquisition can allow it to return
+    acquired values even if the intermediate keys don't exist:
+
+        d = DotDictWithAcquisition()
+        d.a = 39
+        assert d['x.y.z.a'] == 39
+
+    Interestingly, indexing each component individually will result in a
+    KeyError:
+
+        d = DotDictWithAcquisition()
+        d.a = 39
+        try:
+            print d.x.y.z.a
+        except KeyError, e:
+            assert str(e) == 'x'
+
+    This behavior seems inconsistent, but really works so by design.  The form
+    d.x.y.z.a is really equivalent to:
+
+        t0 = d.x
+        t1 = t0.y
+        t2 = t1.z
+        result = t2.a
+
+    When broken out into separate operations, we want key errors to happen.
+    Contrarily, the form d['x.y.z.a'] is a single lookup operation that reveals
+    that our goal is to get a value for 'a'.  Since this class has acquisition,
+    and 'a' is defined in the base, it is perfectly allowable.
     """
+
+    def __getitem__(self, key):
+        """define the square bracket operator to refer to the object's __dict__
+        for fetching values.  It accepts keys in the form 'x.y.z'"""
+        key_split = key.split('.')
+        last_index = len(key_split) - 1
+        current = self
+        for i, k in enumerate(key_split):
+            try:
+                current = getattr(current, k)
+            except KeyError:
+                if i == last_index:
+                    raise
+                temp_dict = DotDictWithAcquisition()
+                temp_dict._parent = weakref.proxy(current)
+                current = temp_dict
+        return current
 
     def __setattr__(self, key, value):
         """this function saves keys into the mapping's __dict__.  If the

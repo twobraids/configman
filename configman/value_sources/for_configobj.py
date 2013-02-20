@@ -209,8 +209,12 @@ class ValueSource(object):
           output_stream=output_stream
         )
 
+    def _write_ini(source_dict, output_stream=sys.stdout):
+        flattened_dict = flatten_dict(source_dict)
+        self._write_ini_impl(flattened_dict, output_stream)
+
     @staticmethod
-    def _write_ini(source_dict, level=0, indent_size=4,
+    def _write_ini_impl(source_dict, level=0, indent_size=4,
                    output_stream=sys.stdout):
         """this function prints the components of a configobj ini file.  It is
         recursive for outputing the nested sections of the ini file."""
