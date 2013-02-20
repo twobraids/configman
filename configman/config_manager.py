@@ -194,7 +194,8 @@ class ConfigurationManager(object):
             self
         )
 
-        self._overlay_expand()
+        known_keys = self._overlay_expand()
+        self._check_for_mismatches(known_keys)
 
         # the app_name, app_version and app_description are to come from
         # if 'application' option if it is present. If it is not present,
@@ -445,21 +446,21 @@ class ConfigurationManager(object):
         those into the current namespace and then proceed to overlay/expand
         those.
         """
-        keys_have_been_processed = True  # loop control, False breaks the loop
-        processed_keys = set()  # a set of keys that have been expanded
+        new_keys_discovered = True  # loop control, False breaks the loop
+        known_keys = set()  # a set of keys that have been expanded
 
-        while keys_have_been_processed:  # loop until nothing more is done
+        while new_keys_discovered:  # loop until nothing more is done
             # keys holds a list of all keys in the option definitons in
             # breadth first order using this form: [ 'x', 'y', 'z', 'x.a',
             # 'x.b', 'z.a', 'z.b', 'x.a.j', 'x.a.k', 'x.b.h']
             keys = [x for x in self.option_definitions.keys_breadth_first()]
-            keys_have_been_processed = False  # setup to break loop
+            new_keys_discovered = False  # setup to break loop
 
             # overlay process:
             # fetch all the default values from the value sources before
             # applying the from string conversions
             for key in keys:
-                if key not in processed_keys:  # skip all keys previously seen
+                if key not in known_keys:  # skip all keys previously seen
                     # loop through all the value sources looking for values
                     # that match this current key.
                     for a_value_source in self.values_source_list:
@@ -484,16 +485,16 @@ class ConfigurationManager(object):
             # step through all the keys converting them to their proper
             # types and bringing in any new keys in the process
             for key in keys:
-                if key not in processed_keys:  # skip all keys previously seen
+                if key not in known_keys:  # skip all keys previously seen
                     an_option = self.option_definitions[key]
                     if isinstance(an_option, Aggregation):
                         continue  # aggregations are ignored
                     # apply the from string conversion to make the real value
                     an_option.set_value(an_option.default)
                     # mark this key as having been seen an processed
-                    processed_keys.add(key)
+                    known_keys.add(key)
                     # new values have been seen, don't let loop break
-                    keys_have_been_processed = True
+                    new_keys_discovered = True
                     try:
                         # try to fetch new requirements from this value
                         new_req = an_option.value.get_required_config()
@@ -508,8 +509,11 @@ class ConfigurationManager(object):
                         # there are apparently no new Options to bring in from
                         # this option's value
                         pass
+        return known_keys
 
-        # check for bad options from value sources:
+    #--------------------------------------------------------------------------
+    def _check_for_mismatches(self, known_keys):
+        """check for bad options from value sources"""
         for a_value_source in self.values_source_list:
             try:
                 if a_value_source.always_ignore_mismatches:
@@ -522,7 +526,7 @@ class ConfigurationManager(object):
                 k for k in
                 DotDict(value_source_mapping).keys_breadth_first()
             ])
-            unmatched_keys = value_source_keys_set.difference(processed_keys)
+            unmatched_keys = value_source_keys_set.difference(known_keys)
             if unmatched_keys:
                 if len(unmatched_keys) > 1:
                     raise exc.NotAnOptionError(
