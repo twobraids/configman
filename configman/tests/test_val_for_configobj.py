@@ -230,6 +230,77 @@ aaa='2011-05-04T15:10:00'
             out.close()
             self.assertEqual(expected.strip(), received.strip())
 
+        def test_write_ini_with_migration(self):
+            n = self._some_namespaces()
+            n.namespace('o')
+            n.o.add_option('password', 'secret "message"', 'the password')
+            c = config_manager.ConfigurationManager(
+              [n],
+              use_admin_controls=True,
+              #use_config_files=False,
+              use_auto_help=False,
+              argv_source=[]
+            )
+            expected = \
+"""# name: aaa
+# doc: the a
+# converter: configman.datetime_util.datetime_from_ISO_string
+aaa='2011-05-04T15:10:00'
+
+# name: password
+# doc: the password
+# converter: str
+password='secret "message"'
+
+[c]
+
+    # name: fred
+    # doc: husband from Flintstones
+    # converter: str
+    fred='stupid, deadly'
+
+    # name: wilma
+    # doc: wife from Flintstones
+    # converter: str
+    wilma="waspish's"
+
+[d]
+
+    # name: ethel
+    # doc: female neighbor from I Love Lucy
+    # converter: str
+    ethel='\"\"\"silly\"\"\"'
+
+    # name: fred
+    # doc: male neighbor from I Love Lucy
+    # converter: str
+    fred="\'\'\'crabby\'\'\'"
+
+[o]
+
+    # name: password
+    # doc: the password
+    # converter: str
+    # password='secret "message"'
+
+[x]
+
+    # name: password
+    # doc: the password
+    # converter: str
+    # password='secret "message"'
+
+    # name: size
+    # doc: how big in tons
+    # converter: int
+    size='100'
+"""
+            out = StringIO()
+            c.write_conf(for_configobj, opener=stringIO_context_wrapper(out))
+            received = out.getvalue()
+            out.close()
+            self.assertEqual(expected.strip(), received.strip())
+
         def test_configobj_includes_inside_sections(self):
             include_file_name = ''
             ini_file_name = ''

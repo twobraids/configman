@@ -371,12 +371,66 @@ class ConfigurationManager(object):
         if skip_keys:
             blocked_keys.extend(skip_keys)
 
-        option_iterator = functools.partial(self._walk_config,
-                                       blocked_keys=blocked_keys)
+        if blocked_keys:
+            option_defs = self.option_definitions.safe_copy()
+            for a_blocked_key in blocked_keys:
+                try:
+                    del option_defs[a_blocked_key]
+                except AttributeError:
+                    # okay that key isn't here
+                    pass
+            # remove empty namespaces
+            all_keys = [k for k in
+                        option_defs.keys_breadth_first(include_dicts=True)]
+            for key in all_keys:
+                candidate = option_defs[key]
+                if (isinstance(candidate, Namespace) and not len(candidate)):
+                    del option_defs[key]
+        else:
+            option_defs = self.option_definitions
+
+        self._migrate_options_for_acquisition(option_defs)
 
         value_sources.write(config_file_type,
-                            option_iterator,
+                            option_defs,
                             opener)
+
+    #--------------------------------------------------------------------------
+    @staticmethod
+    def _migrate_options_for_acquisition(option_defs):
+        """sift through the definitions looking for common keys that can be
+        migrated to a lower level in the hierarchy."""
+        # create a mapping with these characteristics:
+        #    key - composed of the values from Option objects for 'name',
+        #          'default' and 'from_string' converstion function.
+        #    value - a list of the the keys from the currently active option
+        #            definition.
+        #
+        # this implements a reverse index of value to keys for the system of
+        # Namespaces and Options that make up the configuration manager's
+        # option definition mapping.
+        #
+        # the mapping is keyed by the option name, its default value and
+        # the from_string_converter function.  If all these things are the
+        # same in two options, then it is considered that they are referring
+        # to the same option. This means that that option can migrate to a
+        # lower level
+        migration_candidates = collections.defaultdict(list)
+        # cycle through all the keys
+        for key in option_defs.keys_breadth_first():
+            an_option = option_defs[key]
+            migration_candidates[(
+                an_option.name,
+                str(an_option.default),
+                str(an_option.from_string_converter)
+            )].append(key)
+        for candidate, original_keys in migration_candidates.iteritems():
+            if len(original_keys) > 1:
+                option_defs[candidate[0]] = \
+                    option_defs[original_keys[0]].copy()
+                option_defs[candidate[0]].not_for_definition = True
+                for a_key in original_keys:
+                    option_defs[a_key].comment_out = True
 
     #--------------------------------------------------------------------------
     def log_config(self, logger):

@@ -99,7 +99,7 @@ class TestCase(unittest.TestCase):
         for key, value in expect_to_find.items():
             self.assertEqual(jrec['aaa'][key], value)
 
-    def test_json_round_trip(self):
+    def donttest_json_round_trip(self):
         n = config_manager.Namespace(doc='top')
         n.add_option('aaa', '2011-05-04T15:10:00', 'the a',
           short_form='a',

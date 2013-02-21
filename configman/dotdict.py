@@ -146,8 +146,27 @@ class DotDict(collections.MutableMapping):
 
     def __delitem__(self, key):
         """define the square bracket operator to refer to the object's __dict__
-        for deleting values."""
-        del self.__dict__[key]
+        for deleting values.
+        examples:
+           d = DotDict()
+           d['a.b.c'] = 8
+           assert isinstance(d.a, DotDict)
+           assert isinstance(d.a.b, DotDict)
+           del d['a.b.c']
+           assert isinstance(d.a, DotDict)
+           assert isinstance(d.a.b, DotDict)
+           assert 'c' not in d.a.b
+
+           d = DotDict()
+           d['a.b.c'] = 8
+           del d.a
+           assert 'a' not in d
+        """
+        key_split = key.split('.')
+        current = self
+        for k in key_split[:-1]:
+            current = getattr(current, k)
+        current.__delattr__(key_split[-1])
 
     def __iter__(self):
         """redirect the default iterator to iterate over the object's __dict__

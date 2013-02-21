@@ -71,7 +71,11 @@ class Option(object):
         self.value = value
         self.exclude_from_print_conf = exclude_from_print_conf
         self.exclude_from_dump_conf = exclude_from_dump_conf
+        self.comment_out = False  # used internally
+        self.references = []  # used internally
+        self.not_for_definition = False  # used internally
 
+    #--------------------------------------------------------------------------
     def __eq__(self, other):
         if isinstance(other, Option):
             return (self.name == other.name
@@ -85,6 +89,7 @@ class Option(object):
                     self.value == other.value
                     )
 
+    #--------------------------------------------------------------------------
     def __repr__(self):  # pragma: no cover
         if self.default is None:
             return '<Option: %r>' % self.name
@@ -146,6 +151,23 @@ class Option(object):
         else:
             raise OptionError("cannot override existing default without "
                               "using the 'force' option")
+
+    #--------------------------------------------------------------------------
+    def copy(self):
+        """return a copy"""
+        o = Option(
+            name=self.name,
+            default=self.default,
+            doc=self.doc,
+            from_string_converter=self.from_string_converter,
+            value=self.value,
+            short_form=self.short_form,
+            exclude_from_print_conf=self.exclude_from_print_conf,
+            exclude_from_dump_conf=self.exclude_from_dump_conf,
+        )
+        o.comment_out = self.comment_out
+        o.references = self.references
+        return o
 
 
 #==============================================================================
