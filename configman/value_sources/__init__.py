@@ -156,7 +156,6 @@ def wrap(value_source_list, a_config_manager):
 def has_registration_for(config_file_type):
     return config_file_type in file_extension_dispatch
 
-
 def write(config_file_type,
           options_mapping,
           opener):
@@ -179,7 +178,6 @@ def write(config_file_type,
                 options_mapping,
                 output_stream
         )
-
 
 def config_filename_from_commandline(config_manager):
     command_line_value_source = for_getopt.ValueSource(
