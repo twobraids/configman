@@ -176,7 +176,7 @@ def write(config_file_type,
         with opener() as output_stream:
             config_file_type.ValueSource.write(
                 options_mapping,
-                output_stream
+                output_stream=output_stream
         )
 
 def config_filename_from_commandline(config_manager):
