@@ -148,8 +148,11 @@ def wrap(value_source_list, a_config_manager):
                 # the handlers.  It's only fatal when they've all failed
                 error_history.append(str(x))
         if wrapped_source is None:
-            errors = '; '.join(error_history)
-            raise AllHandlersFailedException(errors)
+            if error_history:
+                errors = '; '.join(error_history)
+                raise AllHandlersFailedException(errors)
+            else:
+                raise NoHandlerForType(type(a_source))
         wrapped_sources.append(wrapped_source)
     return wrapped_sources
 
@@ -169,7 +172,7 @@ def write(config_file_type,
                 config_file_type
             )
         with opener() as output_stream:
-            writer_fn(options_mapping, blocked_keys, output_stream)
+            writer_fn(options_mapping, output_stream=output_stream)
     else:
         # this is the case where we've not gotten a file extension, but a
         # for_handler module.  Use the module's ValueSource's write method
