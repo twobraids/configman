@@ -199,7 +199,6 @@ class ValueSource(object):
           for value in source_dict.values()
               if isinstance(value, Option)
         ]
-        print options
         options.sort(cmp=lambda x, y: cmp(x.name, y.name))
         namespaces = [
           (key, value)

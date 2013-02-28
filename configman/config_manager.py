@@ -376,7 +376,7 @@ class ConfigurationManager(object):
             for a_blocked_key in blocked_keys:
                 try:
                     del option_defs[a_blocked_key]
-                except AttributeError:
+                except (AttributeError, KeyError):
                     # okay that key isn't here
                     pass
             # remove empty namespaces

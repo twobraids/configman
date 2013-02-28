@@ -237,7 +237,6 @@ aaa='2011-05-04T15:10:00'
             c = config_manager.ConfigurationManager(
               [n],
               use_admin_controls=True,
-              #use_config_files=False,
               use_auto_help=False,
               argv_source=[]
             )
