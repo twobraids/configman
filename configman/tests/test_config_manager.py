@@ -54,7 +54,8 @@ import configman.datetime_util as dtu
 from configman.config_exceptions import NotAnOptionError
 from configman.value_sources.source_exceptions import (
   AllHandlersFailedException,
-  UnknownFileExtensionException
+  UnknownFileExtensionException,
+  NoHandlerForType
 )
 import configman.value_sources
 import configman.value_sources.for_configparse
@@ -1111,7 +1112,7 @@ c.string =   from ini
                     os.path.isdir = temp_fn
                 return r
 
-        self.assertRaises(AllHandlersFailedException,
+        self.assertRaises(NoHandlerForType,
                           MyConfigManager,
                           use_admin_controls=True,
                           use_auto_help=False,

@@ -146,7 +146,9 @@ def wrap(value_source_list, a_config_manager):
             except ValueException, x:
                 # a failure is not necessarily fatal, we need to try all of
                 # the handlers.  It's only fatal when they've all failed
-                error_history.append(str(x))
+                exception_as_str = str(x)
+                if exception_as_str:
+                    error_history.append(str(x))
         if wrapped_source is None:
             if error_history:
                 errors = '; '.join(error_history)
