@@ -120,6 +120,7 @@ class ConfigurationManager(object):
                             file is optional.  Note: this is only for the
                             default config file.  If a config file is specified
                             on the commandline, it _must_ exsist."""
+
         # instead of allowing mutables as default keyword argument values...
         if definition_source is None:
             definition_source_list = []
@@ -645,7 +646,7 @@ class ConfigurationManager(object):
                                     '%s.ini' % self.app_name)
             else:
                 # there is no app_name yet
-                # we'll punt and use 'config'
+                # we'll decline to return anything
                 return None
         return self.config_pathname
 

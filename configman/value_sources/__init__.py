@@ -117,7 +117,7 @@ for a_handler in for_handlers:
                                                     a_handler.ValueSource.write
     except AttributeError:
         # this handler doesn't have a 'file_name_extension' or ValueSource
-        # therefore it is not eligibe for the write file dispatcher
+        # therefore it is not eligible for the write file dispatcher
         pass
 
 
