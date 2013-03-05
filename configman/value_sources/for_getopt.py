@@ -122,7 +122,10 @@ class ValueSource(object):
             else:
                 command_line_values[name] = opt_val
         for name, value in zip(
-            self._get_arguments(config_manager.option_definitions),
+            self._get_arguments(
+                config_manager.option_definitions,
+                command_line_values
+            ),
             config_manager.args
         ):
             command_line_values[name] = value
@@ -225,7 +228,8 @@ class ValueSource(object):
 
     #--------------------------------------------------------------------------
     @staticmethod
-    def _get_arguments(option_definitions):
+    def _get_arguments(option_definitions, switches_already_used):
         for key in option_definitions.keys_breadth_first():
-            if option_definitions[key].is_argument:
+            if option_definitions[key].is_argument \
+               and key not in switches_already_used:
                 yield key

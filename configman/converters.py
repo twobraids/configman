@@ -48,6 +48,7 @@ from namespace import Namespace
 
 from .datetime_util import datetime_from_ISO_string as datetime_converter
 from .datetime_util import date_from_ISO_string as date_converter
+from .config_exceptions import CannotConvertError
 
 import datetime_util
 

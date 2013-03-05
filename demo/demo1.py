@@ -61,19 +61,20 @@ def backwards(x):
 def upper(x):
     print x.upper()
 
-upper.required_config = Namespace()
-upper.required_config.add_option(
-    'second_word',
-    doc='a second word',
-    default=None,
-    is_argument=True
-)
-
 # create the definitions for the parameters that are to come from
 # the command line or config file.  First we create a container called a
 # namespace for the configuration parameters.
 definition_source = Namespace()
 # now we start adding options to the container. This first option
+# defines how we'll interpret the first argument. From the user perspective
+# there are three ways to give the command to the app.
+definition_source.add_option('action',
+                             default=None,
+                             doc='the action to take [echo, backwards, upper]',
+                             short_form='a',
+                             is_argument=True,
+                             from_string_converter=class_converter)
+
 # defines on the command line '--text' and '-t' swiches.  For configuration
 # files, this defines a top level entry of 'text' and assigns the value
 # 'Socorro Forever' to it.
@@ -82,15 +83,6 @@ definition_source.add_option('text',
                              doc='the text input value',
                              short_form='t',
                              is_argument=True,)
-# this second option definition defines the command line switches '--action'
-# and '-a'
-definition_source.add_option('action',
-                             default='echo',
-                             doc='the action to take [echo, backwards, upper]',
-                             short_form='a',
-                             is_argument=True,
-                             from_string_converter=class_converter)
-
 # set up the manager with the option definitions along with the 'app_name' and
 # 'app_description'.  They will both be used later to create  the output of the
 # automatically created '--help' command line switch.
@@ -108,14 +100,7 @@ try:
     config = c.get_config()
     config.action(config.text)
 except AttributeError, x:
-    print str(x)
+    print "%s is not a valid command"
+except TypeError:
+    print "you must specify an action"
 
-# use the config
-#if config.action == 'echo':
-    #echo(config.text)
-#elif config.action == 'backwards':
-    #backwards(config.text)
-#elif config.action == 'upper':
-    #upper(config.text)
-#else:
-    #print >>sys.stderr, config.action, "is not a valid action"
