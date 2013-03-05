@@ -54,6 +54,7 @@ class Option(object):
                  short_form=None,
                  exclude_from_print_conf=False,
                  exclude_from_dump_conf=False,
+                 is_argument=False,
                  ):
         self.name = name
         self.short_form = short_form
@@ -69,6 +70,7 @@ class Option(object):
         if value is None:
             value = default
         self.value = value
+        self.is_argument = is_argument
         self.exclude_from_print_conf = exclude_from_print_conf
         self.exclude_from_dump_conf = exclude_from_dump_conf
         self.comment_out = False  # used internally

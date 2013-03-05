@@ -71,13 +71,15 @@ definition_source = Namespace()
 definition_source.add_option('text',
                              default='Socorro Forever',
                              doc='the text input value',
-                             short_form='t')
+                             short_form='t',
+                             is_argument=True)
 # this second option definition defines the command line switches '--action'
 # and '-a'
 definition_source.add_option('action',
                              default='echo',
                              doc='the action to take [echo, backwards, upper]',
-                             short_form='a')
+                             short_form='a',
+                             is_argument=True)
 
 # set up the manager with the option definitions along with the 'app_name' and
 # 'app_description'.  They will both be used later to create  the output of the

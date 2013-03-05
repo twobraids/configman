@@ -121,6 +121,11 @@ class ValueSource(object):
                 command_line_values[name] = not option_.default
             else:
                 command_line_values[name] = opt_val
+        for name, value in zip(
+            self._get_arguments(config_manager.option_definitions),
+            config_manager.args
+        ):
+            command_line_values[name] = value
         return command_line_values
 
     def getopt_create_opts(self, option_definitions):
@@ -217,3 +222,10 @@ class ValueSource(object):
                 except KeyError:
                     continue
         return None
+
+    #--------------------------------------------------------------------------
+    @staticmethod
+    def _get_arguments(option_definitions):
+        for key in option_definitions.keys_breadth_first():
+            if option_definitions[key].is_argument:
+                yield key
