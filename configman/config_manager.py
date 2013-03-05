@@ -131,7 +131,8 @@ class ConfigurationManager(object):
             definition_source_list = [definition_source]
 
         if argv_source is None:
-            argv_source = sys.argv[1:]
+            self.argv_source = sys.argv[1:]
+            self.app_invocation_name = sys.argv[0]
         if options_banned_from_help is None:
             options_banned_from_help = ['application']
         self.config_pathname = config_pathname
@@ -146,7 +147,6 @@ class ConfigurationManager(object):
 
         self._config = None  # eventual container for DOM-like config object
 
-        self.argv_source = argv_source
         self.option_definitions = Namespace()
         self.definition_source_list = definition_source_list
 
@@ -277,9 +277,23 @@ class ConfigurationManager(object):
             print >> output_stream, ''
 
         names_list = self.get_option_names()
+        print >> output_stream, "usage:\n", self.app_invocation_name, \
+                                "[OPTIONS]...",
+        bracket_count = 0
+        for key in names_list:
+            an_option = self._get_option(key)
+            if an_option.is_argument:
+                if an_option.default is None:
+                    print >> output_stream, an_option.name
+                else:
+                    print >> output_stream, "[ %s" % an_option.name,
+                    bracket_count += 1
+        print >> output_stream, ']' * bracket_count, '\n'
+
+
         names_list.sort()
         if names_list:
-            print >> output_stream, 'Options:'
+            print >> output_stream, 'OPTIONS:'
 
         pad = ' ' * 4
 
