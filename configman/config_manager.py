@@ -281,10 +281,10 @@ class ConfigurationManager(object):
                                 "[OPTIONS]...",
         bracket_count = 0
         for key in names_list:
-            an_option = self._get_option(key)
+            an_option = self.option_definitions[key]
             if an_option.is_argument:
                 if an_option.default is None:
-                    print >> output_stream, an_option.name
+                    print >> output_stream, an_option.name,
                 else:
                     print >> output_stream, "[ %s" % an_option.name,
                     bracket_count += 1
@@ -552,8 +552,11 @@ class ConfigurationManager(object):
                     # new values have been seen, don't let loop break
                     new_keys_discovered = True
                     try:
-                        # try to fetch new requirements from this value
-                        new_req = an_option.value.get_required_config()
+                        try:
+                            # try to fetch new requirements from this value
+                            new_req = an_option.value.get_required_config()
+                        except AttributeError:
+                            new_req = an_option.value.required_config
                         # get the parent namespace
                         current_namespace = self.option_definitions.parent(key)
                         if current_namespace is None:

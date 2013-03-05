@@ -166,7 +166,9 @@ class Option(object):
             short_form=self.short_form,
             exclude_from_print_conf=self.exclude_from_print_conf,
             exclude_from_dump_conf=self.exclude_from_dump_conf,
+            is_argument=self.is_argument
         )
+        assert self.is_argument == o.is_argument, 'fucked'
         o.comment_out = self.comment_out
         o.references = self.references
         return o

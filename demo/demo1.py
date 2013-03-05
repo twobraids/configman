@@ -45,7 +45,8 @@
 # we run the application.
 
 import sys
-from configman import ConfigurationManager, Namespace
+from configman import ConfigurationManager, Namespace, class_converter
+
 
 
 # the following three functions are the business logic of the application.
@@ -60,6 +61,14 @@ def backwards(x):
 def upper(x):
     print x.upper()
 
+upper.required_config = Namespace()
+upper.required_config.add_option(
+    'second_word',
+    doc='a second word',
+    default=None,
+    is_argument=True
+)
+
 # create the definitions for the parameters that are to come from
 # the command line or config file.  First we create a container called a
 # namespace for the configuration parameters.
@@ -72,14 +81,15 @@ definition_source.add_option('text',
                              default='Socorro Forever',
                              doc='the text input value',
                              short_form='t',
-                             is_argument=True)
+                             is_argument=True,)
 # this second option definition defines the command line switches '--action'
 # and '-a'
 definition_source.add_option('action',
                              default='echo',
                              doc='the action to take [echo, backwards, upper]',
                              short_form='a',
-                             is_argument=True)
+                             is_argument=True,
+                             from_string_converter=class_converter)
 
 # set up the manager with the option definitions along with the 'app_name' and
 # 'app_description'.  They will both be used later to create  the output of the
@@ -94,14 +104,18 @@ c = ConfigurationManager(definition_source,
                          app_description=__doc__)
 
 # fetch the DOM-like instance that gives access to the configuration info
-config = c.get_config()
+try:
+    config = c.get_config()
+    config.action(config.text)
+except AttributeError, x:
+    print str(x)
 
 # use the config
-if config.action == 'echo':
-    echo(config.text)
-elif config.action == 'backwards':
-    backwards(config.text)
-elif config.action == 'upper':
-    upper(config.text)
-else:
-    print >>sys.stderr, config.action, "is not a valid action"
+#if config.action == 'echo':
+    #echo(config.text)
+#elif config.action == 'backwards':
+    #backwards(config.text)
+#elif config.action == 'upper':
+    #upper(config.text)
+#else:
+    #print >>sys.stderr, config.action, "is not a valid action"
