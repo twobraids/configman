@@ -346,8 +346,18 @@ class TestCase(unittest.TestCase):
             dd.assign(k, v)
         ddkv = sorted(iteritems_breadth_first(dd))
         self.assertEqual(e, ddkv)
+        
+        
+    def test_copy_constructor_1(self):
+        d = {'d': {'x': 10}}
+        dd = DotDict(d)
+        self.assertTrue('d' in dd)
+        d = {'d': {}}
+        dd = DotDict(d)
+        self.assertTrue('d' in dd)
 
-    def  test_copy_constructor(self):
+
+    def  test_copy_constructor_2(self):
         d = {'a': {'aa': 13,
                    'ab': 14,},
              'b': {'ba': {'baa': 0,
@@ -366,6 +376,8 @@ class TestCase(unittest.TestCase):
         a = [x for x in iteritems_breadth_first(d)]
         e = sorted(e)
         a = sorted(a)
+        print e
+        print a
         self.assertEqual(a, e)
         self.assertTrue(isinstance(dd.a, DotDictWithAcquisition))
 
