@@ -45,7 +45,10 @@ import configobj
 from source_exceptions import (CantHandleTypeException, ValueException,
                                NotEnoughInformationException)
 from ..namespace import Namespace
-from ..option import Option
+from ..option import (
+    Option,
+    Annotation
+)
 from .. import converters as conv
 
 file_name_extension = 'ini'
@@ -194,10 +197,12 @@ class ValueSource(object):
         recursive for outputing the nested sections of the ini file."""
         options = [
           value
-          for value in source_dict.values()
-              if isinstance(value, Option)
+          for key, value in source_dict.iteritems()
+              if (isinstance(value, Option) or isinstance(value, Annotation))
+                 and not key.startswith('_')
         ]
-        options.sort(cmp=lambda x, y: cmp(x.name, y.name))
+        print options
+        #options.sort(cmp=lambda x, y: cmp(x.name, y.name))
         namespaces = [
           (key, value)
           for key, value in source_dict.items()
@@ -206,61 +211,69 @@ class ValueSource(object):
         namespaces.sort()
         indent_spacer = " " * (level * indent_size)
         for an_option in options:
-            print >>output_stream, "%s# name: %s" % (indent_spacer,
-                                                     an_option.name)
-            print >>output_stream, "%s# doc: %s" % (indent_spacer,
-                                                    an_option.doc)
-            print >>output_stream, "%s# converter: %s" % (
-              indent_spacer,
-              conv.py_obj_to_str(
-                an_option.from_string_converter
-              )
-            )
-            option_value = conv.option_value_str(an_option)
-            if isinstance(option_value, unicode):
-                option_value = option_value.encode('utf8')
-
-            if an_option.comment_out:
-                option_format = '%s#%s=%s\n'
-                print >>output_stream, "%s# The following value has been " \
-                    "automatically commented out because"  % indent_spacer
-                print >>output_stream, "%s#   the option is found in other " \
-                    "sections and the defaults are the same." % indent_spacer
-                print >>output_stream, "%s#   The common value can be found " \
-                    "in the lowest level section. Uncomment"  % indent_spacer
-                print >>output_stream, "%s#   to override that lower level " \
-                    "value" % indent_spacer
-            else:
-                option_format = '%s%s=%s\n'
-
-            repr_for_converter = repr(an_option.from_string_converter)
-            if (
-                repr_for_converter.startswith('<function') or
-                repr_for_converter.startswith('<built-in')
-            ):
-                option_value = repr(option_value)
-                print >>output_stream, "%s# Inspect the automatically " \
-                    "written value below to make sure it is valid" \
-                    % indent_spacer
-                print >>output_stream, "%s#   as a Python object for its " \
-                    "intended converter function." % indent_spacer
-            elif an_option.from_string_converter is str:
-                if ',' in option_value or '\n' in option_value:
+            if isinstance(an_option, Option):
+                print >>output_stream, "%s# name: %s" % (indent_spacer,
+                                                         an_option.name)
+                print >>output_stream, "%s# doc: %s" % (indent_spacer,
+                                                        an_option.doc)
+                print >>output_stream, "%s# converter: %s" % (
+                  indent_spacer,
+                  conv.py_obj_to_str(
+                    an_option.from_string_converter
+                  )
+                )
+                option_value = conv.option_value_str(an_option)
+                if isinstance(option_value, unicode):
+                    option_value = option_value.encode('utf8')
+    
+                if an_option.comment_out:
+                    option_format = '%s#%s=%s\n'
+                    print >>output_stream, "%s# The following value has been " \
+                        "automatically commented out because"  % indent_spacer
+                    print >>output_stream, "%s#   the option is found in other " \
+                        "sections and the defaults are the same." % indent_spacer
+                    print >>output_stream, "%s#   The common value can be found " \
+                        "in the lowest level section. Uncomment"  % indent_spacer
+                    print >>output_stream, "%s#   to override that lower level " \
+                        "value" % indent_spacer
+                else:
+                    option_format = '%s%s=%s\n'
+    
+                repr_for_converter = repr(an_option.from_string_converter)
+                if (
+                    repr_for_converter.startswith('<function') or
+                    repr_for_converter.startswith('<built-in')
+                ):
                     option_value = repr(option_value)
-
-            if an_option.not_for_definition:
-                print >>output_stream, "%s# The following value is common " \
-                    "for more than one section below. Its value" \
-                    % indent_spacer
-                print >>output_stream, "%s#   may be set here for all or " \
-                    "it can be overridden in its original section" \
-                    % indent_spacer
-
-            print >>output_stream, option_format % (
-              indent_spacer,
-              an_option.name,
-              option_value
-            )
+                    print >>output_stream, "%s# Inspect the automatically " \
+                        "written value below to make sure it is valid" \
+                        % indent_spacer
+                    print >>output_stream, "%s#   as a Python object for its " \
+                        "intended converter function." % indent_spacer
+                elif an_option.from_string_converter is str:
+                    if ',' in option_value or '\n' in option_value:
+                        option_value = repr(option_value)
+    
+                if an_option.not_for_definition:
+                    print >>output_stream, "%s# The following value is common " \
+                        "for more than one section below. Its value" \
+                        % indent_spacer
+                    print >>output_stream, "%s#   may be set here for all or " \
+                        "it can be overridden in its original section" \
+                        % indent_spacer
+    
+                print >>output_stream, option_format % (
+                  indent_spacer,
+                  an_option.name,
+                  option_value
+                )
+            elif isinstance(an_option, Annotation):
+                for a_line in an_option.doc.split('\n'):
+                    print >>output_stream, "%s# %s" % (
+                        indent_spacer,
+                        a_line
+                    )
+                print >>output_stream
         next_level = level + 1
         for key, namespace in namespaces:
             print >>output_stream, "%s%s%s%s\n" % (
@@ -269,6 +282,13 @@ class ValueSource(object):
               key,
               "]" * next_level
             )
+            if namespace._doc:
+                for a_line in namespace.doc_.split('\n'):
+                    print >>output_stream, "%s%s" % (
+                        " " * level * indent_size,
+                        a_line,
+                    )
+            
             ValueSource._write_ini(
               namespace,
               level=level+1,

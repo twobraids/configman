@@ -52,7 +52,7 @@ import def_sources
 
 #==============================================================================
 # for convenience define some external symbols here
-from option import Option, Aggregation
+from option import Option, Aggregation, Annotation
 from dotdict import DotDict, DotDictWithAcquisition
 from namespace import Namespace
 from config_file_future_proxy import ConfigFileFutureProxy
@@ -581,7 +581,8 @@ class ConfigurationManager(object):
                     # mark this key as having been seen and processed
                     known_keys.add(key)
                     an_option = self.option_definitions[key]
-                    if isinstance(an_option, Aggregation):
+                    if (isinstance(an_option, Aggregation) or 
+                        isinstance(an_option, Annotation)):
                         continue  # aggregations are ignored
                     # apply the from string conversion to make the real value
                     an_option.set_value(an_option.default)

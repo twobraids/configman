@@ -48,6 +48,8 @@
 
 from configman import RequiredConfig, Namespace
 from configman.converters import class_converter
+from configman.option import Annotation
+
 
 
 # the following class embodies the business logic of the application.
@@ -72,6 +74,16 @@ class DynApp(RequiredConfig):
                  'the class to handle database interaction for input',
                  short_form='s',
                  from_string_converter=class_converter)
+    s.add_annotation(
+"""to understand the following section
+you first need to become a zen 
+master of all skills.
+Which is to say that the next section involves all sorts of 
+nasty database connection
+parameters that only the DBA 
+knows for sure. 
+
+You might as well give up all hope right now.""")
     d.add_option('storage', 'data_store.CannedDataSink',
                  'the class to handle database interaction for output',
                  short_form='d',

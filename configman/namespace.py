@@ -37,18 +37,19 @@
 # ***** END LICENSE BLOCK *****
 
 import dotdict
-from option import Option, Aggregation
+from option import Option, Aggregation, Annotation
 
 
 class Namespace(dotdict.DotDict):
-
+    
     def __init__(self, doc=''):
         super(Namespace, self).__init__()
         object.__setattr__(self, '_doc', doc)  # force into attributes
+        object.__setattr__(self, '_annotation_key_counter', 0)
 
     #--------------------------------------------------------------------------
     def __setattr__(self, name, value):
-        if isinstance(value, (Option, Namespace, Aggregation)):
+        if isinstance(value, (Option, Namespace, Aggregation, Annotation)):
             # then they know what they're doing already
             o = value
         else:
@@ -64,6 +65,16 @@ class Namespace(dotdict.DotDict):
     def add_aggregation(self, name, function):
         an_aggregation = Aggregation(name, function)
         setattr(self, name, an_aggregation)
+        
+    #--------------------------------------------------------------------------
+    def add_annotation(self, doc):
+        an_annotation = Annotation(doc)
+        setattr(
+            self, 
+            "%06d" % self._annotation_key_counter, 
+            an_annotation
+        )
+        self._annotation_key_counter += 1
 
     #--------------------------------------------------------------------------
     def namespace(self, name, doc=''):
@@ -99,4 +110,6 @@ class Namespace(dotdict.DotDict):
                 )
             elif isinstance(opt, Namespace):
                 new_namespace[key] = opt.safe_copy()
+            elif isinstance(opt, Annotation):
+                new_namespace[key] = opt
         return new_namespace
