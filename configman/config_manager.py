@@ -542,11 +542,33 @@ class ConfigurationManager(object):
             # 'x.b', 'z.a', 'z.b', 'x.a.j', 'x.a.k', 'x.b.h']
             keys = [x for x in self.option_definitions.keys_breadth_first()]
             new_keys_discovered = False  # setup to break loop
+            
+            # create alternate paths options
+            set_of_alt_paths = set()  # a set of known alt_paths
+            for key in keys:
+                if key not in known_keys:  # skip all keys previously seen
+                    an_option = self.option_definitions[key]
+                    if not isinstance(an_option, Option):
+                        continue  # aggregations and other types are ignored
+                    if (an_option.alt_path 
+                        and an_option.alt_path not in set_of_alt_paths
+                        and an_option.alt_path not in known_keys):
+                        alt_option = an_option.copy()
+                        alt_option.alt_path = None
+                        # BEWARE - next line needs expansion
+                        self.option_definitions.add_option(alt_option)
+                        set_of_alt_paths.add(an_option.alt_path)
+                        
+            all_keys = list(set_of_alt_paths) + keys
 
             # overlay process:
             # fetch all the default values from the value sources before
             # applying the from string conversions
-            for key in keys:
+            #
+            # TODO: figure out how to update options with default values from
+            # their alts
+            #
+            for key in all_keys:
                 if key not in known_keys:  # skip all keys previously seen
                     # loop through all the value sources looking for values
                     # that match this current key.
@@ -574,7 +596,7 @@ class ConfigurationManager(object):
             # expansion process:
             # step through all the keys converting them to their proper
             # types and bringing in any new keys in the process
-            for key in keys:
+            for key in all_keys:
                 if key not in known_keys:  # skip all keys previously seen
                     # mark this key as having been seen and processed
                     known_keys.add(key)

@@ -57,6 +57,7 @@ class Option(object):
                  is_argument=False,
                  comment_out=False,
                  not_for_definition=False,
+                 alt_path=None,
                  ):
         self.name = name
         self.short_form = short_form
@@ -77,6 +78,7 @@ class Option(object):
         self.exclude_from_dump_conf = exclude_from_dump_conf
         self.comment_out = comment_out
         self.not_for_definition = not_for_definition
+        self.alt_path = alt_path
 
     #--------------------------------------------------------------------------
     def __eq__(self, other):
@@ -175,6 +177,7 @@ class Option(object):
             is_argument=self.is_argument,
             comment_out=self.comment_out,
             not_for_definition=self.not_for_definition,
+            alt_path=self.alt_path
         )
         return o
 
