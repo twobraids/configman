@@ -392,3 +392,29 @@ class TestCase(unittest.TestCase):
         o2.set_default(68)
         self.assertTrue(o2.value, 68)
         self.assertTrue(o2.default, 68)
+        
+    def test_alt_path(self):
+        o1 = Option(
+            name='fred',
+            alt_path='external.postgresql'
+        )
+        self.assertEqual(o1.alt_path, 'external.postgresql')
+    
+    def test_copy(self):
+        o = Option(
+            name='dwight',
+            default=17,
+            doc='the doc',
+            from_string_converter=int,
+            value=0,
+            short_form='d',
+            exclude_from_print_conf=True,
+            exclude_from_dump_conf=True,
+            is_argument=False,
+            comment_out=False,
+            not_for_definition=False,
+            alt_path='external.postgresql'
+        )
+        o2 = o.copy()
+        self.assertEqual(o, o2)
+            

@@ -516,7 +516,28 @@ class ConfigurationManager(object):
         """
         return [x for x in self.option_definitions.keys_breadth_first()
                 if isinstance(self.option_definitions[x], Option)]
-
+    
+    #--------------------------------------------------------------------------
+    def _create_alt_paths(self, keys, known_keys):
+        set_of_alt_paths = set()  # a set of known alt_paths
+        for key in keys:
+            if key not in known_keys:  # skip all keys previously seen
+                an_option = self.option_definitions[key]
+                #if not isinstance(an_option, Option):  #TODO remove
+                #    continue  # aggregations and other types are ignored
+                if (an_option.alt_path 
+                    and an_option.alt_path not in set_of_alt_paths
+                    and an_option.alt_path not in known_keys):
+                    alt_option = an_option.copy()
+                    an_option.comment_out = True
+                    alt_option.alt_path = None
+                    alt_option.name = '.'.join(
+                        (an_option.alt_path, alt_option.name)
+                    )
+                    set_of_alt_paths.add(alt_option.name)
+                    self.option_definitions.add_option(alt_option)
+        return set_of_alt_paths
+    
     #--------------------------------------------------------------------------
     def _overlay_expand(self):
         """This method overlays each of the value sources onto the default
@@ -540,38 +561,30 @@ class ConfigurationManager(object):
             # keys holds a list of all keys in the option definitons in
             # breadth first order using this form: [ 'x', 'y', 'z', 'x.a',
             # 'x.b', 'z.a', 'z.b', 'x.a.j', 'x.a.k', 'x.b.h']
-            keys = [x for x in self.option_definitions.keys_breadth_first()]
+            keys = [x for x in self.option_definitions.keys_breadth_first()
+                    if isinstance(self.option_definitions[x], Option)]
             new_keys_discovered = False  # setup to break loop
             
             # create alternate paths options
-            set_of_alt_paths = set()  # a set of known alt_paths
-            for key in keys:
-                if key not in known_keys:  # skip all keys previously seen
-                    an_option = self.option_definitions[key]
-                    if not isinstance(an_option, Option):
-                        continue  # aggregations and other types are ignored
-                    if (an_option.alt_path 
-                        and an_option.alt_path not in set_of_alt_paths
-                        and an_option.alt_path not in known_keys):
-                        alt_option = an_option.copy()
-                        alt_option.alt_path = None
-                        # BEWARE - next line needs expansion
-                        self.option_definitions.add_option(alt_option)
-                        set_of_alt_paths.add(an_option.alt_path)
-                        
+            set_of_alt_paths = self._create_alt_paths(keys, known_keys)
             all_keys = list(set_of_alt_paths) + keys
 
             # overlay process:
             # fetch all the default values from the value sources before
             # applying the from string conversions
             #
-            # TODO: figure out how to update options with default values from
-            # their alts
-            #
+
             for key in all_keys:
                 if key not in known_keys:  # skip all keys previously seen
+                    #if not isinstance(an_option, Option):
+                    #   continue  # aggregations and other types are ignored
                     # loop through all the value sources looking for values
                     # that match this current key.
+                    if self.option_definitions[key].alt_path:
+                        alt_path = self.option_definitions[key].alt_path
+                        top_key = key.split('.')[-1]
+                        self.option_definitions[key].default = \
+                            self.option_definitions[alt_path][top_key].default
                     for a_value_source in self.values_source_list:
                         try:
                             # get all the option values from this value source
@@ -601,8 +614,8 @@ class ConfigurationManager(object):
                     # mark this key as having been seen and processed
                     known_keys.add(key)
                     an_option = self.option_definitions[key]
-                    if isinstance(an_option, Aggregation):
-                        continue  # aggregations are ignored
+                    #if not isinstance(an_option, Option):
+                    #    continue  # aggregations, namespaces are ignored
                     # apply the from string conversion to make the real value
                     an_option.set_value(an_option.default)
                     # new values have been seen, don't let loop break

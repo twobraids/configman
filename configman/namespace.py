@@ -57,16 +57,27 @@ class Namespace(dotdict.DotDict):
 
     #--------------------------------------------------------------------------
     def add_option(self, name, *args, **kwargs):
+        """add an option to the namespace.   This can take two forms:
+              'name' is a string representing the name of an option and the
+              kwargs are its parameters, or 'name' is an instance of an Option 
+              object 
+        """
+        if isinstance(name, Option):
+            an_option = name
+            name = an_option.name
+        else:
+            an_option = Option(name, *args, **kwargs)
+        
         current_namespace = self
         name_parts = name.split('.')
         for a_path_component in name_parts[:-1]:
             if a_path_component not in current_namespace:
                 current_namespace[a_path_component] = Namespace()
             current_namespace = current_namespace[a_path_component]
+        an_option.name = name_parts[-1]
             
-        an_option = Option(name, *args, **kwargs)
-        setattr(current_namespace, name, an_option)
-
+        setattr(current_namespace, an_option.name, an_option)
+        
     #--------------------------------------------------------------------------
     def add_aggregation(self, name, function):
         an_aggregation = Aggregation(name, function)

@@ -290,8 +290,8 @@ password=secret "message"
     # converter: str
     # The following value has been automatically commented out because
     #   the option is found in other sections and the defaults are the same.
-    #   The common value can be found in the lowest level section. Uncomment
-    #   to override that lower level value
+    #   The common value can be found in the lowest level section.
+    #   Uncomment to override that lower level value
     #password=secret "message"
 
 [x]
@@ -301,8 +301,8 @@ password=secret "message"
     # converter: str
     # The following value has been automatically commented out because
     #   the option is found in other sections and the defaults are the same.
-    #   The common value can be found in the lowest level section. Uncomment
-    #   to override that lower level value
+    #   The common value can be found in the lowest level section.
+    #   Uncomment to override that lower level value
     #password=secret "message"
 
     # name: size
@@ -357,13 +357,25 @@ password=secret "message"
                     os.remove(tmp_filename)
 
 
-        def test_write_ini_with_migration_turned_off(self):
+        def test_write_ini_with_alt_paths_and_migration_turned_off(self):
             n = self._some_namespaces()
-            n.namespace('o')
-            n.o.add_option('password', 'secret "message"', 'the password')
+            n.namespace('x1')
+            n.x1.add_option('password', 'secret "message"', 'the password',
+                           alt_path='xxx.yyy')
+            n.namespace('x2')
+            n.x2.add_option('password', 'secret "message"', 'the password',
+                           alt_path='xxx.yyy')
+            external_values = {
+                'admin.migration': False,
+                'xxx': {
+                    'yyy': {
+                        'password': 'dwight and wilma'
+                    }
+                }
+            }
             c = config_manager.ConfigurationManager(
               [n],
-              values_source_list=[{'admin.migration': False}],
+              values_source_list=[external_values],
               use_admin_controls=True,
               use_auto_help=False,
               argv_source=[]
@@ -400,13 +412,6 @@ aaa='2011-05-04T15:10:00'
     # converter: str
     fred=crabby
 
-[o]
-
-    # name: password
-    # doc: the password
-    # converter: str
-    password=secret "message"
-
 [x]
 
     # name: password
@@ -418,10 +423,43 @@ aaa='2011-05-04T15:10:00'
     # doc: how big in tons
     # converter: int
     size=100
+
+[x1]
+
+    # name: password
+    # doc: the password
+    # converter: str
+    # The following value has been automatically commented out because
+    #   the option is found in an alternate section
+    #   The common value can be found in the xxx.yyy section. 
+    #   Uncomment to override that lower level value
+    #password=dwight and wilma
+
+[x2]
+
+    # name: password
+    # doc: the password
+    # converter: str
+    # The following value has been automatically commented out because
+    #   the option is found in an alternate section
+    #   The common value can be found in the xxx.yyy section. 
+    #   Uncomment to override that lower level value
+    #password=dwight and wilma
+
+[xxx]
+
+    [[yyy]]
+
+        # name: password
+        # doc: the password
+        # converter: str
+        password=dwight and wilma
+
 """
             out = StringIO()
             c.write_conf(for_configobj, opener=stringIO_context_wrapper(out))
             received = out.getvalue()
+            print received
             out.close()
             self.assertEqual(expected.strip(), received.strip())
 

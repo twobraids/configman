@@ -225,12 +225,19 @@ class ValueSource(object):
                 option_format = '%s#%s=%s\n'
                 print >>output_stream, "%s# The following value has been " \
                     "automatically commented out because"  % indent_spacer
-                print >>output_stream, "%s#   the option is found in other " \
-                    "sections and the defaults are the same." % indent_spacer
-                print >>output_stream, "%s#   The common value can be found " \
-                    "in the lowest level section. Uncomment"  % indent_spacer
-                print >>output_stream, "%s#   to override that lower level " \
-                    "value" % indent_spacer
+                if an_option.alt_path:
+                    print >>output_stream, "%s#   the option is found in " \
+                        "an alternate section" % indent_spacer
+                    print >>output_stream, "%s#   The common value can be found " \
+                        "in the %s section. "  % \
+                        (indent_spacer, an_option.alt_path)
+                else:
+                    print >>output_stream, "%s#   the option is found in other " \
+                        "sections and the defaults are the same." % indent_spacer
+                    print >>output_stream, "%s#   The common value can be found " \
+                        "in the lowest level section."  % indent_spacer
+                print >>output_stream, "%s#   Uncomment to override that " \
+                    "lower level value" % indent_spacer
             else:
                 option_format = '%s%s=%s\n'
 
