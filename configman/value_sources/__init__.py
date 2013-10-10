@@ -151,8 +151,15 @@ def wrap(value_source_list, a_config_manager):
                     error_history.append(str(x))
         if wrapped_source is None:
             if error_history:
-                errors = '; '.join(error_history)
-                raise AllHandlersFailedException(errors)
+                errors = '\n'.join(
+                    "%d - %s" % (i + 1, e) for i, e in enumerate(error_history)
+                )
+                if len(error_history) > 1:
+                    error_message = (
+                        '%d handlers tried to interpret the input, but they '
+                        'all returned error messages:\n' % len(error_history)
+                    )
+                raise AllHandlersFailedException(error_message + errors)
             else:
                 raise NoHandlerForType(type(a_source))
         wrapped_sources.append(wrapped_source)

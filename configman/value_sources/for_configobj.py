@@ -99,17 +99,32 @@ class ConfigObjWithIncludes(configobj.ConfigObj):
         list."""
         expanded_file_contents = []
         with open(file_name) as f:
-            for a_line in f:
+            for line_number, a_line in enumerate(f):
                 match = ConfigObjWithIncludes._include_re.match(a_line)
                 if match:
                     include_file = match.group(2)
-                    if include_file.startswith('.'):
+                    if not include_file.startswith('/'):
                         include_file = os.path.join(
                           original_path,
                           include_file
                         )
-                    new_lines = self._expand_files(include_file, os.path.dirname(include_file),
-                                                   indent + match.group(1))
+                    try:
+                        new_lines = self._expand_files(
+                            include_file,
+                            os.path.dirname(include_file),
+                            indent + match.group(1)
+                        )
+                    except IOError, x:
+                        raise IOError(
+                            ' '.join((
+                                str(x),
+                                'on line %d of %s:' % (
+                                    line_number + 1,
+                                    file_name
+                                ),
+                                '"%s"' % a_line.strip()
+                            ))
+                        )
                     expanded_file_contents.extend(new_lines)
                 else:
                     expanded_file_contents.append(indent + a_line.rstrip())

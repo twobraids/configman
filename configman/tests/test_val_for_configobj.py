@@ -47,6 +47,7 @@ import configman.config_manager as config_manager
 
 from configman import Namespace
 from configman.config_exceptions import NotAnOptionError
+from configman.value_sources.for_configobj import LoadingIniFileFailsException
 
 try:
     #from ..value_sources.for_configobj import ValueSource
@@ -531,7 +532,7 @@ aaa='2011-05-04T15:10:00'
                 if os.path.isfile(ini_file_name):
                     os.remove(ini_file_name)
 
-        def test_configobj_relative_includes(self):
+        def test_configobj_relative_includes_1(self):
             include_file_name = ''
             ini_file_name = ''
             try:
@@ -593,3 +594,105 @@ aaa='2011-05-04T15:10:00'
                     os.rmdir(db_creds_dir)
                 if os.path.isdir(ini_repo_dir):
                     os.rmdir(ini_repo_dir)
+
+        def test_configobj_relative_includes_2(self):
+            include_file_name = ''
+            ini_file_name = ''
+            try:
+                ini_repo_dir = tempfile.mkdtemp()
+                db_creds_dir = tempfile.mkdtemp(dir=ini_repo_dir)
+                db_creds_basename = os.path.basename(db_creds_dir)
+                with tempfile.NamedTemporaryFile(
+                  'w',
+                  suffix='ini',
+                  dir=db_creds_dir,
+                  delete=False
+                ) as f:
+                    include_file_name = f.name
+                    include_file_basename = os.path.basename(f.name)
+                    contents = (
+                      'dbhostname=myserver\n'
+                      'dbname=some_database\n'
+                      'dbuser=dwight\n'
+                      'dbpassword=secrets\n'
+                    )
+                    f.write(contents)
+
+                with tempfile.NamedTemporaryFile(
+                  'w',
+                  suffix='ini',
+                  dir=ini_repo_dir,
+                  delete=False
+                ) as f:
+                    ini_file_name = f.name
+                    contents = (
+                      '+include %s/%s\n'
+                      '\n'
+                      '[destination]\n'
+                      '+include %s/%s\n'
+                      % (db_creds_basename, include_file_basename,
+                         db_creds_basename, include_file_basename)
+                    )
+                    f.write(contents)
+                o = for_configobj.ValueSource(ini_file_name)
+                expected_dict = {
+                  'dbhostname': 'myserver',
+                  'dbname': 'some_database',
+                  'dbuser': 'dwight',
+                  'dbpassword': 'secrets',
+                  'destination': {
+                    'dbhostname': 'myserver',
+                    'dbname': 'some_database',
+                    'dbuser': 'dwight',
+                    'dbpassword': 'secrets',
+                  }
+                }
+                self.assertEqual(o.get_values(1, True), expected_dict)
+            finally:
+                if os.path.isfile(include_file_name):
+                    os.remove(include_file_name)
+                if os.path.isfile(ini_file_name):
+                    os.remove(ini_file_name)
+                if os.path.isdir(db_creds_dir):
+                    os.rmdir(db_creds_dir)
+                if os.path.isdir(ini_repo_dir):
+                    os.rmdir(ini_repo_dir)
+
+        def test_configobj_cant_load_include(self):
+            include_file_name = ''
+            ini_file_name = ''
+            try:
+                ini_repo_dir = tempfile.mkdtemp()
+
+                with tempfile.NamedTemporaryFile(
+                  'w',
+                  suffix='.ini',
+                  dir=ini_repo_dir,
+                  delete=False
+                ) as f:
+                    ini_file_name = f.name
+                    contents = (
+                      '+include prod/database.ini\n'
+                      '\n'
+                      '[destination]\n'
+                      '+include prod/database.ini\n'
+                    )
+                    f.write(contents)
+                try:
+                    o = for_configobj.ValueSource(ini_file_name)
+                except LoadingIniFileFailsException, x:
+                    expected = (
+                        "ConfigObj cannot load "
+                        "ini: [Errno 2] No such file or directory: "
+                        "'%s/prod/database.ini' on line 1 of "
+                        "%s: \"+include prod/database.ini\"" % (
+                            ini_repo_dir, ini_file_name
+                        )
+
+                    )
+                    self.assertEqual(str(x), expected)
+            finally:
+                if os.path.isfile(include_file_name):
+                    os.remove(include_file_name)
+                if os.path.isfile(ini_file_name):
+                    os.remove(ini_file_name)
