@@ -211,10 +211,10 @@ class ValueSource(object):
         options.sort(cmp=lambda x, y: cmp(x.name, y.name))
         indent_spacer = " " * (level * indent_size)
         for an_option in options:
-            print >>output_stream, "%s# name: %s" % (indent_spacer,
-                                                     an_option.name)
-            print >>output_stream, "%s# doc: %s" % (indent_spacer,
-                                                    an_option.doc)
+            #print >>output_stream, "%s# name: %s" % (indent_spacer,
+                                                     #an_option.name)
+            print >>output_stream, "%s# %s" % (indent_spacer,
+                                               an_option.doc)
             option_value = str(an_option)
             if isinstance(option_value, unicode):
                 option_value = option_value.encode('utf8')
@@ -267,11 +267,11 @@ class ValueSource(object):
                 repr_for_converter.startswith('<built-in')
             ):
                 option_value = repr(option_value)
-                print >>output_stream, "%s# Inspect the automatically " \
-                    "written value below to make sure it is valid" \
-                    % indent_spacer
-                print >>output_stream, "%s#   as a Python object for its " \
-                    "intended converter function." % indent_spacer
+                #print >>output_stream, "%s# Inspect the automatically " \
+                    #"written value below to make sure it is valid" \
+                    #% indent_spacer
+                #print >>output_stream, "%s#   as a Python object for its " \
+                    #"intended converter function." % indent_spacer
             elif an_option.from_string_converter is str:
                 if ',' in option_value or '\n' in option_value:
                     option_value = repr(option_value)

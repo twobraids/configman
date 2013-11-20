@@ -520,17 +520,21 @@ class ConfigurationManager(object):
     #--------------------------------------------------------------------------
     def _create_reference_value_from_links(self, keys, known_keys):
         """this method steps through the option definitions looking for
-        alt paths.  On finding one, it creates the 'reference_value_from' links within the
-        option definitions and populates it with copied options."""
-        set_of_reference_value_from_links = set()  # a set of known reference_value_from_links
+        alt paths.  On finding one, it creates the 'reference_value_from' links
+        within the option definitions and populates it with copied options."""
+        # a set of known reference_value_from_links
+        set_of_reference_value_from_links = set()
         for key in keys:
             if key not in known_keys:  # skip all keys previously seen
                 an_option = self.option_definitions[key]
                 #if not isinstance(an_option, Option):  #TODO remove
                 #    continue  # aggregations and other types are ignored
-                if (an_option.reference_value_from
-                    and an_option.reference_value_from not in set_of_reference_value_from_links
-                    and an_option.reference_value_from not in known_keys):
+                if (
+                    an_option.reference_value_from
+                    and an_option.reference_value_from not in
+                        set_of_reference_value_from_links
+                    and an_option.reference_value_from not in known_keys
+                ):
                     alt_option = an_option.copy()
                     an_option.comment_out = True
                     alt_option.reference_value_from = None
@@ -542,7 +546,7 @@ class ConfigurationManager(object):
         for a_reference_value_from in set_of_reference_value_from_links:
             for x in range(a_reference_value_from.count('.')):
                 namespace_path = a_reference_value_from.rsplit('.', x + 1)[0]
-                self.option_definitions[namespace_path].tag_as_reference_value_from()
+                self.option_definitions[namespace_path].ref_value_namespace()
         return set_of_reference_value_from_links
 
     #--------------------------------------------------------------------------
@@ -652,7 +656,9 @@ class ConfigurationManager(object):
                             # we're at the top level, use the base namespace
                             current_namespace = self.option_definitions
                         # add the new Options to the namespace
-                        current_namespace.update(new_req.safe_copy())
+                        current_namespace.update(new_req.safe_copy(
+                            an_option.reference_value_from
+                        ))
                     except AttributeError, x:
                         # there are apparently no new Options to bring in from
                         # this option's value
