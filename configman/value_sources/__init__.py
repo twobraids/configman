@@ -137,6 +137,11 @@ def wrap(value_source_list, a_config_manager):
             if not a_config_manager.config_optional and a_source \
                and not os.path.isfile(a_source):
                 raise IOError(a_source)
+            if a_source == a_config_manager.config_pathname:
+                # the config file has not been set to anything other than the
+                # the default value.  Force this into be the degenerate case
+                # and skip the wrapping process.  We'll read the file later.
+                continue
 
         if a_source is None:
             # this means the source is degenerate - like the case where
