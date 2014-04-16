@@ -591,7 +591,9 @@ class ConfigurationManager(object):
                         # the value source.  This assignment may come
                         # via acquisition, so the key given may not have
                         # been an exact match for what was returned.
-                        opt.default = val_src_dict[key]
+                        new_value = val_src_dict[key]
+                        if not isinstance(new_value, value_sources.Defaulter):
+                            opt.default = new_value
                     except KeyError, x:
                         pass  # okay, that source doesn't have this value
 
@@ -760,7 +762,7 @@ class ConfigurationManager(object):
         base_namespace.admin = admin = Namespace()
         admin.add_option(
             name='print_conf',
-            default=None,
+            default='ini',
             doc='write current config to stdout (%s)'
                 % ', '.join(value_sources.file_extension_dispatch.keys())
         )

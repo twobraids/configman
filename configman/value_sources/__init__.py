@@ -65,6 +65,11 @@ for_handlers = [
     for_configobj,
 ]
 
+#==============================================================================
+class Defaulter(object):
+    def __init__(self, value):
+        self.value = value
+
 
 #==============================================================================
 # create a dispatch table of types/objects to modules.  Each type should have
