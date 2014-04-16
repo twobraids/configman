@@ -48,13 +48,13 @@ from source_exceptions import (NoHandlerForType, ModuleHandlesNothingException,
 from ..config_file_future_proxy import ConfigFileFutureProxy
 
 # replace with dynamic discovery and loading
-#import for_argparse
 #import for_xml
 import for_getopt
 import for_json
 import for_conf
 import for_mapping
 import for_configobj
+import for_argparse
 
 # please replace with dynamic discovery
 for_handlers = [
@@ -63,7 +63,13 @@ for_handlers = [
     for_json,
     for_conf,
     for_configobj,
+    for_argparse,
 ]
+
+#==============================================================================
+class Defaulter(object):
+    def __init__(self, value):
+        self.value = value
 
 
 #==============================================================================

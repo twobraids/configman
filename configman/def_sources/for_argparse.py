@@ -41,8 +41,23 @@
 try:
     import argparse
 
+    from .. import namespace
+
+
     def setup_definitions(source, destination):
-        pass
+        # assume that source is of type argparse
+        for an_action in source._optionals._actions:
+            if isinstance(an_action, argparse._StoreAction):
+                destination.add_option(
+                    name=an_action.dest,
+                    default=an_action.default,
+                    doc=an_action.help,
+                )
+            else:
+                print "argparse: skipping", type(an_action)
+
+    type_to_setup_association = {argparse.ArgumentParser: setup_definitions}
 
 except ImportError:
-    pass
+
+    type_to_setup_association = {}

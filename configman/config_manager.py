@@ -55,9 +55,11 @@ import def_sources
 # for convenience define some external symbols here
 from option import Option, Aggregation
 from dotdict import DotDict, DotDictWithAcquisition
+from dontcare import DontCare
 from namespace import Namespace
 from required_config import RequiredConfig
 from config_file_future_proxy import ConfigFileFutureProxy
+from config_exceptions import NotAnOptionError
 
 
 #==============================================================================
@@ -144,6 +146,7 @@ class ConfigurationManager(object):
             options_banned_from_help = ['application']
         self.config_pathname = config_pathname
         self.config_optional = config_optional
+        self.use_auto_help = use_auto_help
 
         self.app_name = app_name
         self.app_version = app_version
@@ -171,6 +174,10 @@ class ConfigurationManager(object):
                     cm.command_line
                 )
 
+        if self.use_auto_help and cm.command_line in values_source_list:
+            cmd_handler = value_sources.type_handler_dispatch[cm.command_line]
+            cmd_handler[0].ValueSource._setup_auto_help(self)
+
         admin_tasks_done = False
         self.admin_controls_list = [
             'help',
@@ -181,8 +188,6 @@ class ConfigurationManager(object):
         ]
         self.options_banned_from_help = options_banned_from_help
 
-        if use_auto_help:
-            self._setup_auto_help()
         if use_admin_controls:
             admin_options = self._setup_admin_options(values_source_list)
             self.definition_source_list.append(admin_options)
@@ -244,9 +249,15 @@ class ConfigurationManager(object):
             # 'app_name' from the parameters passed in, if they exist.
             pass
 
-        if use_auto_help and self._get_option('help').value:
-            self.output_summary()
-            admin_tasks_done = True
+        try:
+            if use_auto_help and self._get_option('help').value:
+                self.output_summary()
+                admin_tasks_done = True
+        except exc.NotAnOptionError:
+            # we can only assume that the command line value source has its
+            # own method of doing help that didn't need the addition of a
+            # 'help' definition.  there is nothing to do here
+            pass
 
         if use_admin_controls and self._get_option('admin.print_conf').value:
             self.print_conf()
@@ -305,11 +316,10 @@ class ConfigurationManager(object):
             print >> output_stream, ''
 
         names_list = self.get_option_names()
-        print >> output_stream, (
-            "usage:\n",
-            self.app_invocation_name,
-            "[OPTIONS]..."
-        ),
+        print >> output_stream,  \
+            "usage:\n",  \
+            self.app_invocation_name,  \
+            "[OPTIONS]...",
         bracket_count = 0
         for key in names_list:
             an_option = self.option_definitions[key]
@@ -368,6 +378,8 @@ class ConfigurationManager(object):
                                file."""
 
         config_file_type = self._get_option('admin.print_conf').value
+        if isinstance(config_file_type, DontCare):
+            return
 
         @contextlib.contextmanager
         def stdout_opener():
@@ -392,6 +404,8 @@ class ConfigurationManager(object):
 
         if not config_pathname:
             config_pathname = self._get_option('admin.dump_conf').value
+        if isinstance(config_pathname, DontCare):
+            return
 
         opener = functools.partial(open, config_pathname, 'w')
         config_file_type = os.path.splitext(config_pathname)[1][1:]
@@ -557,8 +571,6 @@ class ConfigurationManager(object):
             # overlay process:
             # fetch all the default values from the value sources before
             # applying the from string conversions
-            #
-
             for key in (k for k in all_keys if k not in known_keys):
                 #if not isinstance(an_option, Option):
                 #   continue  # aggregations and other types are ignored
@@ -587,11 +599,16 @@ class ConfigurationManager(object):
                             )
                         # get the Option for this key
                         opt = self.option_definitions[key]
+                        # if the the option's default is DontCare
+                        # then skip this value
+                        new_value = val_src_dict[key]
+                        if isinstance(new_value, DontCare):
+                            continue
                         # overlay the default with the new value from
                         # the value source.  This assignment may come
                         # via acquisition, so the key given may not have
                         # been an exact match for what was returned.
-                        opt.default = val_src_dict[key]
+                        opt.default = new_value
                     except KeyError, x:
                         pass  # okay, that source doesn't have this value
 
@@ -733,11 +750,6 @@ class ConfigurationManager(object):
         return config
 
     #--------------------------------------------------------------------------
-    def _setup_auto_help(self):
-        help_option = Option(name='help', doc='print this', default=False)
-        self.definition_source_list.append({'help': help_option})
-
-    #--------------------------------------------------------------------------
     def _get_config_pathname(self):
         if os.path.isdir(self.config_pathname):
             # we've got a path with no file name at the end
@@ -784,6 +796,17 @@ class ConfigurationManager(object):
                 default=default_config_pathname,
                 doc='the pathname of the config file (path/filename)',
             )
+
+        # find command_line_value source and embue it with the ability to
+        # do command line options
+        command_line_value_source = None
+        for a_value_source in values_source_list:
+            try:
+                if a_value_source.command_line_value_source:
+                    a_value_source.setup_admin_options(admin)
+            except (AttributeError, KeyError):
+                # this isn't a commandline source, skip on
+                pass
         return base_namespace
 
     #--------------------------------------------------------------------------
