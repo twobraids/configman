@@ -46,15 +46,17 @@ from source_exceptions import (NoHandlerForType, ModuleHandlesNothingException,
                                ValueException)
 
 from ..config_file_future_proxy import ConfigFileFutureProxy
+from configman.converters import to_str
 
 # replace with dynamic discovery and loading
-#import for_argparse
 #import for_xml
 import for_getopt
 import for_json
 import for_conf
 import for_mapping
 import for_configobj
+import for_argparse
+import for_modules
 
 # please replace with dynamic discovery
 for_handlers = [
@@ -63,6 +65,8 @@ for_handlers = [
     for_json,
     for_conf,
     for_configobj,
+    for_argparse,
+    for_modules,
 ]
 
 
@@ -72,15 +76,19 @@ for_handlers = [
 class DispatchByType(collections.defaultdict):
     #--------------------------------------------------------------------------
     def get_handlers(self, candidate):
-        handlers_set = set()
+        handlers_for_candidate = []
+        # first favor exact matches
         for key, handler_list in self.iteritems():
-            if (self._is_instance_of(candidate, key) or (candidate is key) or
-                    (inspect.ismodule(key) and candidate is key)):
-                handlers_set.update(handler_list)
-        if not handlers_set:
+            if candidate is key:
+                handlers_for_candidate.extend(handler_list)
+        # then go for instance of
+        for key, handler_list in self.iteritems():
+            if self._is_instance_of(candidate, key):
+                handlers_for_candidate.extend(handler_list)
+        if not handlers_for_candidate:
             raise NoHandlerForType("no hander for %s is available" %
                                    candidate)
-        return handlers_set
+        return handlers_for_candidate
 
     #--------------------------------------------------------------------------
     @staticmethod

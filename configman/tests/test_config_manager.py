@@ -47,6 +47,9 @@ import getopt
 
 import mock
 
+import configman
+from configman.config_file_future_proxy import ConfigFileFutureProxy
+from configman import command_line
 import configman.config_manager as config_manager
 from configman.option import Option
 from configman.dotdict import DotDict, DotDictWithAcquisition
@@ -838,16 +841,19 @@ c.string =   from ini
 
         old_sys_exit = sys.exit
         sys.exit = my_exit
+        old_command_line = configman.command_line
+        configman.command_line = getopt
         try:
             MyConfigManager(
                 n,
-                [getopt],
+                [configman.command_line],
                 use_admin_controls=True,
                 use_auto_help=True,
                 argv_source=['--password=wilma', '--help']
             )
         finally:
             sys.exit = old_sys_exit
+            configman.command_line = old_command_line
 
     #--------------------------------------------------------------------------
     def test_write_gets_called(self):
@@ -881,10 +887,12 @@ c.string =   from ini
             pass
         old_sys_exit = sys.exit
         sys.exit = my_exit
+        old_command_line = configman.command_line
+        configman.command_line = getopt
         try:
             c = MyConfigManager(
                 n,
-                [getopt],
+                [configman.command_line],
                 use_admin_controls=True,
                 use_auto_help=True,
                 argv_source=[
@@ -895,6 +903,7 @@ c.string =   from ini
             self.assertEqual(c.dump_conf_called, True)
         finally:
             sys.exit = old_sys_exit
+            configman.command_line = old_command_line
 
     #--------------------------------------------------------------------------
     def test_get_options(self):
@@ -930,7 +939,7 @@ c.string =   from ini
         )
         r = sorted(c._get_options())
         e = sorted([
-            ('admin.print_conf', 'print_conf', None),
+            ('admin.print_conf', 'print_conf', ''),
             ('admin.dump_conf', 'dump_conf', ''),
             ('admin.conf', 'conf', None),
             ('admin.strict', 'strict', False),
@@ -991,7 +1000,7 @@ c.string =   from ini
             "app_name: fred",
             "app_version: 1.0",
             "current configuration:",
-            "application: <class 'configman.tests.test_config_manager.MyApp'>",
+            "application: configman.tests.test_config_manager.MyApp",
             "password: *********",
             "sub.name: wilma"
         ]
@@ -1546,6 +1555,7 @@ c.string =   from ini
         try:
             c = config_manager.ConfigurationManager(
                 (n,),
+                values_source_list=[ConfigFileFutureProxy, command_line],
                 argv_source=['--admin.conf=x.ini']
             )
             with c.context() as config:
@@ -1676,30 +1686,30 @@ c.string =   from ini
         )
 
     #--------------------------------------------------------------------------
-    def test_acquisition(self):
-        """define a common key in two sub-namespaces.  Then offer only a value
-        from the base namespace.  Both sub-namespace Options should have the
-        end value from the base value namespace."""
-        rc = Namespace()
-        rc.namespace('source')
-        rc.source.add_option('cls',
-                             default='configman.tests.test_config_manager.T1',
-                             from_string_converter=class_converter)
-        rc.namespace('destination')
-        rc.destination.add_option(
-            'cls',
-            default='configman.tests.test_config_manager.T2',
-            from_string_converter=class_converter
-        )
-        cm = config_manager.ConfigurationManager(
-            rc,
-            [
-                {'cls': 'configman.tests.test_config_manager.T2'},
-            ],
-        )
-        c = cm.get_config()
-        self.assertEqual(c.source.cls, T2)
-        self.assertEqual(c.destination.cls, T2)
+    #def test_acquisition(self):  # we don't do aquisition anymore
+        #"""define a common key in two sub-namespaces.  Then offer only a value
+        #from the base namespace.  Both sub-namespace Options should have the
+        #end value from the base value namespace."""
+        #rc = Namespace()
+        #rc.namespace('source')
+        #rc.source.add_option('cls',
+                             #default='configman.tests.test_config_manager.T1',
+                             #from_string_converter=class_converter)
+        #rc.namespace('destination')
+        #rc.destination.add_option(
+            #'cls',
+            #default='configman.tests.test_config_manager.T2',
+            #from_string_converter=class_converter
+        #)
+        #cm = config_manager.ConfigurationManager(
+            #rc,
+            #[
+                #{'cls': 'configman.tests.test_config_manager.T2'},
+            #],
+        #)
+        #c = cm.get_config()
+        #self.assertEqual(c.source.cls, T2)
+        #self.assertEqual(c.destination.cls, T2)
 
     #--------------------------------------------------------------------------
     def test_admin_conf_all_handlers_fail(self):
@@ -1758,7 +1768,12 @@ c.string =   from ini
             self.assertTrue(
                 isinstance(cm.option_definitions[an_opt], Option)
             )
-        self.assertEqual(len(opts), 9)  # there must be exactly 9 options
+        if configman.command_line is getopt:
+            self.assertEqual(len(opts), 9)  # there must be exactly 9 options
+        else:
+            self.assertEqual(len(opts), 8)  # there must be exactly 8 options
+            # argparse exists which didn't need to setup a 'help' option as it
+            # has its own built in method of doing help
 
     #--------------------------------------------------------------------------
     @mock.patch('configman.config_manager.warnings')

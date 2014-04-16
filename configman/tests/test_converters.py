@@ -38,6 +38,9 @@
 
 import unittest
 import tempfile
+import datetime
+import types
+
 from configman import converters
 from configman import RequiredConfig, Namespace, ConfigurationManager
 
@@ -160,7 +163,7 @@ class TestCase(unittest.TestCase):
 
     #--------------------------------------------------------------------------
     def test_py_obj_to_str(self):
-        function = converters.py_obj_to_str
+        function = converters._arbitrary_object_to_string
         self.assertEqual(function(None), '')
         from configman import tests as tests_module
         self.assertEqual(function(tests_module), 'configman.tests')
@@ -185,8 +188,8 @@ class TestCase(unittest.TestCase):
         )
 
     #--------------------------------------------------------------------------
-    def test_list_to_str(self):
-        function = converters.list_to_str
+    def test_sequence_to_string(self):
+        function = converters.sequence_to_string
         self.assertEqual(function([]), '')
         self.assertEqual(function(tuple()), '')
 
@@ -203,18 +206,6 @@ class TestCase(unittest.TestCase):
             function([int, str, 123, "hello"]),
             'int, str, 123, hello'
         )
-        self.assertEqual(
-            function((configman.tests.test_converters.TestCase,)),
-            'configman.tests.test_converters.TestCase'
-        )
-        self.assertEqual(
-            function((configman.tests, configman)),
-            'configman.tests, configman'
-        )
-        self.assertEqual(
-            function((int, str, 123, "hello")),
-            'int, str, 123, hello'
-        )
 
     #--------------------------------------------------------------------------
     def test_dict_conversions(self):
@@ -223,8 +214,7 @@ class TestCase(unittest.TestCase):
             'b': 'fred',
             'c': 3.1415
         }
-        converter_fn = converters.to_string_converters[type(d)]
-        s = converter_fn(d)
+        s = converters.to_str(d)
 
         # round  trip
         converter_fn = converters.from_string_converters[type(d)]
@@ -249,11 +239,8 @@ class TestCase(unittest.TestCase):
         self.assertEqual(len(req.HH1), 1)
         self.assertTrue('cls' in req.HH1)
         self.assertEqual(
-            sorted([x.strip() for x in class_list_str.split(',')]),
-            sorted([
-                x.strip() for x in
-                converters.py_obj_to_str(result).split(',')
-            ])
+            class_list_str,
+            converters.to_str(result)
         )
 
     #--------------------------------------------------------------------------
@@ -323,3 +310,45 @@ class TestCase(unittest.TestCase):
                 isinstance(config[x].kls_instance,
                            config[x].kls)
             )
+
+    #--------------------------------------------------------------------------
+    def test_to_str(self):
+        to_str = converters.to_str
+        self.assertEqual(to_str(int), 'int')
+        self.assertEqual(to_str(float), 'float')
+        self.assertEqual(to_str(str), 'str')
+        self.assertEqual(to_str(unicode), 'unicode')
+        self.assertEqual(to_str(bool), 'bool')
+        self.assertEqual(to_str(dict), 'dict')
+        self.assertEqual(to_str(list), 'list')
+        for key, value in converters._builtin_to_str.iteritems():
+            self.assertEqual(to_str(key), value)
+        self.assertEqual(to_str(datetime.datetime), 'datetime.datetime')
+        self.assertEqual(to_str(datetime.date), 'datetime.date')
+        self.assertEqual(to_str(datetime.timedelta), 'datetime.timedelta')
+        self.assertEqual(to_str(type), 'type')
+        self.assertEqual(to_str(types.FunctionType), 'function')
+        self.assertEqual(
+            to_str(converters._compiled_regexp_type),
+            '_sre.SRE_Pattern'
+        )
+        self.assertEqual(
+            to_str(converters._builtin_function_or_method_type),
+            'builtin_function_or_method'
+        )
+        self.assertEqual(to_str(1), '1')
+        self.assertEqual(to_str(3.1415), '3.1415')
+        self.assertEqual(
+            to_str(datetime.datetime(
+                1960,
+                5,
+                4,
+                15,
+                10
+            )),
+            '1960-05-04T15:10:00'
+        )
+        self.assertEqual(to_str(True), 'True')
+        self.assertEqual(to_str(False), 'False')
+        self.assertEqual(to_str(None), '')
+        self.assertEqual(to_str((2, False, int, max)), '2, False, int, max')

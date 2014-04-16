@@ -36,75 +36,63 @@
 #
 # ***** END LICENSE BLOCK *****
 
-import json
-import collections
+import types
 import sys
 
-from .. import converters as conv
-from ..namespace import Namespace
-from ..option import Option, Aggregation
-from ..dotdict import DotDict
+from configman.namespace import Namespace
+from configman.option import Option, Aggregation
+from configman.converters import to_str
 
-from source_exceptions import (ValueException, NotEnoughInformationException,
-                               CantHandleTypeException)
+file_name_extension = 'py'
+
 
 can_handle = (
-    basestring,
-    json
+    types.ModuleType,
 )
-
-file_name_extension = 'json'
-
-
-#==============================================================================
-class LoadingJsonFileFailsException(ValueException):
-    pass
-
 
 #==============================================================================
 class ValueSource(object):
-
     #--------------------------------------------------------------------------
     def __init__(self, source, the_config_manager=None):
-        self.values = None
-        if source is json:
-            try:
-                app = the_config_manager._get_option('admin.application')
-                source = "%s.%s" % (app.value.app_name, file_name_extension)
-            except (AttributeError, KeyError):
-                raise NotEnoughInformationException(
-                    "Can't setup an json file without knowing the file name"
-                )
-        if (
-            isinstance(source, basestring)
-            and source.endswith(file_name_extension)
-        ):
-            try:
-                with open(source) as fp:
-                    self.values = json.load(fp)
-            except IOError, x:
-                # The file doesn't exist.  That's ok, we'll give warning
-                # but this isn't a fatal error
-                import warnings
-                warnings.warn("%s doesn't exist" % source)
-                self.values = {}
-            except ValueError:
-                raise LoadingJsonFileFailsException(
-                    "Cannot load json: %s" % str(x)
-                )
-        else:
-            raise CantHandleTypeException()
+        module_dict = source.__dict__.copy()
+        to_remove = [k for k in module_dict.keys() if k.startswith('__')]
+        for a_key in to_remove:
+            del module_dict[a_key]
+        self.source = module_dict
 
     #--------------------------------------------------------------------------
     def get_values(self, config_manager, ignore_mismatches):
-        return self.values
+        return self.source
 
     #--------------------------------------------------------------------------
     @staticmethod
-    def write(source_dict, output_stream=sys.stdout):
-        json_dict = {}
-        for key in source_dict.keys_breadth_first():
-            json_dict[key] = conv.to_str(source_dict[key].value)
-        json.dump(json_dict, output_stream)
+    def write_option(key, an_option, output_stream):
+        value = to_str(an_option.value)
+        for quote in ['"', "'", "'''", '"""']:
+            if quote not in value:
+                break
 
+        print >>output_stream, '%s = %s%s%s' % (
+            key, quote, to_str(an_option.value), quote
+        )
+
+    #--------------------------------------------------------------------------
+    @staticmethod
+    def write_namespace(key, a_namespace, output_stream):
+        print >>output_stream, '%s = DotDict()' % key
+
+    #--------------------------------------------------------------------------
+    @staticmethod
+    def write(source_mapping, output_stream=sys.stdout):
+        print >>output_stream, "# generated Python configman file\n"
+        print >>output_stream, "from configman.dotdict import DotDict\n"
+        sorted_keys = sorted(
+            source_mapping.keys_breadth_first(include_dicts=True)
+        )
+        for key in sorted_keys:
+            value = source_mapping[key]
+            if isinstance(value, Namespace):
+                ValueSource.write_namespace(key, value, output_stream)
+            elif isinstance(value, Option):
+                ValueSource.write_option(key, value, output_stream)
 
