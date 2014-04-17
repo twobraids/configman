@@ -760,7 +760,7 @@ class ConfigurationManager(object):
     def _setup_admin_options(self, values_source_list):
         base_namespace = Namespace()
         base_namespace.admin = admin = Namespace()
-        admin.add_option(
+       admin.add_option(
             name='print_conf',
             default='ini',
             doc='write current config to stdout (%s)'
@@ -786,6 +786,17 @@ class ConfigurationManager(object):
                 default=default_config_pathname,
                 doc='the pathname of the config file (path/filename)',
             )
+
+        # find command_line_value source and embue it with the ability to
+        # do command line options
+        command_line_value_source = None
+        for a_value_source in values_source_list:
+            try:
+                if a_value_source.command_line_value_source:
+                    a_vaule_source.setup_admin_options(admin)
+            except AttributeError:
+                # this isn't a commandline source, skip on
+                pass
         return base_namespace
 
     #--------------------------------------------------------------------------

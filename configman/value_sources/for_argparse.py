@@ -64,6 +64,22 @@ can_handle = (
 
 
 #==============================================================================
+class CooperativeArgParser(argparse.ArgumentParser):
+    @staticmethod
+    def copy(self, op):
+        np = CooperativeArgParser()
+        for x in dir(op):
+            v = getattr(op, x)
+            if not callable(v):
+                setattr(np, x, v)
+        return np
+
+    def __init__(self):
+        pass
+
+
+
+#==============================================================================
 class ValueSource(object):
     """The ValueSource implementation for the getopt module.  This class will
     interpret an argv list of commandline arguments using getopt."""
@@ -88,6 +104,20 @@ class ValueSource(object):
     def get_values(self, config_manager, ignore_mismatches):
         dd = dotdict.DotDict(source.parse_args())
 
-
     #--------------------------------------------------------------------------
-
+    def setup_admin_options(self, admin_namespace):
+        for name, option in admin_namespace.iter_items():
+            if isinstance(option.default, bool):
+                action = 'store_false'
+                if option.default:
+                    action = 'store_true'
+                self.source.add_argument(
+                    "--admin.%" % option.name,
+                    action=action,
+                )
+            else:
+                self.source.add_argument(
+                    "--admin.%" % option.name,
+                    action='store',
+                    default=option.default,
+                )
