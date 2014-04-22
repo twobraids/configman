@@ -55,6 +55,7 @@ import def_sources
 # for convenience define some external symbols here
 from option import Option, Aggregation
 from dotdict import DotDict, DotDictWithAcquisition
+from dontcare import DontCare
 from namespace import Namespace
 from required_config import RequiredConfig
 from config_file_future_proxy import ConfigFileFutureProxy
@@ -249,6 +250,8 @@ class ConfigurationManager(object):
             admin_tasks_done = True
 
         if use_admin_controls and self._get_option('admin.print_conf').value:
+            print 'admin.print_conf', type(self._get_option('admin.print_conf').value), self._get_option('admin.print_conf').value
+            print 'admin.print_conf', type(self._get_option('admin.print_conf').default), self._get_option('admin.print_conf').default
             self.print_conf()
             admin_tasks_done = True
 
@@ -368,6 +371,8 @@ class ConfigurationManager(object):
                                file."""
 
         config_file_type = self._get_option('admin.print_conf').value
+        if isinstance(config_file_type, DontCare):
+            return
 
         @contextlib.contextmanager
         def stdout_opener():
@@ -392,6 +397,8 @@ class ConfigurationManager(object):
 
         if not config_pathname:
             config_pathname = self._get_option('admin.dump_conf').value
+        if isinstance(config_pathname, DontCare):
+            return
 
         opener = functools.partial(open, config_pathname, 'w')
         config_file_type = os.path.splitext(config_pathname)[1][1:]
@@ -557,8 +564,6 @@ class ConfigurationManager(object):
             # overlay process:
             # fetch all the default values from the value sources before
             # applying the from string conversions
-            #
-
             for key in (k for k in all_keys if k not in known_keys):
                 #if not isinstance(an_option, Option):
                 #   continue  # aggregations and other types are ignored
@@ -587,6 +592,11 @@ class ConfigurationManager(object):
                             )
                         # get the Option for this key
                         opt = self.option_definitions[key]
+                        # if the the option's default is DontCare
+                        # then skip this value
+                        if isinstance(val_src_dict[key], DontCare):
+                            print "dontcare", key, val_src_dict[key]
+                            continue
                         # overlay the default with the new value from
                         # the value source.  This assignment may come
                         # via acquisition, so the key given may not have

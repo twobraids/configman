@@ -56,6 +56,8 @@ from .. import namespace
 from ..config_exceptions import NotAnOptionError
 from .. import converters as conv
 
+is_command_line_parser = True
+
 from source_exceptions import ValueException, CantHandleTypeException
 
 

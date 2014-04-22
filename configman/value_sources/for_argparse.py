@@ -49,28 +49,19 @@ represents the argv source."""
 
 import argparse
 
+from configman.dontcare import DontCare
 from configman.option import Option
 from configman.dotdict import DotDict
 from configman.converters import boolean_converter
 
 from source_exceptions import CantHandleTypeException
 
+is_command_line_parser = True
 
 can_handle = (
     argparse.ArgumentParser,   # not yet implemented
     argparse,
 )
-
-# =============================================================================
-class NotPresent(object):
-
-    def __init__(self, value):
-        self.value = value
-
-    def __repr__(self):
-        return repr(self.value)
-
-
 
 #==============================================================================
 class ValueSource(object):
@@ -104,6 +95,8 @@ class ValueSource(object):
             args=self.argv_source
         )
         print argparse_namespace, args
+        dd = DotDict(argparse_namespace.__dict__)
+        print "dd.admin.print_conf", type(dd.admin.print_conf), dd.admin.print_conf
         return DotDict(argparse_namespace.__dict__)
 
     #--------------------------------------------------------------------------
@@ -131,7 +124,7 @@ class ValueSource(object):
                 else:
                     kwargs.action = 'store'
 
-                kwargs.default = NotPresent(33)
+                kwargs.default = DontCare(33)
                 kwargs.help = an_opt.doc
                 kwargs.dest = opt_name
 
