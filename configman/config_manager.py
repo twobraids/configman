@@ -760,7 +760,7 @@ class ConfigurationManager(object):
     def _setup_admin_options(self, values_source_list):
         base_namespace = Namespace()
         base_namespace.admin = admin = Namespace()
-       admin.add_option(
+        admin.add_option(
             name='print_conf',
             default='ini',
             doc='write current config to stdout (%s)'

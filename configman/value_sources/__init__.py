@@ -55,6 +55,7 @@ import for_json
 import for_conf
 import for_mapping
 import for_configobj
+import for_argparse
 
 # please replace with dynamic discovery
 for_handlers = [
@@ -63,6 +64,7 @@ for_handlers = [
     for_json,
     for_conf,
     for_configobj,
+    for_argparse,
 ]
 
 #==============================================================================

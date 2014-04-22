@@ -48,34 +48,27 @@ passed in.  If specified as a list, the constructor will assume the list
 represents the argv source."""
 
 import argparse
-import collections
 
-from .. import dotdict
-from .. import option
-from .. import namespace
+from configman.option import Option
+from configman.dotdict import DotDict
+from configman.converters import boolean_converter
 
-from source_exceptions import ValueException, CantHandleTypeException
+from source_exceptions import CantHandleTypeException
 
 
 can_handle = (
-    argparse.ArgumentParser,
-    argparse,  # not yet implemented
+    argparse.ArgumentParser,   # not yet implemented
+    argparse,
 )
 
+# =============================================================================
+class NotPresent(object):
 
-#==============================================================================
-class CooperativeArgParser(argparse.ArgumentParser):
-    @staticmethod
-    def copy(self, op):
-        np = CooperativeArgParser()
-        for x in dir(op):
-            v = getattr(op, x)
-            if not callable(v):
-                setattr(np, x, v)
-        return np
+    def __init__(self, value):
+        self.value = value
 
-    def __init__(self):
-        pass
+    def __repr__(self):
+        return repr(self.value)
 
 
 
@@ -86,9 +79,14 @@ class ValueSource(object):
     #--------------------------------------------------------------------------
     def __init__(self, source, the_config_manager=None):
         if source is argparse:
-            raise CantHandleTypeException()
+            # need to setup an arg parser based on what is already known
+            self.source = self._create_new_argparse_instance(
+                argparse,
+                the_config_manager
+            )
+            self.argv_source = tuple(the_config_manager.argv_source)
         elif isinstance(source, argparse.ArgumentParser):
-            self.source = source
+            raise NotImplemented
         else:
             raise CantHandleTypeException()
 
@@ -102,22 +100,41 @@ class ValueSource(object):
 
     #--------------------------------------------------------------------------
     def get_values(self, config_manager, ignore_mismatches):
-        dd = dotdict.DotDict(source.parse_args())
+        argparse_namespace, args = self.source.parse_known_args(
+            args=self.argv_source
+        )
+        print argparse_namespace, args
+        return DotDict(argparse_namespace.__dict__)
 
     #--------------------------------------------------------------------------
-    def setup_admin_options(self, admin_namespace):
-        for name, option in admin_namespace.iter_items():
-            if isinstance(option.default, bool):
-                action = 'store_false'
-                if option.default:
-                    action = 'store_true'
-                self.source.add_argument(
-                    "--admin.%" % option.name,
-                    action=action,
-                )
-            else:
-                self.source.add_argument(
-                    "--admin.%" % option.name,
-                    action='store',
-                    default=option.default,
-                )
+    def _create_new_argparse_instance(self, argparse_module, config_manager):
+
+        a_parser = argparse_module.ArgumentParser()
+        for opt_name in config_manager.option_definitions.keys_breadth_first():
+            an_opt = config_manager.option_definitions[opt_name]
+            if isinstance(an_opt, Option):
+                if an_opt.is_argument:  # is positional argument
+                    option_name = opt_name
+                else:
+                    option_name = '--%s' % opt_name
+
+                if an_opt.short_form:
+                    option_short_form = '-%s' % an_opt.short_form
+                    args = (option_name, option_short_form)
+                else:
+                    option_short_form = None
+                    args = (option_name,)
+
+                kwargs = DotDict()
+                if an_opt.from_string_converter in (bool, boolean_converter):
+                    kwargs.action = 'store_true'
+                else:
+                    kwargs.action = 'store'
+
+                kwargs.default = NotPresent(33)
+                kwargs.help = an_opt.doc
+                kwargs.dest = opt_name
+
+                a_parser.add_argument(*args, **kwargs)
+
+        return a_parser
