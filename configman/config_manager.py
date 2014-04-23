@@ -250,8 +250,6 @@ class ConfigurationManager(object):
             admin_tasks_done = True
 
         if use_admin_controls and self._get_option('admin.print_conf').value:
-            print 'admin.print_conf', type(self._get_option('admin.print_conf').value), self._get_option('admin.print_conf').value
-            print 'admin.print_conf', type(self._get_option('admin.print_conf').default), self._get_option('admin.print_conf').default
             self.print_conf()
             admin_tasks_done = True
 
@@ -595,7 +593,6 @@ class ConfigurationManager(object):
                         # if the the option's default is DontCare
                         # then skip this value
                         if isinstance(val_src_dict[key], DontCare):
-                            print "dontcare", key, val_src_dict[key]
                             continue
                         # overlay the default with the new value from
                         # the value source.  This assignment may come
@@ -772,7 +769,7 @@ class ConfigurationManager(object):
         base_namespace.admin = admin = Namespace()
         admin.add_option(
             name='print_conf',
-            default='ini',
+            default=None,
             doc='write current config to stdout (%s)'
                 % ', '.join(value_sources.file_extension_dispatch.keys())
         )

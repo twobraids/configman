@@ -91,12 +91,15 @@ class ValueSource(object):
 
     #--------------------------------------------------------------------------
     def get_values(self, config_manager, ignore_mismatches):
-        argparse_namespace, args = self.source.parse_known_args(
-            args=self.argv_source
-        )
-        print argparse_namespace, args
-        dd = DotDict(argparse_namespace.__dict__)
-        print "dd.admin.print_conf", type(dd.admin.print_conf), dd.admin.print_conf
+        if ignore_mismatches:
+            argparse_namespace, args = self.source.parse_known_args(
+                args=self.argv_source
+            )
+        else:
+            argparse_namespace, args = self.source.parse_args(
+                args=self.argv_source
+            )
+
         return DotDict(argparse_namespace.__dict__)
 
     #--------------------------------------------------------------------------
