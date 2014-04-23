@@ -48,7 +48,6 @@ from source_exceptions import (NoHandlerForType, ModuleHandlesNothingException,
 from ..config_file_future_proxy import ConfigFileFutureProxy
 
 # replace with dynamic discovery and loading
-#import for_argparse
 #import for_xml
 import for_getopt
 import for_json

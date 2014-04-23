@@ -120,8 +120,10 @@ class ValueSource(object):
         config_manager,
         create_auto_help,
     ):
-
-        a_parser = argparse_module.ArgumentParser(add_help=create_auto_help)
+        a_parser = argparse_module.ArgumentParser(
+            add_help=create_auto_help,
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        )
         for opt_name in config_manager.option_definitions.keys_breadth_first():
             an_opt = config_manager.option_definitions[opt_name]
             if isinstance(an_opt, Option):
@@ -147,7 +149,11 @@ class ValueSource(object):
                 kwargs.help = an_opt.doc
                 kwargs.dest = opt_name
 
-                print dict(kwargs)
                 a_parser.add_argument(*args, **kwargs)
 
         return a_parser
+
+    #--------------------------------------------------------------------------
+    @staticmethod
+    def _setup_auto_help(the_config_manager):
+        pass  # there's nothing to do, argparse already has a help feature

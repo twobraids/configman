@@ -145,6 +145,7 @@ class ConfigurationManager(object):
             options_banned_from_help = ['application']
         self.config_pathname = config_pathname
         self.config_optional = config_optional
+        self.use_auto_help = use_auto_help
 
         self.app_name = app_name
         self.app_version = app_version
@@ -172,6 +173,10 @@ class ConfigurationManager(object):
                     cm.command_line
                 )
 
+        if self.use_auto_help and cm.command_line in values_source_list:
+            cmd_handler = value_sources.type_handler_dispatch[cm.command_line]
+            cmd_handler[0].ValueSource._setup_auto_help(self)
+
         admin_tasks_done = False
         self.admin_controls_list = [
             'help',
@@ -182,8 +187,6 @@ class ConfigurationManager(object):
         ]
         self.options_banned_from_help = options_banned_from_help
 
-        if use_auto_help:
-            self._setup_auto_help()
         if use_admin_controls:
             admin_options = self._setup_admin_options(values_source_list)
             self.definition_source_list.append(admin_options)
@@ -740,11 +743,6 @@ class ConfigurationManager(object):
             mapping_class
         )
         return config
-
-    #--------------------------------------------------------------------------
-    def _setup_auto_help(self):
-        help_option = Option(name='help', doc='print this', default=False)
-        self.definition_source_list.append({'help': help_option})
 
     #--------------------------------------------------------------------------
     def _get_config_pathname(self):
