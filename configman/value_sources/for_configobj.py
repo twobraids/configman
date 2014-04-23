@@ -197,6 +197,7 @@ class ValueSource(object):
                 # we don't have enough information to get the ini file
                 # yet.  we'll ignore the error for now
                 return {}
+        print "NTOHENUOEHUTEOUSTH", self.config_obj
         return self.config_obj
 
     #--------------------------------------------------------------------------

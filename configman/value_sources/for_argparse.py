@@ -69,14 +69,13 @@ class ValueSource(object):
     interpret an argv list of commandline arguments using getopt."""
     #--------------------------------------------------------------------------
     def __init__(self, source, the_config_manager=None):
+        self.source = source
         if source is argparse:
             # need to setup an arg parser based on what is already known
-            self.source = self._create_new_argparse_instance(
-                argparse,
-                the_config_manager
-            )
+            self.parser = None
             self.argv_source = tuple(the_config_manager.argv_source)
         elif isinstance(source, argparse.ArgumentParser):
+            self.parser = source
             raise NotImplemented
         else:
             raise CantHandleTypeException()
@@ -92,20 +91,37 @@ class ValueSource(object):
     #--------------------------------------------------------------------------
     def get_values(self, config_manager, ignore_mismatches):
         if ignore_mismatches:
-            argparse_namespace, args = self.source.parse_known_args(
+            if self.source is argparse:
+                self.parser = self._create_new_argparse_instance(
+                    argparse,
+                    config_manager,
+                    create_auto_help=False,
+                )
+            argparse_namespace, args = self.parser.parse_known_args(
                 args=self.argv_source
             )
         else:
-            argparse_namespace, args = self.source.parse_args(
+            if self.source is argparse:
+                self.parser = self._create_new_argparse_instance(
+                    argparse,
+                    config_manager,
+                    create_auto_help=True,
+                )
+            argparse_namespace = self.parser.parse_args(
                 args=self.argv_source
             )
 
         return DotDict(argparse_namespace.__dict__)
 
     #--------------------------------------------------------------------------
-    def _create_new_argparse_instance(self, argparse_module, config_manager):
+    def _create_new_argparse_instance(
+        self,
+        argparse_module,
+        config_manager,
+        create_auto_help,
+    ):
 
-        a_parser = argparse_module.ArgumentParser()
+        a_parser = argparse_module.ArgumentParser(add_help=create_auto_help)
         for opt_name in config_manager.option_definitions.keys_breadth_first():
             an_opt = config_manager.option_definitions[opt_name]
             if isinstance(an_opt, Option):
@@ -127,10 +143,11 @@ class ValueSource(object):
                 else:
                     kwargs.action = 'store'
 
-                kwargs.default = DontCare(33)
+                kwargs.default = DontCare(an_opt.default)
                 kwargs.help = an_opt.doc
                 kwargs.dest = opt_name
 
+                print dict(kwargs)
                 a_parser.add_argument(*args, **kwargs)
 
         return a_parser
