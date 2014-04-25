@@ -601,15 +601,14 @@ class ConfigurationManager(object):
                         opt = self.option_definitions[key]
                         # if the the option's default is DontCare
                         # then skip this value
-                        if isinstance(val_src_dict[key], DontCare):
+                        new_value = val_src_dict[key]
+                        if isinstance(new_value, DontCare):
                             continue
                         # overlay the default with the new value from
                         # the value source.  This assignment may come
                         # via acquisition, so the key given may not have
                         # been an exact match for what was returned.
-                        new_value = val_src_dict[key]
-                        if not isinstance(new_value, value_sources.Defaulter):
-                            opt.default = new_value
+                        opt.default = new_value
                     except KeyError, x:
                         pass  # okay, that source doesn't have this value
 
