@@ -59,23 +59,54 @@ from source_exceptions import CantHandleTypeException
 is_command_line_parser = True
 
 can_handle = (
-    argparse.ArgumentParser,   # not yet implemented
+    argparse.ArgumentParser,
     argparse,
 )
+
+
+# -----------------------------------------------------------------------------
+def issubclass_with_no_type_error(potential_subclass, parent_class):
+    try:
+        return issubclass(potential_subclass, parent_class)
+    except TypeError:
+        return False
 
 #==============================================================================
 class ValueSource(object):
     """The ValueSource implementation for the getopt module.  This class will
     interpret an argv list of commandline arguments using getopt."""
     #--------------------------------------------------------------------------
-    def __init__(self, source, the_config_manager=None):
+    def __init__(self, source, the_config_manager):
         self.source = source
-        if source is argparse:
+        self.argv_source = tuple(the_config_manager.argv_source)
+        if source is argparse or source is argparse.ArgumentParser:
             # need to setup an arg parser based on what is already known
+            class ConfigmanArgumentParser(argparse.ArgumentParser):
+                def __init__(self, add_help=True):
+                    super(ConfigmanArgumentParser, self).__init__(
+                        prog=the_config_manager.app_name,
+                        usage=None,
+                        description=the_config_manager.app_description,
+                        epilog=None,
+                        version=the_config_manager.app_version,
+                        parents=[],
+                        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+                        prefix_chars='-',
+                        fromfile_prefix_chars=None,
+                        argument_default=None,
+                        conflict_handler='error',
+                        add_help=add_help,
+                    )
             self.parser = None
-            self.argv_source = tuple(the_config_manager.argv_source)
+            self.parser_class = ConfigmanArgumentParser
+        elif issubclass_with_no_type_error(source, argparse.ArgumentParser):
+            # need to setup an arg parser based on what is already known,
+            # but use the user's arg parse subclass
+            self.parser = None
+            self.parser_class = source
         elif isinstance(source, argparse.ArgumentParser):
             self.parser = source
+            self.parser_class = None
             raise NotImplemented
         else:
             raise CantHandleTypeException()
@@ -91,39 +122,33 @@ class ValueSource(object):
     #--------------------------------------------------------------------------
     def get_values(self, config_manager, ignore_mismatches):
         if ignore_mismatches:
-            if self.source is argparse:
-                self.parser = self._create_new_argparse_instance(
-                    argparse,
-                    config_manager,
-                    create_auto_help=False,
-                )
+            if self.parser_class:
+                self.parser = self.parser_class(add_help=False)
+                self._setup_argparse(config_manager)
             argparse_namespace, args = self.parser.parse_known_args(
                 args=self.argv_source
             )
         else:
-            if self.source is argparse:
-                self.parser = self._create_new_argparse_instance(
-                    argparse,
-                    config_manager,
-                    create_auto_help=True,
-                )
+            if self.parser_class:
+                self.parser = self.parser_class(add_help=True)
+                self._setup_argparse(config_manager)
             argparse_namespace = self.parser.parse_args(
                 args=self.argv_source
             )
-
         return DotDict(argparse_namespace.__dict__)
 
     #--------------------------------------------------------------------------
     def _create_new_argparse_instance(
         self,
-        argparse_module,
+        parser_class,
         config_manager,
         create_auto_help,
     ):
-        a_parser = argparse_module.ArgumentParser(
-            add_help=create_auto_help,
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter
-        )
+        a_parser = parser_class(add_help=create_auto_help)
+        self._setup_argparse(a_parser, config_manager)
+
+    #--------------------------------------------------------------------------
+    def _setup_argparse(self, config_manager):
         for opt_name in config_manager.option_definitions.keys_breadth_first():
             an_opt = config_manager.option_definitions[opt_name]
             if isinstance(an_opt, Option):
@@ -149,9 +174,7 @@ class ValueSource(object):
                 kwargs.help = an_opt.doc
                 kwargs.dest = opt_name
 
-                a_parser.add_argument(*args, **kwargs)
-
-        return a_parser
+                self.parser.add_argument(*args, **kwargs)
 
     #--------------------------------------------------------------------------
     @staticmethod
