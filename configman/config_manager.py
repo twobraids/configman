@@ -59,6 +59,7 @@ from dontcare import DontCare
 from namespace import Namespace
 from required_config import RequiredConfig
 from config_file_future_proxy import ConfigFileFutureProxy
+from config_exceptions import NotAnOptionError
 
 
 #==============================================================================
@@ -248,9 +249,15 @@ class ConfigurationManager(object):
             # 'app_name' from the parameters passed in, if they exist.
             pass
 
-        if use_auto_help and self._get_option('help').value:
-            self.output_summary()
-            admin_tasks_done = True
+        try:
+            if use_auto_help and self._get_option('help').value:
+                self.output_summary()
+                admin_tasks_done = True
+        except exc.NotAnOptionError:
+            # we can only assume that the command line value source has its
+            # own method of doing help that didn't need the addition of a
+            # 'help' definition.  there is nothing to do here
+            pass
 
         if use_admin_controls and self._get_option('admin.print_conf').value:
             self.print_conf()
@@ -309,11 +316,10 @@ class ConfigurationManager(object):
             print >> output_stream, ''
 
         names_list = self.get_option_names()
-        print >> output_stream, (
-            "usage:\n",
-            self.app_invocation_name,
-            "[OPTIONS]..."
-        ),
+        print >> output_stream,  \
+            "usage:\n",  \
+            self.app_invocation_name,  \
+            "[OPTIONS]...",
         bracket_count = 0
         for key in names_list:
             an_option = self.option_definitions[key]
@@ -798,8 +804,8 @@ class ConfigurationManager(object):
         for a_value_source in values_source_list:
             try:
                 if a_value_source.command_line_value_source:
-                    a_vaule_source.setup_admin_options(admin)
-            except AttributeError:
+                    a_value_source.setup_admin_options(admin)
+            except (AttributeError, KeyError):
                 # this isn't a commandline source, skip on
                 pass
         return base_namespace
