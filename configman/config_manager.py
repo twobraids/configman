@@ -804,7 +804,7 @@ class ConfigurationManager(object):
             try:
                 if a_value_source.command_line_value_source:
                     a_value_source.setup_admin_options(admin)
-            except (AttributeError, KeyError):
+            except (AttributeError, KeyError), x:
                 # this isn't a commandline source, skip on
                 pass
         return base_namespace

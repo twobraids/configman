@@ -151,7 +151,31 @@ class ValueSource(object):
     def _setup_argparse(self, config_manager):
         for opt_name in config_manager.option_definitions.keys_breadth_first():
             an_opt = config_manager.option_definitions[opt_name]
+            print 'trying:', opt_name
             if isinstance(an_opt, Option):
+                if an_opt.action:
+                    # this definition came from argparse, use the original
+                    names = [
+                        'action',
+                        'option_strings',
+                        'dest',
+                        'nargs',
+                        'const',
+                        'default',
+                        'type',
+                        'choices',
+                        'help',
+                        'metavar',
+                    ]
+                    kwargs = dict(
+                        (name, getattr(an_opt, name)) for name in names
+                    )
+                    kwargs['default'] = DontCare(kwargs['default'])
+                    print "creating", kwargs
+                    self.parser.add_argument(**kwargs)
+                    continue
+
+                print "no?", opt_name
                 if an_opt.is_argument:  # is positional argument
                     option_name = opt_name
                 else:
@@ -174,6 +198,7 @@ class ValueSource(object):
                 kwargs.help = an_opt.doc
                 kwargs.dest = opt_name
 
+                #print "creating: ", args, kwargs
                 self.parser.add_argument(*args, **kwargs)
 
     #--------------------------------------------------------------------------

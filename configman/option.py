@@ -60,6 +60,16 @@ class Option(object):
         likely_to_be_changed=False,
         not_for_definition=False,
         reference_value_from=None,
+        # the following are from argparse to ensure we have feature parity
+        option_strings=None,
+        action=None,
+        nargs=None,
+        const=None,
+        type_=None,
+        choices=None,
+        required=None,
+        metavar=None,
+        dest=None,
     ):
         self.name = name
         self.short_form = short_form
@@ -84,6 +94,22 @@ class Option(object):
         self.likely_to_be_changed = likely_to_be_changed
         self.not_for_definition = not_for_definition
         self.reference_value_from = reference_value_from
+
+        # the argparse compatabilty section
+        self.option_strings = option_strings
+        self.action=action
+        self.dest = dest
+        self.nargs = nargs
+        self.const = const
+        self.type=type_
+        self.choices = choices
+        self.required = required
+        self.help = help
+        self.metavar = metavar
+
+        if self.option_strings is None and self.dest:
+            self.is_argument = True
+
 
     #--------------------------------------------------------------------------
     def __str__(self):

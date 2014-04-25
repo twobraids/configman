@@ -43,18 +43,41 @@ try:
 
     from .. import namespace
 
+    # horrors
+    def find_action_name_by_value(registry, target):
+        target_type = type(target)
+        for key, value in registry['action'].iteritems():
+            if value is target_type:
+                if key is None:
+                    return 'store'
+                return key
+        print "FUCK"
+        return None
 
     def setup_definitions(source, destination):
         # assume that source is of type argparse
         for an_action in source._optionals._actions:
-            if isinstance(an_action, argparse._StoreAction):
+            print 'argparse reading', an_action.dest, an_action.help, an_action.default
+            if an_action.default != argparse.SUPPRESS:
                 destination.add_option(
-                    name=an_action.dest,
-                    default=an_action.default,
-                    doc=an_action.help,
+                    action=find_action_name_by_value(
+                        source._registries,
+                        an_action
+                    ),
+                    option_strings = an_action.option_strings,
+                    name = an_action.dest,
+                    dest = an_action.dest,
+                    nargs = an_action.nargs,
+                    const = an_action.const,
+                    default = an_action.default,
+                    from_string_converter = an_action.type,
+                    choices = an_action.choices,
+                    required = an_action.required,
+                    doc = an_action.help,
+                    metavar = an_action.metavar,
                 )
             else:
-                print "argparse: skipping", type(an_action)
+                print "argparse: skipping", type(an_action), an_action.dest
 
     type_to_setup_association = {argparse.ArgumentParser: setup_definitions}
 
