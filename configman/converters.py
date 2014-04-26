@@ -150,8 +150,11 @@ def list_converter(input_str):
 #------------------------------------------------------------------------------
 import __builtin__
 _all_named_builtins = dir(__builtin__)
+builtin_to_str = dict(
+    (val, key) for key, val in __builtin__.__dict__.iteritems()
+)
 
-
+#------------------------------------------------------------------------------
 def class_converter(input_str):
     """ a conversion that will import a module and class name
     """
@@ -264,6 +267,7 @@ def classes_in_namespaces_converter(
                                                          # for future reference
             class_option_name = name_of_class_option  # save the class's option
                                                       # name for the future
+            original_class_list_str = class_list_str
             # for each class in the class list
             for namespace_index, a_class in enumerate(class_list):
                 # figure out the Namespace name
@@ -290,11 +294,12 @@ def classes_in_namespaces_converter(
                 """this method takes this inner class object and turns it back
                 into the original string of classnames.  This is used
                 primarily as for the output of the 'help' option"""
-                return ', '.join(
-                    py_obj_to_str(v[name_of_class_option].value)
-                    for v in cls.get_required_config().values()
-                    if isinstance(v, Namespace)
-                )
+                return cls.original_class_list_str
+                #return ', '.join(
+                    #to_str(v[name_of_class_option].value)
+                    #for v in cls.get_required_config().values()
+                    #if isinstance(v, Namespace)
+                #)
 
         return InnerClassList  # result of class_list_converter
     return class_list_converter  # result of classes_in_namespaces_converter
@@ -321,6 +326,7 @@ from_string_converters = {
     type: class_converter,
     types.FunctionType: class_converter,
     compiled_regexp_type: regex_converter,
+    type(sum): class_converter,
 }
 
 
@@ -328,22 +334,40 @@ from_string_converters = {
 def py_obj_to_str(a_thing):
     if a_thing is None:
         return ''
+
     if isinstance(a_thing, basestring):
         return a_thing
-    if inspect.ismodule(a_thing):
-        return a_thing.__name__
-    if a_thing.__module__ == '__builtin__':
-        return a_thing.__name__
-    if a_thing.__module__ == "__main__":
-        return a_thing.__name__
-    if hasattr(a_thing, 'to_str'):
-        return a_thing.to_str()
-    return "%s.%s" % (a_thing.__module__, a_thing.__name__)
 
+    try:
+        return a_thing.to_str()
+    except AttributeError:
+        # nope, no to_str function
+        pass
+
+    try:
+        if a_thing.__module__ != '__builtin__':
+            return "%s.%s" % (a_thing.__module__, a_thing.__name__)
+    except AttributeError:
+        # nope, not one of these
+        pass
+
+    try:
+        return builtin_to_str[a_thing]
+    except KeyError:
+        # nope, not a builtin
+        pass
+
+    try:
+        return a_thing.__name__
+    except AttributeError:
+        # nope, not one of these
+        pass
+
+    return str(a_thing)
 
 #------------------------------------------------------------------------------
 def list_to_str(a_list):
-    return ', '.join(to_string_converters[type(x)](x) for x in a_list)
+    return ', '.join(to_str(x) for x in a_list)
 
 #------------------------------------------------------------------------------
 to_string_converters = {
@@ -361,9 +385,21 @@ to_string_converters = {
     type: py_obj_to_str,
     types.ModuleType: py_obj_to_str,
     types.FunctionType: py_obj_to_str,
+    types.BuiltinMethodType: py_obj_to_str,
+    types.BuiltinFunctionType: py_obj_to_str,
+    type(sum): lambda x: x.__name__,
     compiled_regexp_type: lambda x: x.pattern,
 }
 
 
 #------------------------------------------------------------------------------
 converters_requiring_quotes = [eval, regex_converter]
+
+#------------------------------------------------------------------------------
+def to_str(a_thing):
+    try:
+        converter = to_string_converters[type(a_thing)]
+    except KeyError:
+        converter = py_obj_to_str
+    return converter(a_thing)
+

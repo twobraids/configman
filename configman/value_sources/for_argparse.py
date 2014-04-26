@@ -159,7 +159,11 @@ class ValueSource(object):
                     kwargs = copy.copy(an_opt.foreign_data[argparse])
                     kwargs['default'] = DontCare(kwargs['default'])
                     print "creating", kwargs
-                    self.parser.add_argument(**kwargs)
+                    if 'option_strings' in kwargs:
+                        args = tuple(x for x in kwargs.pop('option_strings'))
+                    else:
+                        args = ()
+                    self.parser.add_argument(*args, **kwargs)
                     continue
                 except KeyError:
                     # no argparse foreign data for this option

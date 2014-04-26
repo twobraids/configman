@@ -43,6 +43,7 @@ try:
     import inspect
 
     from .. import namespace
+    from .. import converters
 
     # horrors
     def find_action_name_by_value(registry, target):
@@ -68,20 +69,32 @@ try:
         # assume that source is of type argparse
         for an_action in source._optionals._actions:
             if an_action.default != argparse.SUPPRESS:
-                the_class = an_action.__class__
+                the_class = an_action.__class__  # debug line
                 print "class:", the_class.__name__, an_action.dest
                 kwargs = get_args_and_values(an_action)
                 kwargs['action'] = find_action_name_by_value(
                     source._optionals._registries,
-                    the_class
+                    an_action
                 )
-                if kwargs['const'] is not None:
-                    kwargs['nargs'] = '?'
+                print kwargs['action']
+                #if kwargs['const'] is not None:
+                    #kwargs['nargs'] = '?'
+                if an_action.type is None:
+                    action_type = type(an_action.default)
+                else:
+                    action_type = an_action.type
+                to_string_type_converter = converters.to_string_converters[
+                    action_type
+                ]
+                from_string_type_converter = converters.from_string_converters[
+                    action_type
+                ]
                 destination.add_option(
-                    name = an_action.dest,
-                    default = an_action.default,
-                    from_string_converter = an_action.type,
-                    doc = an_action.help,
+                    name=an_action.dest,
+                    default=an_action.default,
+                    from_string_converter=from_string_type_converter,
+                    to_string_converter=to_string_type_converter,
+                    doc=an_action.help,
                     foreign_data=(argparse, kwargs)
                 )
             else:

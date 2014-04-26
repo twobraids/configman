@@ -203,18 +203,6 @@ class TestCase(unittest.TestCase):
             function([int, str, 123, "hello"]),
             'int, str, 123, hello'
         )
-        self.assertEqual(
-            function((configman.tests.test_converters.TestCase,)),
-            'configman.tests.test_converters.TestCase'
-        )
-        self.assertEqual(
-            function((configman.tests, configman)),
-            'configman.tests, configman'
-        )
-        self.assertEqual(
-            function((int, str, 123, "hello")),
-            'int, str, 123, hello'
-        )
 
     #--------------------------------------------------------------------------
     def test_dict_conversions(self):
@@ -249,11 +237,8 @@ class TestCase(unittest.TestCase):
         self.assertEqual(len(req.HH1), 1)
         self.assertTrue('cls' in req.HH1)
         self.assertEqual(
-            sorted([x.strip() for x in class_list_str.split(',')]),
-            sorted([
-                x.strip() for x in
-                converters.py_obj_to_str(result).split(',')
-            ])
+            class_list_str,
+            converters.to_str(result)
         )
 
     #--------------------------------------------------------------------------

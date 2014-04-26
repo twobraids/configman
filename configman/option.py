@@ -98,19 +98,10 @@ class Option(object):
         All it requires is that the passed option instance has a ``value``
         attribute.
         """
-        if self.value is None:
-            return ''
-        if self.to_string_converter:
+        try:
             s = self.to_string_converter(self.value)
-        else:
-            try:
-                converter = conv.to_string_converters[type(self.value)]
-                s = converter(self.value)
-            except KeyError:
-                if not isinstance(self.value, basestring):
-                    s = unicode(self.value)
-                else:
-                    s = self.value
+        except TypeError:
+            s = conv.to_str(self.value)
         if self.from_string_converter in conv.converters_requiring_quotes:
             s = "'''%s'''" % s
         return s
@@ -138,7 +129,8 @@ class Option(object):
             return '<Option: %r, default=%r>' % (self.name, self.default)
 
     #--------------------------------------------------------------------------
-    def _deduce_converter(self, default):
+    @staticmethod
+    def _deduce_converter(default):
         default_type = type(default)
         return conv.from_string_converters.get(default_type, default_type)
 
