@@ -69,6 +69,7 @@ try:
         # assume that source is of type argparse
         for an_action in source._optionals._actions:
             if an_action.default != argparse.SUPPRESS:
+                exclude = False
                 kwargs = get_args_and_values(an_action)
                 kwargs['action'] = find_action_name_by_value(
                     source._optionals._registries,
@@ -86,9 +87,7 @@ try:
                                 action_type
                             ]
                         )
-                        print "Partial", converters.from_string_converters[
-                            action_type
-                        ]
+                    exclude = True
                 except KeyError:
                     from_string_type_converter = \
                         converters.from_string_converters[action_type]
@@ -98,6 +97,8 @@ try:
                     from_string_converter=from_string_type_converter,
                     to_string_converter=converters.to_str,
                     doc=an_action.help,
+                    exclude_from_print_conf=exclude,
+                    exclude_from_dump_conf=exclude,
                     foreign_data=(argparse, kwargs)
                 )
             #else:
