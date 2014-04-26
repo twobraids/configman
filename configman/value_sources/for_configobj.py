@@ -174,7 +174,10 @@ class ValueSource(object):
             source.endswith(file_name_extension)
         ):
             try:
-                self.config_obj = ConfigObjWithIncludes(source)
+                self.config_obj = ConfigObjWithIncludes(
+                    source,
+                    list_values=False
+                )
             except Exception, x:
                 raise LoadingIniFileFailsException(
                     "ConfigObj cannot load ini: %s" % str(x)

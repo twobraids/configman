@@ -41,6 +41,7 @@
 try:
     import argparse
     import inspect
+    from functools import partial
 
     from .. import namespace
     from .. import converters
@@ -57,7 +58,6 @@ try:
 
     def get_args_and_values(an_action):
         args = inspect.getargspec(an_action.__class__.__init__).args
-        print "ttttttt", args
         kwargs = dict(
             (an_attr, getattr(an_action, an_attr))
             for an_attr in args if an_attr not in ('self', 'required')
@@ -69,36 +69,39 @@ try:
         # assume that source is of type argparse
         for an_action in source._optionals._actions:
             if an_action.default != argparse.SUPPRESS:
-                the_class = an_action.__class__  # debug line
-                print "class:", the_class.__name__, an_action.dest
                 kwargs = get_args_and_values(an_action)
                 kwargs['action'] = find_action_name_by_value(
                     source._optionals._registries,
                     an_action
                 )
-                print kwargs['action']
-                #if kwargs['const'] is not None:
-                    #kwargs['nargs'] = '?'
                 if an_action.type is None:
                     action_type = type(an_action.default)
                 else:
                     action_type = an_action.type
-                to_string_type_converter = converters.to_string_converters[
-                    action_type
-                ]
-                from_string_type_converter = converters.from_string_converters[
-                    action_type
-                ]
+                try:
+                    if kwargs['nargs']:
+                        from_string_type_converter = partial(
+                            converters.list_converter,
+                            item_converter=converters.from_string_converters[
+                                action_type
+                            ]
+                        )
+                        print "Partial", converters.from_string_converters[
+                            action_type
+                        ]
+                except KeyError:
+                    from_string_type_converter = \
+                        converters.from_string_converters[action_type]
                 destination.add_option(
                     name=an_action.dest,
                     default=an_action.default,
                     from_string_converter=from_string_type_converter,
-                    to_string_converter=to_string_type_converter,
+                    to_string_converter=converters.to_str,
                     doc=an_action.help,
                     foreign_data=(argparse, kwargs)
                 )
-            else:
-                print "argparse: skipping", type(an_action), an_action.dest
+            #else:
+                #print "argparse: skipping", type(an_action), an_action.dest
 
     type_to_setup_association = {argparse.ArgumentParser: setup_definitions}
 

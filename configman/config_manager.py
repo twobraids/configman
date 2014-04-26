@@ -61,6 +61,7 @@ from required_config import RequiredConfig
 from config_file_future_proxy import ConfigFileFutureProxy
 from config_exceptions import NotAnOptionError
 
+import configman.value_sources.for_argparse as carg  #DEBUG
 
 #==============================================================================
 class ConfigurationManager(object):

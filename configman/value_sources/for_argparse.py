@@ -152,24 +152,26 @@ class ValueSource(object):
     def _setup_argparse(self, config_manager):
         for opt_name in config_manager.option_definitions.keys_breadth_first():
             an_opt = config_manager.option_definitions[opt_name]
-            print 'trying:', opt_name
             if isinstance(an_opt, Option):
                 try:
                     # this definition came from argparse, use the original
                     kwargs = copy.copy(an_opt.foreign_data[argparse])
                     kwargs['default'] = DontCare(kwargs['default'])
-                    print "creating", kwargs
                     if 'option_strings' in kwargs:
                         args = tuple(x for x in kwargs.pop('option_strings'))
+                        #print "OOOO", kwargs['dest'], args
                     else:
                         args = ()
+                    if not args:
+                        kwargs['nargs'] = '*'
+                        #print "DDDD", kwargs['dest']
+                        #print "    ", an_opt.from_string_converter
                     self.parser.add_argument(*args, **kwargs)
                     continue
                 except KeyError:
                     # no argparse foreign data for this option
                     pass
 
-                print "no?", opt_name
                 if an_opt.is_argument:  # is positional argument
                     option_name = opt_name
                 else:
@@ -192,7 +194,6 @@ class ValueSource(object):
                 kwargs.help = an_opt.doc
                 kwargs.dest = opt_name
 
-                #print "creating: ", args, kwargs
                 self.parser.add_argument(*args, **kwargs)
 
     #--------------------------------------------------------------------------
