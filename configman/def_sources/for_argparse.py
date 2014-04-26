@@ -40,6 +40,7 @@
 
 try:
     import argparse
+    import inspect
 
     from .. import namespace
 
@@ -51,30 +52,37 @@ try:
                 if key is None:
                     return 'store'
                 return key
-        print "FUCK"
         return None
+
+    def get_args_and_values(an_action):
+        args = inspect.getargspec(an_action.__class__.__init__).args
+        print "ttttttt", args
+        kwargs = dict(
+            (an_attr, getattr(an_action, an_attr))
+            for an_attr in args if an_attr not in ('self', 'required')
+        )
+        return kwargs
+
 
     def setup_definitions(source, destination):
         # assume that source is of type argparse
         for an_action in source._optionals._actions:
-            print 'argparse reading', an_action.dest, an_action.help, an_action.default
             if an_action.default != argparse.SUPPRESS:
+                the_class = an_action.__class__
+                print "class:", the_class.__name__, an_action.dest
+                kwargs = get_args_and_values(an_action)
+                kwargs['action'] = find_action_name_by_value(
+                    source._optionals._registries,
+                    the_class
+                )
+                if kwargs['const'] is not None:
+                    kwargs['nargs'] = '?'
                 destination.add_option(
-                    action=find_action_name_by_value(
-                        source._registries,
-                        an_action
-                    ),
-                    option_strings = an_action.option_strings,
                     name = an_action.dest,
-                    dest = an_action.dest,
-                    nargs = an_action.nargs,
-                    const = an_action.const,
                     default = an_action.default,
                     from_string_converter = an_action.type,
-                    choices = an_action.choices,
-                    required = an_action.required,
                     doc = an_action.help,
-                    metavar = an_action.metavar,
+                    foreign_data=(argparse, kwargs)
                 )
             else:
                 print "argparse: skipping", type(an_action), an_action.dest

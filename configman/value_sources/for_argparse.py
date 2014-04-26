@@ -48,6 +48,7 @@ passed in.  If specified as a list, the constructor will assume the list
 represents the argv source."""
 
 import argparse
+import copy
 
 from configman.dontcare import DontCare
 from configman.option import Option
@@ -153,27 +154,16 @@ class ValueSource(object):
             an_opt = config_manager.option_definitions[opt_name]
             print 'trying:', opt_name
             if isinstance(an_opt, Option):
-                if an_opt.action:
+                try:
                     # this definition came from argparse, use the original
-                    names = [
-                        'action',
-                        'option_strings',
-                        'dest',
-                        'nargs',
-                        'const',
-                        'default',
-                        'type',
-                        'choices',
-                        'help',
-                        'metavar',
-                    ]
-                    kwargs = dict(
-                        (name, getattr(an_opt, name)) for name in names
-                    )
+                    kwargs = copy.copy(an_opt.foreign_data[argparse])
                     kwargs['default'] = DontCare(kwargs['default'])
                     print "creating", kwargs
                     self.parser.add_argument(**kwargs)
                     continue
+                except KeyError:
+                    # no argparse foreign data for this option
+                    pass
 
                 print "no?", opt_name
                 if an_opt.is_argument:  # is positional argument
