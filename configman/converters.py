@@ -40,8 +40,9 @@ import sys
 import re
 import datetime
 import types
-import inspect
 import json
+import __builtin__
+
 
 from required_config import RequiredConfig
 from namespace import Namespace
@@ -51,6 +52,16 @@ from .datetime_util import date_from_ISO_string as date_converter
 from .config_exceptions import CannotConvertError
 
 import datetime_util
+
+#------------------------------------------------------------------------------
+# Utilities Section
+#------------------------------------------------------------------------------
+
+
+#------------------------------------------------------------------------------
+_all_named_builtins = dir(__builtin__)
+_compiled_regexp_type = type(re.compile(r'x'))
+_builtin_function_or_method_type = type(sum)
 
 
 #------------------------------------------------------------------------------
@@ -109,6 +120,12 @@ def io_converter(input_str):
         return open(input_str, "w")
     return input_str
 
+#------------------------------------------------------------------------------
+# from string Section
+#     these are methods that will take a string and convert it into an instance
+#     of some type.
+#------------------------------------------------------------------------------
+
 
 #------------------------------------------------------------------------------
 def timedelta_converter(input_str):
@@ -141,17 +158,15 @@ def boolean_converter(input_str):
 
 
 #------------------------------------------------------------------------------
-def list_converter(input_str):
+def list_converter(input_str, item_converter=str):
     """ a conversion function for list
     """
-    return [x.strip() for x in input_str.split(',') if x.strip()]
+    return [
+        item_converter(x.strip()) for x in input_str.split(',') if x.strip()
+    ]
 
 
 #------------------------------------------------------------------------------
-import __builtin__
-_all_named_builtins = dir(__builtin__)
-
-
 def class_converter(input_str):
     """ a conversion that will import a module and class name
     """
@@ -264,6 +279,7 @@ def classes_in_namespaces_converter(
                                                          # for future reference
             class_option_name = name_of_class_option  # save the class's option
                                                       # name for the future
+            original_class_list_str = class_list_str
             # for each class in the class list
             for namespace_index, a_class in enumerate(class_list):
                 # figure out the Namespace name
@@ -290,11 +306,7 @@ def classes_in_namespaces_converter(
                 """this method takes this inner class object and turns it back
                 into the original string of classnames.  This is used
                 primarily as for the output of the 'help' option"""
-                return ', '.join(
-                    py_obj_to_str(v[name_of_class_option].value)
-                    for v in cls.get_required_config().values()
-                    if isinstance(v, Namespace)
-                )
+                return cls.original_class_list_str
 
         return InnerClassList  # result of class_list_converter
     return class_list_converter  # result of classes_in_namespaces_converter
@@ -304,9 +316,11 @@ def classes_in_namespaces_converter(
 def regex_converter(input_str):
     return re.compile(input_str)
 
-compiled_regexp_type = type(re.compile(r'x'))
-
 #------------------------------------------------------------------------------
+# a mapping of some types to converter methods to assist in finding the right
+# conversion automatically
+
+
 from_string_converters = {
     int: int,
     float: float,
@@ -320,50 +334,117 @@ from_string_converters = {
     datetime.timedelta: timedelta_converter,
     type: class_converter,
     types.FunctionType: class_converter,
-    compiled_regexp_type: regex_converter,
+    _compiled_regexp_type: regex_converter,
+    _builtin_function_or_method_type: class_converter,
 }
 
 
 #------------------------------------------------------------------------------
-def py_obj_to_str(a_thing):
+# to string Section
+#     these are methods that will take some object and convert it into a string
+#     representation that is human readably friendly
+#------------------------------------------------------------------------------
+
+
+#------------------------------------------------------------------------------
+# a mapping of all the builtin types to human readable strings
+_builtin_to_str = dict(
+    (val, key)
+    for key, val in __builtin__.__dict__.iteritems()
+    if not key.startswith('__') and key is not 'None'
+)
+
+#------------------------------------------------------------------------------
+# in an Option, the from_string_converter may have required that a string have
+# quotes.  This is a list of those converters for the benefit of the Option
+# class when it wants to convert _to_ a string.  It helps to make sure that
+# the from/to conversion can survive a round trip
+converters_requiring_quotes = [eval, regex_converter]
+
+
+#------------------------------------------------------------------------------
+def _arbitrary_object_to_string(a_thing):
+    """take a python object of some sort, and convert it into a human readable
+    string"""
+    # is it None?
     if a_thing is None:
         return ''
+
+    # is it already a string?
     if isinstance(a_thing, basestring):
         return a_thing
-    if inspect.ismodule(a_thing):
-        return a_thing.__name__
-    if a_thing.__module__ == '__builtin__':
-        return a_thing.__name__
-    if a_thing.__module__ == "__main__":
-        return a_thing.__name__
-    if hasattr(a_thing, 'to_str'):
+
+    # does it have a to_str function?
+    try:
         return a_thing.to_str()
-    return "%s.%s" % (a_thing.__module__, a_thing.__name__)
+    except AttributeError:
+        # nope, no to_str function
+        pass
+
+    # is it something from a loaded module?
+    try:
+        if a_thing.__module__ not in ('__builtin__', 'exceptions'):
+            return "%s.%s" % (a_thing.__module__, a_thing.__name__)
+    except AttributeError:
+        # nope, not one of these
+        pass
+
+    # is it a built in?
+    try:
+        return _builtin_to_str[a_thing]
+    except KeyError:
+        # nope, not a builtin
+        pass
+
+    # maybe it has a __name__ attribute?
+    try:
+        return a_thing.__name__
+    except AttributeError:
+        # nope, not one of these
+        pass
+
+    # punt and see what happens if we just cast it to string
+    return str(a_thing)
 
 
 #------------------------------------------------------------------------------
-def list_to_str(a_list):
-    return ', '.join(to_string_converters[type(x)](x) for x in a_list)
+def _sequence_to_string(a_list):
+    """a dedicated function that turns a list into a comma delimited string
+    of items converted.  This method will flatten nested lists."""
+    return ', '.join(to_str(x) for x in a_list)
+
 
 #------------------------------------------------------------------------------
-to_string_converters = {
+def to_str(a_thing):
+    """the ultimate authority in converting a thing into a human readable
+    string.  Give it anything  and you'll likely get something just fine
+    from it."""
+    try:
+        converter = _to_string_converters[type(a_thing)]
+    except KeyError:
+        converter = _arbitrary_object_to_string
+    return converter(a_thing)
+
+#------------------------------------------------------------------------------
+# a mapping of types to methods that will convert the an object of the given
+# type to a string.
+_to_string_converters = {
     int: str,
     float: str,
     str: str,
     unicode: unicode,
-    list: list_to_str,
-    tuple: list_to_str,
+    list: _sequence_to_string,
+    tuple: _sequence_to_string,
     bool: lambda x: 'True' if x else 'False',
     dict: json.dumps,
     datetime.datetime: datetime_util.datetime_to_ISO_string,
     datetime.date: datetime_util.date_to_ISO_string,
     datetime.timedelta: datetime_util.timedelta_to_str,
-    type: py_obj_to_str,
-    types.ModuleType: py_obj_to_str,
-    types.FunctionType: py_obj_to_str,
-    compiled_regexp_type: lambda x: x.pattern,
+    type: _arbitrary_object_to_string,
+    types.ModuleType: _arbitrary_object_to_string,
+    types.FunctionType: _arbitrary_object_to_string,
+    types.BuiltinMethodType: _arbitrary_object_to_string,
+    types.BuiltinFunctionType: _arbitrary_object_to_string,
+    _builtin_function_or_method_type: lambda x: x.__name__,
+    _compiled_regexp_type: lambda x: x.pattern,
 }
-
-
-#------------------------------------------------------------------------------
-converters_requiring_quotes = [eval, regex_converter]

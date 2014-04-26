@@ -116,15 +116,12 @@ class ValueSource(object):
                 d = d[x]
             if isinstance(val, Option):
                 for okey, oval in val.__dict__.iteritems():
-                    try:
-                        d[okey] = conv.to_string_converters[type(oval)](oval)
-                    except KeyError:
-                        d[okey] = str(oval)
+                    d[okey] = conv.to_str(oval)
                 d['default'] = d['value']
             elif isinstance(val, Aggregation):
                 d['name'] = val.name
                 fn = val.function
-                d['function'] = conv.to_string_converters[type(fn)](fn)
+                d['function'] = conv.to_str(fn)
         json.dump(json_dict, output_stream)
 
 
