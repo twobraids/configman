@@ -548,7 +548,7 @@ class ConfigurationManager(object):
             # keys holds a list of all keys in the option definitons in
             # breadth first order using this form: [ 'x', 'y', 'z', 'x.a',
             # 'x.b', 'z.a', 'z.b', 'x.a.j', 'x.a.k', 'x.b.h']
-            keys = [
+            self._keys = [
                 x for x
                 in self.option_definitions.keys_breadth_first()
                 if isinstance(self.option_definitions[x], Option)
@@ -558,14 +558,25 @@ class ConfigurationManager(object):
             # create alternate paths options
             set_of_reference_value_from_links = \
                 self._create_reference_value_from_links(
-                    keys,
+                    self._keys,
                     known_keys
                 )
-            all_keys = list(set_of_reference_value_from_links) + keys
+            all_keys = list(set_of_reference_value_from_links) + self._keys
 
             # overlay process:
             # fetch all the default values from the value sources before
             # applying the from string conversions
+
+            def _must_be(source, required_type):
+                if isinstance(source, required_type):
+                    return source
+                return required_type(source)
+
+            values_from_all_sources = [
+                _must_be(v.get_values(self, True), DotDictWithAcquisition)
+                for v in self.values_source_list
+            ]
+
             for key in (k for k in all_keys if k not in known_keys):
                 #if not isinstance(an_option, Option):
                 #   continue  # aggregations and other types are ignored
@@ -580,18 +591,8 @@ class ConfigurationManager(object):
                         self.option_definitions[reference_value_from]
                         [top_key].default
                     )
-                for a_value_source in self.values_source_list:
+                for val_src_dict in values_from_all_sources:
                     try:
-                        # get all the option values from this value source
-                        val_src_dict = a_value_source.get_values(
-                            self,
-                            True
-                        )
-                        # make sure it is in the form of a DotDict
-                        if not isinstance(val_src_dict, DotDict):
-                            val_src_dict = (
-                                DotDictWithAcquisition(val_src_dict)
-                            )
                         # get the Option for this key
                         opt = self.option_definitions[key]
                         # if the the option's default is DontCare

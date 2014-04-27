@@ -121,7 +121,31 @@ class ValueSource(object):
     command_line_value_source = True
 
     #--------------------------------------------------------------------------
+    def create_fake_args(self, config_manager):
+        original_positionals = [
+            x for x in config_manager.argv_source
+            if not x.startswith('-')
+        ]
+        original_optionals = set(
+            x for x in config_manager.argv_source
+            if x.startswith('-')
+        )
+        fake_args = []
+        for key in config_manager._keys:
+            an_option = config_manager.option_definitions[key]
+            default = an_option.default
+            if an_option.is_argument:
+                fake_args.append(default)
+            elif isinstance(default, bool) and  default:
+                fake_args.append("--%s" % an_option.name)
+            else:
+                fake_args.append("--%s" % an_option.name)
+                fake_args.append(default)
+        return fake_args
+
+    #--------------------------------------------------------------------------
     def get_values(self, config_manager, ignore_mismatches):
+        fake_commandline_args = self.create_fake_args(config_manager)
         if ignore_mismatches:
             if self.parser_class:
                 self.parser = self.parser_class(add_help=False)
@@ -155,15 +179,17 @@ class ValueSource(object):
             if isinstance(an_opt, Option):
                 try:
                     # this definition came from argparse, use the original
-                    kwargs = copy.copy(an_opt.foreign_data[argparse])
-                    kwargs['default'] = DontCare(kwargs['default'])
+                    kwargs, action = an_opt.foreign_data[argparse]
+                    kwargs = copy.copy(kwargs)
+                    #kwargs['default'] = DontCare(kwargs['default'])
                     if 'option_strings' in kwargs:
                         args = tuple(x for x in kwargs.pop('option_strings'))
                     else:
                         args = ()
-                    if not args:
-                        kwargs['nargs'] = '*'
+                    print "CREATING:", kwargs['dest'], args, kwargs
                     self.parser.add_argument(*args, **kwargs)
+                    print action
+                    print self.parser._actions[-1]
                     continue
                 except KeyError:
                     # no argparse foreign data for this option
@@ -192,6 +218,8 @@ class ValueSource(object):
                 kwargs.dest = opt_name
 
                 self.parser.add_argument(*args, **kwargs)
+        print "COPY:   ", self.parser._positionals._actions
+
 
     #--------------------------------------------------------------------------
     @staticmethod
