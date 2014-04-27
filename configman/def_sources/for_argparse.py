@@ -100,6 +100,7 @@ try:
                     from_string_converter=from_string_type_converter,
                     to_string_converter=converters.to_str,
                     doc=an_action.help,
+                    number_of_arguments=an_action.nargs,
                     foreign_data=(argparse, (kwargs, an_action))
                 )
             #else:

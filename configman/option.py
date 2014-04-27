@@ -60,6 +60,7 @@ class Option(object):
         likely_to_be_changed=False,
         not_for_definition=False,
         reference_value_from=None,
+        number_of_values=None,
         foreign_data=None
     ):
         self.name = name
@@ -85,6 +86,7 @@ class Option(object):
         self.likely_to_be_changed = likely_to_be_changed
         self.not_for_definition = not_for_definition
         self.reference_value_from = reference_value_from
+        self.number_of_values = number_of_values
         if foreign_data:
             self.foreign_data = {foreign_data[0]: foreign_data[1]}
         else:

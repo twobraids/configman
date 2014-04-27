@@ -49,6 +49,7 @@ represents the argv source."""
 
 import argparse
 import copy
+import itertools
 
 from configman.dontcare import DontCare
 from configman.option import Option
@@ -80,9 +81,14 @@ class ValueSource(object):
     def __init__(self, source, the_config_manager):
         self.source = source
         self.argv_source = tuple(the_config_manager.argv_source)
-        if source is argparse or source is argparse.ArgumentParser:
+        if (source is argparse
+            or issubclass_with_no_type_error(source, argparse.ArgumentParser)
+        ):
             # need to setup an arg parser based on what is already known
-            class ConfigmanArgumentParser(argparse.ArgumentParser):
+            base_parser_class = (
+                argparse.ArgumentParser if source is argparse else source
+            )
+            class ConfigmanArgumentParser(base_parser_class):
                 def __init__(self, add_help=True):
                     super(ConfigmanArgumentParser, self).__init__(
                         prog=the_config_manager.app_name,
@@ -98,17 +104,22 @@ class ValueSource(object):
                         conflict_handler='error',
                         add_help=add_help,
                     )
+
+            class ConfigmanArgumentParserNoError(ConfigmanArgumentParser):
+                def __init__(self, add_help=False):
+                    super(ConfigmanArgumentParserNoError, self).__init__(
+                        add_help
+                    )
+
+                def exit(self, status=0, message=None):
+                    pass
+
+                def error(self, message):
+                    pass
+
             self.parser = None
-            self.parser_class = ConfigmanArgumentParser
-        elif issubclass_with_no_type_error(source, argparse.ArgumentParser):
-            # need to setup an arg parser based on what is already known,
-            # but use the user's arg parse subclass
-            self.parser = None
-            self.parser_class = source
-        elif isinstance(source, argparse.ArgumentParser):
-            self.parser = source
-            self.parser_class = None
-            raise NotImplemented
+            self.first_parser_class = ConfigmanArgumentParserNoError
+            self.secord_parser_class = ConfigmanArgumentParser
         else:
             raise CantHandleTypeException()
 
@@ -122,17 +133,60 @@ class ValueSource(object):
 
     #--------------------------------------------------------------------------
     def create_fake_args(self, config_manager):
+        # all of this is to keep argparse from barfing if the minumum number
+        # of required arguments is not in place at run time.  It may be that
+        # some config file or environment will bring them in later.   argparse
+        # needs to cope using this placebo argv
         original_positionals = [
             x for x in config_manager.argv_source
             if not x.startswith('-')
         ]
-        original_optionals = set(
+        number_of_original_positionals = len(original_positionals)
+
+        defined_positional_arguments = [
+            config_manager.option_definitions[key].default
+            for key in config_manager._keys
+            if config_manager.option_definitions[key].is_argument
+        ]
+        number_of_defined_positional_arguments_mappings = len(
+            defined_positional_arguments
+        )
+
+        number_of_arguments_required_by_parser = sum(
+            [config_manager.option_definitions[key].number_of_values
+            for key in config_manager._keys
+            if config_manager.option_definitions[key].is_argument
+            and isinstance(
+                config_manager.option_definitions[key].number_of_values,
+                int
+            )],
+            0
+        )
+
+        if number_of_arguments_required_by_parser > number_of_original_positionals:
+            short_by = number_of_arguments_required_by_parser - number_of_original_positionals
+            fake_argv = (
+                original_positionals +
+                defined_positional_arguments[-short_by:]
+            )
+
+        fake_argv = fake_argv[:number_of_arguments_required_by_parser]
+
+        original_optionals = [
             x for x in config_manager.argv_source
             if x.startswith('-')
-        )
-        fake_args = []
+        ]
+
+        fake_argv.extend(original_optionals)
+        set_of_original_optionals = set(original_optionals)
+        original_optionals_as_an_re =
+
         for key in config_manager._keys:
+
+            if "--%s" % key in set_of_original_optionals:
+                continue
             an_option = config_manager.option_definitions[key]
+
             default = an_option.default
             if an_option.is_argument:
                 fake_args.append(default)
@@ -145,20 +199,17 @@ class ValueSource(object):
 
     #--------------------------------------------------------------------------
     def get_values(self, config_manager, ignore_mismatches):
-        fake_commandline_args = self.create_fake_args(config_manager)
         if ignore_mismatches:
-            if self.parser_class:
-                self.parser = self.parser_class(add_help=False)
-                self._setup_argparse(config_manager)
+            self.parser = self.first_parser_class()
+            self._setup_argparse(config_manager)
             argparse_namespace, args = self.parser.parse_known_args(
                 args=self.argv_source
             )
         else:
-            if self.parser_class:
-                self.parser = self.parser_class(add_help=True)
-                self._setup_argparse(config_manager)
+            self.parser = self.second_parser_class()
+            self._setup_argparse(config_manager)
             argparse_namespace = self.parser.parse_args(
-                args=self.argv_source
+                args=SYNTHETIC_ARGV HERE
             )
         return DotDict(argparse_namespace.__dict__)
 
