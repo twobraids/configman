@@ -998,7 +998,7 @@ c.string =   from ini
             "app_name: fred",
             "app_version: 1.0",
             "current configuration:",
-            "application: <class 'configman.tests.test_config_manager.MyApp'>",
+            "application: configman.tests.test_config_manager.MyApp",
             "password: *********",
             "sub.name: wilma"
         ]

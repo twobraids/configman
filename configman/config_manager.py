@@ -353,10 +353,8 @@ class ConfigurationManager(object):
             if doc:
                 line += '%s%s\n' % (pad, doc)
             try:
-                value = option.value
-                type_of_value = type(value)
-                converter_function = conv.to_string_converters[type_of_value]
-                default = converter_function(value)
+                default = str(option)
+
             except KeyError:
                 default = option.value
             if default is not None:
@@ -476,11 +474,7 @@ class ConfigurationManager(object):
             if 'password' in key.lower():
                 logger.info('%s: *********', key)
             else:
-                try:
-                    logger.info('%s: %s', key,
-                                conv.to_string_converters[type(key)](val))
-                except KeyError:
-                    logger.info('%s: %s', key, val)
+                logger.info('%s: %s', key, conv.to_str(val))
 
     #--------------------------------------------------------------------------
     def get_option_names(self):
