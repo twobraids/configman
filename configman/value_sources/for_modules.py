@@ -41,6 +41,7 @@ import sys
 
 from configman.namespace import Namespace
 from configman.option import Option, Aggregation
+from configman.converters import to_str
 
 file_name_extension = 'py'
 
@@ -66,7 +67,7 @@ class ValueSource(object):
     #--------------------------------------------------------------------------
     @staticmethod
     def write_option(key, an_option, output_stream):
-        print >>output_stream, '%s = """%s"""' % (key, an_option.value)
+        print >>output_stream, '%s = """%s"""' % (key, to_str(an_option.value))
 
     #--------------------------------------------------------------------------
     @staticmethod
