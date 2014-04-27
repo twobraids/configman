@@ -87,7 +87,6 @@ try:
                                 action_type
                             ]
                         )
-                    exclude = True
                 except KeyError:
                     from_string_type_converter = \
                         converters.from_string_converters[action_type]
@@ -97,8 +96,6 @@ try:
                     from_string_converter=from_string_type_converter,
                     to_string_converter=converters.to_str,
                     doc=an_action.help,
-                    exclude_from_print_conf=exclude,
-                    exclude_from_dump_conf=exclude,
                     foreign_data=(argparse, kwargs)
                 )
             #else:

@@ -774,7 +774,8 @@ class ConfigurationManager(object):
         admin.add_option(
             name='dump_conf',
             default='',
-            doc='a pathname to which to write the current config',
+            doc='a file system pathname for new config file (types: %s)' %
+            ', '.join(value_sources.file_extension_dispatch.keys())
         )
         admin.add_option(
             name='strict',

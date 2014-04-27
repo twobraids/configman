@@ -90,6 +90,7 @@ class Option(object):
         else:
             self.foreign_data = {}
 
+
     #--------------------------------------------------------------------------
     def __str__(self):
         """return an instance of Option's value as a string.
