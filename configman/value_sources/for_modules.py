@@ -54,7 +54,9 @@ class ValueSource(object):
     #--------------------------------------------------------------------------
     def __init__(self, source, the_config_manager=None):
         module_dict = source.__dict__.copy()
-        del module_dict['__builtins__']
+        to_remove = [k for k in module_dict.keys() if k.startswith('__')]
+        for a_key in to_remove:
+            del module_dict[a_key]
         self.source = module_dict
 
     #--------------------------------------------------------------------------
@@ -76,7 +78,10 @@ class ValueSource(object):
     def write(source_mapping, output_stream=sys.stdout):
         print >>output_stream, "# generated Python configman file\n"
         print >>output_stream, "from configman.dotdict import DotDict\n"
-        for key in source_mapping.keys_breadth_first(include_dicts=True):
+        sorted_keys = sorted(
+            source_mapping.keys_breadth_first(include_dicts=True)
+        )
+        for key in sorted_keys:
             value = source_mapping[key]
             if isinstance(value, Namespace):
                 ValueSource.write_namespace(key, value, output_stream)
