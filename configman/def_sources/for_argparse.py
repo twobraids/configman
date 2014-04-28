@@ -75,10 +75,11 @@ try:
                     source._optionals._registries,
                     an_action
                 )
-                if an_action.type is None:
+                action_type = an_action.type
+                if action_type is None:
                     action_type = type(an_action.default)
-                else:
-                    action_type = an_action.type
+                if action_type is type(None):
+                    action_type = str
                 try:
                     if kwargs['nargs']:
                         from_string_type_converter = partial(

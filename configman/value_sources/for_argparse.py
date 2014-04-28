@@ -171,22 +171,29 @@ class ValueSource(object):
                 final_args.extend(x)
             else:
                 final_args.append(x)
-        return [x.strip() for x in final_args if x is not None]
+        return [
+            x.strip() for x in final_args if x is not None and x.strip() != ''
+        ]
 
     #--------------------------------------------------------------------------
     def get_values(self, config_manager, ignore_mismatches):
         if ignore_mismatches:
             self.parser = self.first_parser_class()
             self._setup_argparse(config_manager)
-            argparse_namespace, args = self.parser.parse_known_args(
+            namespace_and_extra_args = self.parser.parse_known_args(
                 args=self.argv_source
             )
+            try:
+                argparse_namespace, extra_args =  namespace_and_extra_args
+            except TypeError:
+                argparse_namespace = argparse.Namespace()
         else:
             fake_args = self.create_fake_args(config_manager)
             if '--help' in self.argv_source or '-h' in self.argv_source:
                 fake_args.append('--help')
             self.parser = self.second_parser_class()
             self._setup_argparse(config_manager)
+            print "@@@@@", fake_args
             argparse_namespace = self.parser.parse_args(
                 args=fake_args
             )
