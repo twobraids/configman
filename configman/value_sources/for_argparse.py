@@ -54,7 +54,7 @@ import itertools
 from configman.dontcare import DontCare
 from configman.option import Option
 from configman.dotdict import DotDict
-from configman.converters import boolean_converter
+from configman.converters import boolean_converter, to_str
 
 from source_exceptions import CantHandleTypeException
 
@@ -119,7 +119,7 @@ class ValueSource(object):
 
             self.parser = None
             self.first_parser_class = ConfigmanArgumentParserNoError
-            self.secord_parser_class = ConfigmanArgumentParser
+            self.second_parser_class = ConfigmanArgumentParser
         else:
             raise CantHandleTypeException()
 
@@ -132,70 +132,34 @@ class ValueSource(object):
     command_line_value_source = True
 
     #--------------------------------------------------------------------------
+    def _option_to_command_line_str(self, an_option, key):
+        if an_option.is_argument:
+            return to_str(an_option.default)
+        if an_option.number_of_values == 0:
+            return None
+        if an_option.from_string_converter in (bool, boolean_converter):
+            if an_option.default:
+                return "--%s" % key
+            return None
+        return "--%s=%s" % (
+            key,
+            to_str(an_option.default)
+        )
+
+    #--------------------------------------------------------------------------
     def create_fake_args(self, config_manager):
         # all of this is to keep argparse from barfing if the minumum number
         # of required arguments is not in place at run time.  It may be that
         # some config file or environment will bring them in later.   argparse
         # needs to cope using this placebo argv
-        original_positionals = [
-            x for x in config_manager.argv_source
-            if not x.startswith('-')
-        ]
-        number_of_original_positionals = len(original_positionals)
-
-        defined_positional_arguments = [
-            config_manager.option_definitions[key].default
-            for key in config_manager._keys
-            if config_manager.option_definitions[key].is_argument
-        ]
-        number_of_defined_positional_arguments_mappings = len(
-            defined_positional_arguments
-        )
-
-        number_of_arguments_required_by_parser = sum(
-            [config_manager.option_definitions[key].number_of_values
-            for key in config_manager._keys
-            if config_manager.option_definitions[key].is_argument
-            and isinstance(
-                config_manager.option_definitions[key].number_of_values,
-                int
-            )],
-            0
-        )
-
-        if number_of_arguments_required_by_parser > number_of_original_positionals:
-            short_by = number_of_arguments_required_by_parser - number_of_original_positionals
-            fake_argv = (
-                original_positionals +
-                defined_positional_arguments[-short_by:]
+        args = [
+            self._option_to_command_line_str(
+                config_manager.option_definitions[key],
+                key
             )
-
-        fake_argv = fake_argv[:number_of_arguments_required_by_parser]
-
-        original_optionals = [
-            x for x in config_manager.argv_source
-            if x.startswith('-')
+            for key in config_manager.option_definitions.keys_breadth_first()
         ]
-
-        fake_argv.extend(original_optionals)
-        set_of_original_optionals = set(original_optionals)
-        original_optionals_as_an_re =
-
-        for key in config_manager._keys:
-
-            if "--%s" % key in set_of_original_optionals:
-                continue
-            an_option = config_manager.option_definitions[key]
-
-            default = an_option.default
-            if an_option.is_argument:
-                fake_args.append(default)
-            elif isinstance(default, bool) and  default:
-                fake_args.append("--%s" % an_option.name)
-            else:
-                fake_args.append("--%s" % an_option.name)
-                fake_args.append(default)
-        return fake_args
+        return [x.strip() for x in args if x is not None]
 
     #--------------------------------------------------------------------------
     def get_values(self, config_manager, ignore_mismatches):
@@ -206,10 +170,14 @@ class ValueSource(object):
                 args=self.argv_source
             )
         else:
+            fake_args = self.create_fake_args(config_manager)
+            if '--help' in self.argv_source or '-h' in self.argv_source:
+                fake_args.append('--help')
+            print "@@@@", fake_args
             self.parser = self.second_parser_class()
             self._setup_argparse(config_manager)
             argparse_namespace = self.parser.parse_args(
-                args=SYNTHETIC_ARGV HERE
+                args=fake_args
             )
         return DotDict(argparse_namespace.__dict__)
 
