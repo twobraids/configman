@@ -44,6 +44,6 @@ class ArgumentParser(ControlledErrorReportingArgumentParser):
             )
             return configuration_manager.get_config()
         else:
-            super(ArgumentParser, self).parse_args(args, namespace)
+            return super(ArgumentParser, self).parse_args(args, namespace)
 
 

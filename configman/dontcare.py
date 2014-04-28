@@ -14,11 +14,16 @@ def dont_care(value):
         return classes[value_type](value)
     except KeyError:
         try:
+
             class X(value_type):
                 @classmethod
                 def __hash__(kls):
                     return hash(kls.__name__)
+                def __setattr__(self, key, value):
+                    self.
+
             X.__name__ = 'DontCareAbout_%s' % to_str(value_type)
+
         except TypeError:
             X = DontCare
         classes[value_type] = X
