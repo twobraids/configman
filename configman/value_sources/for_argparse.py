@@ -134,6 +134,8 @@ class ValueSource(object):
     #--------------------------------------------------------------------------
     def _option_to_command_line_str(self, an_option, key):
         if an_option.is_argument:
+            if an_option.number_of_values is not None:
+                return to_str(an_option.default).split(',')
             return to_str(an_option.default)
         if an_option.number_of_values == 0:
             return None
@@ -158,8 +160,18 @@ class ValueSource(object):
                 key
             )
             for key in config_manager.option_definitions.keys_breadth_first()
+            if isinstance(
+                config_manager.option_definitions[key],
+                Option
+            )
         ]
-        return [x.strip() for x in args if x is not None]
+        final_args = []
+        for x in args:
+            if isinstance(x, list):
+                final_args.extend(x)
+            else:
+                final_args.append(x)
+        return [x.strip() for x in final_args if x is not None]
 
     #--------------------------------------------------------------------------
     def get_values(self, config_manager, ignore_mismatches):
@@ -173,7 +185,6 @@ class ValueSource(object):
             fake_args = self.create_fake_args(config_manager)
             if '--help' in self.argv_source or '-h' in self.argv_source:
                 fake_args.append('--help')
-            print "@@@@", fake_args
             self.parser = self.second_parser_class()
             self._setup_argparse(config_manager)
             argparse_namespace = self.parser.parse_args(
@@ -200,15 +211,16 @@ class ValueSource(object):
                     # this definition came from argparse, use the original
                     kwargs, action = an_opt.foreign_data[argparse]
                     kwargs = copy.copy(kwargs)
-                    #kwargs['default'] = DontCare(kwargs['default'])
+                    if kwargs['action'] != 'count':
+                        kwargs['default'] = DontCare(kwargs['default'])
                     if 'option_strings' in kwargs:
                         args = tuple(x for x in kwargs.pop('option_strings'))
                     else:
                         args = ()
-                    print "CREATING:", kwargs['dest'], args, kwargs
+                    #print "CREATING:", kwargs['dest'], args, kwargs
                     self.parser.add_argument(*args, **kwargs)
-                    print action
-                    print self.parser._actions[-1]
+                    #print action
+                    #print self.parser._actions[-1]
                     continue
                 except KeyError:
                     # no argparse foreign data for this option
@@ -237,7 +249,7 @@ class ValueSource(object):
                 kwargs.dest = opt_name
 
                 self.parser.add_argument(*args, **kwargs)
-        print "COPY:   ", self.parser._positionals._actions
+        #print "COPY:   ", self.parser._positionals._actions
 
 
     #--------------------------------------------------------------------------

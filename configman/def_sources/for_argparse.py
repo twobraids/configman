@@ -67,7 +67,7 @@ try:
 
     def setup_definitions(source, destination):
         # assume that source is of type argparse
-        print "ORIGINAL:", source._positionals._actions
+        #print "ORIGINAL:", source._positionals._actions
         for an_action in source._actions:
             if an_action.default != argparse.SUPPRESS:
                 kwargs = get_args_and_values(an_action)
@@ -93,7 +93,7 @@ try:
                 except KeyError:
                     from_string_type_converter = \
                         converters.from_string_converters[action_type]
-                print "SAVING:", kwargs['dest'], kwargs
+                #print "SAVING:", kwargs['dest'], kwargs
                 destination.add_option(
                     name=an_action.dest,
                     default=an_action.default,

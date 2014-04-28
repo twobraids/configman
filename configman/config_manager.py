@@ -576,7 +576,6 @@ class ConfigurationManager(object):
                 _must_be(v.get_values(self, True), DotDictWithAcquisition)
                 for v in self.values_source_list
             ]
-
             for key in (k for k in all_keys if k not in known_keys):
                 #if not isinstance(an_option, Option):
                 #   continue  # aggregations and other types are ignored

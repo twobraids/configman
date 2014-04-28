@@ -162,7 +162,6 @@ def boolean_converter(input_str):
 def list_converter(input_str, item_converter=str):
     """ a conversion function for list
     """
-    print 'list_converter', input_str, item_converter
     return [
         item_converter(x.strip()) for x in input_str.split(',') if x.strip()
     ]
