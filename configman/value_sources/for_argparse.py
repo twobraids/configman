@@ -51,7 +51,7 @@ import argparse
 import copy
 import itertools
 
-from configman.dontcare import DontCare
+from configman.dontcare import dont_care
 from configman.option import Option
 from configman.dotdict import DotDict
 from configman.converters import boolean_converter, to_str
@@ -90,8 +90,10 @@ class ValueSource(object):
             or issubclass_with_no_type_error(source, argparse.ArgumentParser)
         ):
             self.parser_class = ControlledErrorReportingArgumentParser
-            self.parser = None
-        elif isinstance(object, class_or_type_or_tuple)
+            self.parser = ControlledErrorReportingArgumentParser(
+            )
+        elif isinstance(source, ArgumentParser):
+            self.parser = source
         else:
             raise CantHandleTypeException()
 
@@ -186,24 +188,6 @@ class ValueSource(object):
         for opt_name in config_manager.option_definitions.keys_breadth_first():
             an_opt = config_manager.option_definitions[opt_name]
             if isinstance(an_opt, Option):
-                try:
-                    # this definition came from argparse, use the original
-                    kwargs, action = an_opt.foreign_data[argparse]
-                    kwargs = copy.copy(kwargs)
-                    if kwargs['action'] != 'count':
-                        kwargs['default'] = DontCare(kwargs['default'])
-                    if 'option_strings' in kwargs:
-                        args = tuple(x for x in kwargs.pop('option_strings'))
-                    else:
-                        args = ()
-                    #print "CREATING:", kwargs['dest'], args, kwargs
-                    self.parser.add_argument(*args, **kwargs)
-                    #print action
-                    #print self.parser._actions[-1]
-                    continue
-                except KeyError:
-                    # no argparse foreign data for this option
-                    pass
 
                 if an_opt.is_argument:  # is positional argument
                     option_name = opt_name
@@ -223,7 +207,7 @@ class ValueSource(object):
                 else:
                     kwargs.action = 'store'
 
-                kwargs.default = DontCare(an_opt.default)
+                kwargs.default = dont_care(an_opt.default)
                 kwargs.help = an_opt.doc
                 kwargs.dest = opt_name
 
