@@ -103,7 +103,6 @@ try:
                     doc=an_action.help,
                     number_of_values=an_action.nargs,
                     is_argument=not kwargs['option_strings'],
-                    foreign_data=(argparse, (kwargs, an_action))
                 )
             #else:
                 #print "argparse: skipping", type(an_action), an_action.dest

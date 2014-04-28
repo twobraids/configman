@@ -56,6 +56,11 @@ from configman.option import Option
 from configman.dotdict import DotDict
 from configman.converters import boolean_converter, to_str
 
+from configman.argparse_ import (
+    ControlledErrorReportingArgumentParser,
+    ArgumentParser
+)
+
 from source_exceptions import CantHandleTypeException
 
 is_command_line_parser = True
@@ -84,42 +89,9 @@ class ValueSource(object):
         if (source is argparse
             or issubclass_with_no_type_error(source, argparse.ArgumentParser)
         ):
-            # need to setup an arg parser based on what is already known
-            base_parser_class = (
-                argparse.ArgumentParser if source is argparse else source
-            )
-            class ConfigmanArgumentParser(base_parser_class):
-                def __init__(self, add_help=True):
-                    super(ConfigmanArgumentParser, self).__init__(
-                        prog=the_config_manager.app_name,
-                        usage=None,
-                        description=the_config_manager.app_description,
-                        epilog=None,
-                        version=the_config_manager.app_version,
-                        parents=[],
-                        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                        prefix_chars='-',
-                        fromfile_prefix_chars=None,
-                        argument_default=None,
-                        conflict_handler='error',
-                        add_help=add_help,
-                    )
-
-            class ConfigmanArgumentParserNoError(ConfigmanArgumentParser):
-                def __init__(self, add_help=False):
-                    super(ConfigmanArgumentParserNoError, self).__init__(
-                        add_help
-                    )
-
-                def exit(self, status=0, message=None):
-                    pass
-
-                def error(self, message):
-                    pass
-
+            self.parser_class = ControlledErrorReportingArgumentParser
             self.parser = None
-            self.first_parser_class = ConfigmanArgumentParserNoError
-            self.second_parser_class = ConfigmanArgumentParser
+        elif isinstance(object, class_or_type_or_tuple)
         else:
             raise CantHandleTypeException()
 
