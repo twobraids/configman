@@ -371,6 +371,8 @@ def get_from_string_converter(thing):
 
 #------------------------------------------------------------------------------
 def from_str(thing):
+    if not isinstance(basestring, thing):
+        return thing
     for key, value in from_string_converters.iteritems():
         if isinstance(thing, key):
             return value(thing)
