@@ -260,6 +260,13 @@ class ConfigurationManager(object):
             # 'help' definition.  there is nothing to do here
             pass
 
+        print "####", self._get_option('admin.dump_conf').default
+        print "####", self._get_option('admin.print_conf').default
+        print "####", self._get_option('admin.dump_conf').value
+        print "####", self._get_option('admin.print_conf').value
+        print "####", self._get_option('admin.dump_conf').from_string_converter
+        print "####", self._get_option('admin.print_conf').from_string_converter
+
         if use_admin_controls and self._get_option('admin.print_conf').value:
             self.print_conf()
             admin_tasks_done = True
@@ -268,6 +275,7 @@ class ConfigurationManager(object):
             self.dump_conf()
             admin_tasks_done = True
 
+        print "XXXXX", quit_after_admin, admin_tasks_done
         if quit_after_admin and admin_tasks_done:
             sys.exit()
 
@@ -577,6 +585,9 @@ class ConfigurationManager(object):
                 for v in self.values_source_list
             ]
             for key in (k for k in all_keys if k not in known_keys):
+                if key is 'integers':
+                    ooo = self.option_definitions[key]
+                    print "  option integers", ooo.from_string_converter
                 #if not isinstance(an_option, Option):
                 #   continue  # aggregations and other types are ignored
                 # loop through all the value sources looking for values
@@ -598,7 +609,8 @@ class ConfigurationManager(object):
                         # then skip this value
                         new_value = val_src_dict[key]
                         if isinstance(new_value, DontCare):
-                            continue
+                            if not hasattr(new_value, 'modified'):
+                                continue
                         # overlay the default with the new value from
                         # the value source.  This assignment may come
                         # via acquisition, so the key given may not have
@@ -617,6 +629,7 @@ class ConfigurationManager(object):
                 #if not isinstance(an_option, Option):
                 #    continue  # aggregations, namespaces are ignored
                 # apply the from string conversion to make the real value
+                print 'applying converter', an_option.name, an_option.default, type(an_option.default), an_option.from_string_converter
                 an_option.set_value(an_option.default)
                 # new values have been seen, don't let loop break
                 new_keys_discovered = True
@@ -767,7 +780,7 @@ class ConfigurationManager(object):
         base_namespace.admin = admin = Namespace()
         admin.add_option(
             name='print_conf',
-            default=None,
+            default='',
             doc='write current config to stdout (%s)'
                 % ', '.join(value_sources.file_extension_dispatch.keys())
         )

@@ -159,12 +159,14 @@ def boolean_converter(input_str):
 
 
 #------------------------------------------------------------------------------
-def list_converter(input_str, item_converter=str):
+def list_converter(input_str, item_converter=str, item_separator=','):
     """ a conversion function for list
     """
-    return [
-        item_converter(x.strip()) for x in input_str.split(',') if x.strip()
+    result = [
+        item_converter(x.strip())
+        for x in input_str.split(item_separator) if x.strip()
     ]
+    return result
 
 
 #------------------------------------------------------------------------------
@@ -180,6 +182,7 @@ def class_converter(input_str):
     """
     if not input_str:
         return None
+    input_str = input_str.strip("'")
     if '.' not in input_str and input_str in _all_named_builtins:
         return eval(input_str)
     parts = [x.strip() for x in input_str.split('.') if x.strip()]
@@ -346,11 +349,27 @@ from_string_converters = {
     datetime.datetime: datetime_converter,
     datetime.date: date_converter,
     datetime.timedelta: timedelta_converter,
-    type: class_converter,
     types.FunctionType: class_converter,
     _compiled_regexp_type: regex_converter,
     _builtin_function_or_method_type: class_converter,
+    type: class_converter,
 }
+
+#------------------------------------------------------------------------------
+def get_from_string_converter(thing):
+    for key, value in from_string_converters.iteritems():
+        if isinstance(thing, key):
+            return value
+    return None
+
+
+#------------------------------------------------------------------------------
+def from_str(thing):
+    for key, value in from_string_converters.iteritems():
+        if isinstance(thing, key):
+            return value(thing)
+    return None
+
 
 
 #------------------------------------------------------------------------------
