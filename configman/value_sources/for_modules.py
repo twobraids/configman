@@ -67,7 +67,14 @@ class ValueSource(object):
     #--------------------------------------------------------------------------
     @staticmethod
     def write_option(key, an_option, output_stream):
-        print >>output_stream, '%s = """%s"""' % (key, to_str(an_option.value))
+        value = to_str(an_option.value)
+        for quote in ['"', "'", "'''", '"""']:
+            if quote not in value:
+                break
+
+        print >>output_stream, '%s = %s%s%s' % (
+            key, quote, to_str(an_option.value), quote
+        )
 
     #--------------------------------------------------------------------------
     @staticmethod

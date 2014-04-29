@@ -82,9 +82,9 @@ try:
                     action_type = str
                 try:
                     if kwargs['nargs']:
-                        print 'setting up', an_action.dest, converters.from_string_converters[
-                                action_type
-                            ]
+                        #print 'setting up', an_action.dest, converters.from_string_converters[
+                                #action_type
+                            #]
                         from_string_type_converter = partial(
                             converters.list_converter,
                             item_converter=converters.from_string_converters[
@@ -93,15 +93,15 @@ try:
                             item_separator=' ',
                         )
                     else:
-                        print an_action.dest, 'in else', action_type
+                        #print an_action.dest, 'in else', action_type
                         from_string_type_converter = \
                             converters.get_from_string_converter(action_type)
                 except KeyError:
-                    print an_action.dest, 'in except', action_type
+                    #print an_action.dest, 'in except', action_type
                     from_string_type_converter = \
                         converters.get_from_string_converter(action_type)
                 #print "SAVING:", kwargs['dest'], kwargs
-                print an_action.dest, 'gets', from_string_type_converter
+                #print an_action.dest, 'gets', from_string_type_converter
                 destination.add_option(
                     name=an_action.dest,
                     default=an_action.default,

@@ -117,7 +117,7 @@ class ValueSource(object):
         except AttributeError:
             self._brand = 0
             parser._brand = self._brand
-        print "BBBBBB", self._brand, parser._actions
+        #print "BBBBBB", self._brand, parser._actions
         self._brand += 1
 
 
@@ -145,7 +145,7 @@ class ValueSource(object):
         )
 
     #--------------------------------------------------------------------------
-    def create_fake_args(self, config_manager, with_admin=False):
+    def create_fake_args(self, config_manager):
         # all of this is to keep argparse from barfing if the minumum number
         # of required arguments is not in place at run time.  It may be that
         # some config file or environment will bring them in later.   argparse
@@ -159,8 +159,7 @@ class ValueSource(object):
             if isinstance(
                 config_manager.option_definitions[key],
                 Option
-            )
-            and not key.startswith('admin')
+            ) and config_manager.option_definitions[key].is_argument
         ]
         flattened_arg_list = []
         for x in args:
@@ -173,18 +172,10 @@ class ValueSource(object):
             for x in flattened_arg_list
             if x is not None and x.strip() != ''
         ]
-        if with_admin:
-            print "ARGV", self.argv_source
-            admin_arg_list = [
-                cmd_switch
-                for cmd_switch in self.argv_source
-                if cmd_switch.startswith('--admin')
-                or cmd_switch in ('-h', '--help')
-            ]
-        else:
-            admin_arg_list = []
-        print "ADMIN", admin_arg_list
-        return final_arg_list + admin_arg_list
+        try:
+            return final_arg_list + self.extra_args
+        except AttributeError:
+            return final_arg_list
 
     #--------------------------------------------------------------------------
     def get_values(self, config_manager, ignore_mismatches):
@@ -196,29 +187,31 @@ class ValueSource(object):
                     False,
                     self.parsers,
                 )
-            print "about to parse_known_args", self.parser._brand, self.parser.parse_through_configman
+            #print "about to parse_known_args", self.parser._brand, self.parser.parse_through_configman
             namespace_and_extra_args = self.parser.parse_known_args(
                 args=self.argv_source
             )
             try:
-                argparse_namespace, extra_args =  namespace_and_extra_args
+                argparse_namespace, self.extra_args =  namespace_and_extra_args
+                #print "EXTRAS", self.extra_args
             except TypeError:
                 argparse_namespace = argparse.Namespace()
             #print "pushing onto stack", self.parser._brand, self.parser._actions
             self.parsers = [self.parser]
             self.parser = None
         else:
-            fake_args = self.create_fake_args(config_manager, True)
-            print "final", fake_args
+            fake_args = self.create_fake_args(config_manager)
+            #print "final", fake_args
             self.parser = self._create_new_argparse_instance(
                 self.parser_class,
                 config_manager,
                 True,
                 self.parsers,
             )
-            print "about to parse_args", self.parser._brand, self.parser.parse_through_configman
+            #print "about to parse_args", self.parser._brand, self.parser.parse_through_configman
             argparse_namespace = self.parser.parse_args(
                 args=fake_args,
+                #args=self.argv_source,
             )
         return DotDict(argparse_namespace.__dict__)
 
@@ -242,20 +235,20 @@ class ValueSource(object):
         )
         self._brand_parser(a_parser)
         self._setup_argparse(a_parser, config_manager)
-        print 'created ', a_parser._brand, a_parser._actions
+        #print 'created ', a_parser._brand, a_parser._actions
         return a_parser
 
     #--------------------------------------------------------------------------
     def _setup_argparse(self, parser, config_manager):
         current_args = self._get_known_args(config_manager)
         new_args = current_args - self.known_args
-        print "CURRENT", current_args
-        print "KNOWN  ", self.known_args
-        print "NEW    ", new_args
+        #print "CURRENT", current_args
+        #print "KNOWN  ", self.known_args
+        #print "NEW    ", new_args
         for opt_name in config_manager.option_definitions.keys_breadth_first():
-            print "working on ", opt_name
+            #print "working on ", opt_name
             if opt_name not in new_args :
-                print 'skipping'
+                #print 'skipping'
                 continue
             an_opt = config_manager.option_definitions[opt_name]
             if isinstance(an_opt, Option):

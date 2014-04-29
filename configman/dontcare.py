@@ -18,10 +18,10 @@ class DontCare(object):
 
 def dont_care(value):
     value_type = type(value)
-    print 'dont_care', value, value_type
+    #print 'dont_care', value, value_type
     try:
         result = classes[value_type](value)
-        print "  ", result
+        #print "  ", result
         return result
     except KeyError:
         try:

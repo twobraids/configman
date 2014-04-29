@@ -260,12 +260,12 @@ class ConfigurationManager(object):
             # 'help' definition.  there is nothing to do here
             pass
 
-        print "####", self._get_option('admin.dump_conf').default
-        print "####", self._get_option('admin.print_conf').default
-        print "####", self._get_option('admin.dump_conf').value
-        print "####", self._get_option('admin.print_conf').value
-        print "####", self._get_option('admin.dump_conf').from_string_converter
-        print "####", self._get_option('admin.print_conf').from_string_converter
+        #print "####", self._get_option('admin.dump_conf').default
+        #print "####", self._get_option('admin.print_conf').default
+        #print "####", self._get_option('admin.dump_conf').value
+        #print "####", self._get_option('admin.print_conf').value
+        #print "####", self._get_option('admin.dump_conf').from_string_converter
+        #print "####", self._get_option('admin.print_conf').from_string_converter
 
         if use_admin_controls and self._get_option('admin.print_conf').value:
             self.print_conf()
@@ -275,7 +275,7 @@ class ConfigurationManager(object):
             self.dump_conf()
             admin_tasks_done = True
 
-        print "XXXXX", quit_after_admin, admin_tasks_done
+        #print "XXXXX", quit_after_admin, admin_tasks_done
         if quit_after_admin and admin_tasks_done:
             sys.exit()
 
@@ -626,7 +626,7 @@ class ConfigurationManager(object):
                 #if not isinstance(an_option, Option):
                 #    continue  # aggregations, namespaces are ignored
                 # apply the from string conversion to make the real value
-                print 'applying converter', an_option.name, an_option.default, type(an_option.default), an_option.from_string_converter
+                #print 'applying converter', an_option.name, an_option.default, type(an_option.default), an_option.from_string_converter
                 an_option.set_value(an_option.default)
                 # new values have been seen, don't let loop break
                 new_keys_discovered = True
