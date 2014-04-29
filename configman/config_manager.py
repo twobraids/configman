@@ -605,8 +605,8 @@ class ConfigurationManager(object):
                         # if the the option's default is DontCare
                         # then skip this value
                         new_value = val_src_dict[key]
-                        if isinstance(new_value, DontCare):
-                            if not hasattr(new_value, 'modified'):
+                        if isinstance(new_value, DontCare) or :
+                            not hasattr(new_value, 'modified'):
                                 continue
                         # overlay the default with the new value from
                         # the value source.  This assignment may come
