@@ -1,3 +1,5 @@
+import types
+
 from configman.converters import to_str, get_from_string_converter
 
 classes = {}
@@ -23,9 +25,12 @@ def dont_care(value):
     value_type = type(value)
     #print 'dont_care', value, value_type
     try:
-        result = classes[value_type](value)
-        #print "  ", result
-        return result
+        if value_type is types.TypeType:
+            X = DontCare
+        else:
+            result = classes[value_type](value)
+            #print "  ", result
+            return result
     except KeyError:
         try:
             class X(value_type):
