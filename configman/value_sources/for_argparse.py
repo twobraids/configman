@@ -227,7 +227,7 @@ class ValueSource(object):
             #print "   ", p._brand
         a_parser = parser_class(
             prog=config_manager.app_name,
-            version=config_manager.app_version,
+            #version=config_manager.app_version,
             description=config_manager.app_description,
             add_help=create_auto_help,
             parents=parents,

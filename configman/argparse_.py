@@ -14,7 +14,8 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
         #print args, kwargs
 
     def error(self, message):
-        if ("not allowed" in message
+        if (
+            "not allowed" in message
             or "ignored" in message
             or "expected" in message
             or self.add_help
