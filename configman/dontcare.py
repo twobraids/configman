@@ -1,4 +1,4 @@
-from configman.converters import to_str
+from configman.converters import to_str, get_from_string_converter
 
 classes = {}
 
@@ -14,6 +14,9 @@ class DontCare(object):
     def __iter__(self):
         for x in self._value:
             yield x
+    def from_string_converter(self):
+        return get_from_string_converter(type(self.value))
+
 
 
 def dont_care(value):
@@ -32,6 +35,8 @@ def dont_care(value):
                 def append(self, item):
                     self.modified = True
                     return super(X, self).append(item)
+                def from_string_converter(self):
+                    return get_from_string_converter(value_type)
             X.__name__ = 'DontCareAbout_%s' % to_str(value_type)
 
         except TypeError:

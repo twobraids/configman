@@ -67,52 +67,49 @@ try:
 
     def setup_definitions(source, destination):
         # assume that source is of type argparse
-        #print "ORIGINAL:", source._positionals._actions
         for an_action in source._actions:
-            if an_action.default != argparse.SUPPRESS:
-                kwargs = get_args_and_values(an_action)
-                kwargs['action'] = find_action_name_by_value(
-                    source._optionals._registries,
-                    an_action
-                )
-                action_type = an_action.type
-                if action_type is None:
-                    action_type = type(an_action.default)
-                if action_type is type(None):
-                    action_type = str
-                try:
-                    if kwargs['nargs']:
-                        #print 'setting up', an_action.dest, converters.from_string_converters[
-                                #action_type
-                            #]
-                        from_string_type_converter = partial(
-                            converters.list_converter,
-                            item_converter=converters.from_string_converters[
-                                action_type
-                            ],
-                            item_separator=' ',
-                        )
-                    else:
-                        #print an_action.dest, 'in else', action_type
-                        from_string_type_converter = \
-                            converters.get_from_string_converter(action_type)
-                except KeyError:
-                    #print an_action.dest, 'in except', action_type
-                    from_string_type_converter = \
-                        converters.get_from_string_converter(action_type)
-                #print "SAVING:", kwargs['dest'], kwargs
-                #print an_action.dest, 'gets', from_string_type_converter
-                destination.add_option(
-                    name=an_action.dest,
-                    default=an_action.default,
-                    from_string_converter=from_string_type_converter,
-                    to_string_converter=converters.to_str,
-                    doc=an_action.help,
-                    number_of_values=an_action.nargs,
-                    is_argument=not kwargs['option_strings'],
-                )
-            #else:
-                #print "argparse: skipping", type(an_action), an_action.dest
+
+            #if an_action.default != argparse.SUPPRESS:
+            not_for_definition = an_action.default != argparse.SUPPRESS
+            kwargs = get_args_and_values(an_action)
+            kwargs['action'] = find_action_name_by_value(
+                source._optionals._registries,
+                an_action
+            )
+            action_type = an_action.type
+            if action_type is None:
+                action_type = type(an_action.default)
+            if action_type is type(None):
+                action_type = str
+            try:
+                if kwargs['nargs']:
+                    #print 'setting up', an_action.dest, converters.from_string_converters[
+                            #action_type
+                        #]
+                    from_string_type_converter = partial(
+                        converters.list_converter,
+                        item_converter=converters.from_string_converters[
+                            action_type
+                        ],
+                        item_separator=' ',
+                    )
+                else:
+                    #print an_action.dest, 'in else', action_type
+                    from_string_type_converter = action_type
+            except KeyError:
+                from_string_type_converter = action_type
+                #from_string_type_converter = \
+                    #converters.get_from_string_converter(action_type)
+            #print "SAVING:", kwargs['dest'], kwargs
+            destination.add_option(
+                name=an_action.dest,
+                default=an_action.default,
+                from_string_converter=from_string_type_converter,
+                to_string_converter=converters.to_str,
+                doc=an_action.help,
+                number_of_values=an_action.nargs,
+                is_argument=not kwargs['option_strings'],
+            )
 
     type_to_setup_association = {argparse.ArgumentParser: setup_definitions}
 

@@ -201,7 +201,6 @@ class ValueSource(object):
             self.parser = None
         else:
             fake_args = self.create_fake_args(config_manager)
-            #print "final", fake_args
             self.parser = self._create_new_argparse_instance(
                 self.parser_class,
                 config_manager,
