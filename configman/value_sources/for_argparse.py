@@ -270,6 +270,7 @@ class ValueSource(object):
                 else:
                     kwargs.action = 'store'
                     kwargs.type = an_opt.from_string_converter
+                    print "CCCC", kwargs.dest, kwargs.type
 
                 kwargs.default = dont_care(an_opt.default)
                 kwargs.help = an_opt.doc
