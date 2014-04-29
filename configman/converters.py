@@ -358,7 +358,7 @@ from_string_converters = {
 #------------------------------------------------------------------------------
 def get_from_string_converter(thing):
     for key, value in from_string_converters.iteritems():
-        if isinstance(thing, key):
+        if thing is key or isinstance(thing, key):
             return value
     return None
 

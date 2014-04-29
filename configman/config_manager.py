@@ -585,9 +585,6 @@ class ConfigurationManager(object):
                 for v in self.values_source_list
             ]
             for key in (k for k in all_keys if k not in known_keys):
-                if key is 'integers':
-                    ooo = self.option_definitions[key]
-                    print "  option integers", ooo.from_string_converter
                 #if not isinstance(an_option, Option):
                 #   continue  # aggregations and other types are ignored
                 # loop through all the value sources looking for values
