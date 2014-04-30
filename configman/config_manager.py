@@ -552,6 +552,8 @@ class ConfigurationManager(object):
         new_keys_discovered = True  # loop control, False breaks the loop
         known_keys = set()  # a set of keys that have been expanded
 
+        print "APPP", self.option_definitions.appliciation.default, type(self.option_definitions.appliciation.default)
+
         while new_keys_discovered:  # loop until nothing more is done
             # keys holds a list of all keys in the option definitons in
             # breadth first order using this form: [ 'x', 'y', 'z', 'x.a',
@@ -633,7 +635,7 @@ class ConfigurationManager(object):
                 try:
                     try:
                         # try to fetch new requirements from this value
-                        print "RRRRR", key, an_option.value
+                        #print "RRRRR", key, an_option.value
                         new_req = an_option.value.get_required_config()
                     except AttributeError:
                         new_req = an_option.value.required_config
