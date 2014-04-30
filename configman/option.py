@@ -142,7 +142,7 @@ class Option(object):
         if val is None:
             val = self.default
         if isinstance(val, basestring):
-            val = val.strip("""'""")
+            val = val.strip("'").strip('"')
             try:
                 self.value = self.from_string_converter(val)
             except TypeError:
