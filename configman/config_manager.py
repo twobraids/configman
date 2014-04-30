@@ -552,8 +552,6 @@ class ConfigurationManager(object):
         new_keys_discovered = True  # loop control, False breaks the loop
         known_keys = set()  # a set of keys that have been expanded
 
-        print "APPP", self.option_definitions.appliciation.default, type(self.option_definitions.appliciation.default)
-
         while new_keys_discovered:  # loop until nothing more is done
             # keys holds a list of all keys in the option definitons in
             # breadth first order using this form: [ 'x', 'y', 'z', 'x.a',
@@ -600,16 +598,17 @@ class ConfigurationManager(object):
                         self.option_definitions[reference_value_from]
                         [top_key].default
                     )
-                for val_src_dict in values_from_all_sources:
+                for i, val_src_dict in enumerate(values_from_all_sources):
                     try:
                         # get the Option for this key
                         opt = self.option_definitions[key]
                         # if the the option's default is DontCare
                         # then skip this value
                         new_value = val_src_dict[key]
-                        if isinstance(new_value, DontCare) or \
-                            hasattr(new_value, 'modified'):
-                                continue
+                        if isinstance(new_value, DontCare):
+                            continue
+                        if not hasattr(new_value, 'modified'):
+                            continue
                         # overlay the default with the new value from
                         # the value source.  This assignment may come
                         # via acquisition, so the key given may not have

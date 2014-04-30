@@ -178,6 +178,22 @@ class ValueSource(object):
             return final_arg_list
 
     #--------------------------------------------------------------------------
+    def _val_or_dont_care_as_str(self, value):
+        try:
+            if value.dont_care():
+                # this object is a dont_care object and it has not been
+                # modified.  Convert the base value to a string and then
+                # wrap that in a 'dont_care' and return it.
+                return dont_care(to_str(value.as_bare_value()))
+            # the value was modified as a 'dont_care' object,
+            # that means we do care now.
+            # return it as a bare value converted to a string
+            return to_str(value.as_bare_value())
+        except AttributeError:
+            # 'dont_care' doesn't exist - this must be a bare value
+            pass
+        return to_str(value)
+    #--------------------------------------------------------------------------
     def get_values(self, config_manager, ignore_mismatches):
         if ignore_mismatches:
             if self.parser is None:
@@ -211,7 +227,11 @@ class ValueSource(object):
                 args=fake_args,
                 #args=self.argv_source,
             )
-        return DotDict(argparse_namespace.__dict__)
+
+        return DotDict(dict(
+            (key, self._val_or_dont_care_as_str(val))
+            for key, val in argparse_namespace.__dict__.iteritems()
+        ))
 
     #--------------------------------------------------------------------------
     def _create_new_argparse_instance(
@@ -268,10 +288,11 @@ class ValueSource(object):
                     kwargs.action = 'store_true'
                 else:
                     kwargs.action = 'store'
-                    kwargs.type = an_opt.from_string_converter
+                    kwargs.type = to_str
+                    #kwargs.type = an_opt.from_string_converter
                     #print "CCCC", opt_name, kwargs.type
 
-                kwargs.default = dont_care(an_opt.default)
+                kwargs.default = dont_care(to_str(an_opt.default))
                 kwargs.help = an_opt.doc
                 if not an_opt.is_argument:
                     kwargs.dest = opt_name
