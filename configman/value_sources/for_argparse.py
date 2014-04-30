@@ -117,7 +117,6 @@ class ValueSource(object):
         except AttributeError:
             self._brand = 0
             parser._brand = self._brand
-        #print "BBBBBB", self._brand, parser._actions
         self._brand += 1
 
 
@@ -212,7 +211,6 @@ class ValueSource(object):
                     False,
                     self.parsers,
                 )
-            #print "about to parse_known_args", self.parser._brand, self.parser.parse_through_configman
             namespace_and_extra_args = self.parser.parse_known_args(
                 args=self.argv_source
             )
@@ -220,7 +218,6 @@ class ValueSource(object):
                 argparse_namespace, self.extra_args =  namespace_and_extra_args
             except TypeError:
                 argparse_namespace = argparse.Namespace()
-            #print "pushing onto stack", self.parser._brand, self.parser._actions
             self.parsers = [self.parser]
             self.parser = None
         else:
@@ -231,10 +228,8 @@ class ValueSource(object):
                 True,
                 self.parsers,
             )
-            #print "about to parse_args", self.parser._brand, self.parser.parse_through_configman
             argparse_namespace = self.parser.parse_args(
                 args=fake_args,
-                #args=self.argv_source,
             )
 
         d = DotDict()
@@ -251,9 +246,6 @@ class ValueSource(object):
         create_auto_help,
         parents,
     ):
-        #print "new parser with %s parents" % len(parents)
-        #for p in parents:
-            #print "   ", p._brand
         a_parser = parser_class(
             prog=config_manager.app_name,
             #version=config_manager.app_version,
@@ -263,20 +255,14 @@ class ValueSource(object):
         )
         self._brand_parser(a_parser)
         self._setup_argparse(a_parser, config_manager)
-        #print 'created ', a_parser._brand, a_parser._actions
         return a_parser
 
     #--------------------------------------------------------------------------
     def _setup_argparse(self, parser, config_manager):
         current_args = self._get_known_args(config_manager)
         new_args = current_args - self.known_args
-        #print "CURRENT", current_args
-        #print "KNOWN  ", self.known_args
-        #print "NEW    ", new_args
         for opt_name in config_manager.option_definitions.keys_breadth_first():
-            #print "working on ", opt_name
             if opt_name not in new_args :
-                #print 'skipping'
                 continue
             an_opt = config_manager.option_definitions[opt_name]
             if isinstance(an_opt, Option):
@@ -299,8 +285,6 @@ class ValueSource(object):
                 else:
                     kwargs.action = 'store'
                     kwargs.type = to_str
-                    #kwargs.type = an_opt.from_string_converter
-                    #print "CCCC", opt_name, kwargs.type
 
                 kwargs.default = dont_care(to_str(an_opt.default))
                 kwargs.help = an_opt.doc
@@ -309,8 +293,6 @@ class ValueSource(object):
 
                 parser.add_argument(*args, **kwargs)
         self.known_args = current_args.union(new_args)
-        #print "COPY:   ", self.parser._positionals._actions
-
 
     #--------------------------------------------------------------------------
     @staticmethod

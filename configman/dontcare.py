@@ -33,13 +33,11 @@ class DontCare(object):
 
 def dont_care(value):
     value_type = type(value)
-    #print 'dont_care', value, value_type
     try:
         if value_type is types.TypeType:
             X = DontCare
         else:
             result = classes[value_type](value)
-            #print "  ", result
             return result
     except KeyError:
         try:

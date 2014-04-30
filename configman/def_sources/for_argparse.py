@@ -68,8 +68,6 @@ try:
     def setup_definitions(source, destination):
         # assume that source is of type argparse
         for an_action in source._actions:
-
-            #if an_action.default != argparse.SUPPRESS:
             not_for_definition = an_action.default != argparse.SUPPRESS
             kwargs = get_args_and_values(an_action)
             kwargs['action'] = find_action_name_by_value(
@@ -83,9 +81,6 @@ try:
                 action_type = str
             try:
                 if kwargs['nargs']:
-                    #print 'setting up', an_action.dest, converters.from_string_converters[
-                            #action_type
-                        #]
                     from_string_type_converter = partial(
                         converters.list_converter,
                         item_converter=converters.from_string_converters[
@@ -94,13 +89,9 @@ try:
                         item_separator=' ',
                     )
                 else:
-                    #print an_action.dest, 'in else', action_type
                     from_string_type_converter = action_type
             except KeyError:
                 from_string_type_converter = action_type
-                #from_string_type_converter = \
-                    #converters.get_from_string_converter(action_type)
-            #print "SAVING:", kwargs['dest'], kwargs
             destination.add_option(
                 name=an_action.dest,
                 default=an_action.default,
