@@ -581,7 +581,7 @@ class ConfigurationManager(object):
                 return required_type(source)
 
             values_from_all_sources = [
-                _must_be(v.get_values(self, True), DotDictWithAcquisition)
+                v.get_values(self, True)
                 for v in self.values_source_list
             ]
             for key in (k for k in all_keys if k not in known_keys):
@@ -598,17 +598,12 @@ class ConfigurationManager(object):
                         self.option_definitions[reference_value_from]
                         [top_key].default
                     )
-                for i, val_src_dict in enumerate(values_from_all_sources):
+                for val_src_dict in values_from_all_sources:
                     try:
                         # get the Option for this key
                         opt = self.option_definitions[key]
-                        # if the the option's default is DontCare
-                        # then skip this value
+                        # get the new value from the
                         new_value = val_src_dict[key]
-                        if isinstance(new_value, DontCare):
-                            continue
-                        if not hasattr(new_value, 'modified'):
-                            continue
                         # overlay the default with the new value from
                         # the value source.  This assignment may come
                         # via acquisition, so the key given may not have

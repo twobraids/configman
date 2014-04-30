@@ -53,7 +53,7 @@ import itertools
 
 from configman.dontcare import dont_care
 from configman.option import Option
-from configman.dotdict import DotDict
+from configman.dotdict import DotDict, iteritems_breadth_first
 from configman.converters import boolean_converter, to_str
 
 from configman.argparse_ import (
@@ -178,21 +178,30 @@ class ValueSource(object):
             return final_arg_list
 
     #--------------------------------------------------------------------------
-    def _val_or_dont_care_as_str(self, value):
+    def _val_as_str(self, value):
         try:
-            if value.dont_care():
-                # this object is a dont_care object and it has not been
-                # modified.  Convert the base value to a string and then
-                # wrap that in a 'dont_care' and return it.
-                return dont_care(to_str(value.as_bare_value()))
-            # the value was modified as a 'dont_care' object,
-            # that means we do care now.
+            # the value may be a modified 'dont_care' object,
+            # that means we do care now and we should get the modified value &
             # return it as a bare value converted to a string
             return to_str(value.as_bare_value())
         except AttributeError:
-            # 'dont_care' doesn't exist - this must be a bare value
+            # 'dont_care' doesn't exist - this must be not be dont_care
             pass
         return to_str(value)
+
+    #--------------------------------------------------------------------------
+    def _we_care_about_this_value(self, value):
+        """we want this value source to only return items that were not
+        the unchanged defaults.  If this test succeeds, then the value is not
+        the default and should be returned to configman.  If the test returns
+        False, then argparse is just returning the default that configman
+        already knows about.
+        """
+        try:
+            return not value.dont_care()
+        except AttributeError:
+            return True
+
     #--------------------------------------------------------------------------
     def get_values(self, config_manager, ignore_mismatches):
         if ignore_mismatches:
@@ -228,10 +237,11 @@ class ValueSource(object):
                 #args=self.argv_source,
             )
 
-        return DotDict(dict(
-            (key, self._val_or_dont_care_as_str(val))
-            for key, val in argparse_namespace.__dict__.iteritems()
-        ))
+        d = DotDict()
+        for key, value in iteritems_breadth_first(argparse_namespace.__dict__):
+            if self._we_care_about_this_value(value):
+                d[key] = self._val_as_str(value)
+        return d
 
     #--------------------------------------------------------------------------
     def _create_new_argparse_instance(
