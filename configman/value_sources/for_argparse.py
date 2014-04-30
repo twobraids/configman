@@ -237,7 +237,7 @@ class ValueSource(object):
                 #args=self.argv_source,
             )
 
-        ds = DotDict()
+        d = DotDict()
         for key, value in iteritems_breadth_first(argparse_namespace.__dict__):
             if self._we_care_about_this_value(value):
                 d[key] = self._val_as_str(value)
