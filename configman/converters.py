@@ -358,7 +358,6 @@ from_string_converters = {
 #------------------------------------------------------------------------------
 def get_from_string_converter(thing):
     try:
-        print "trying ", thing.from_string_converter
         return thing.from_string_converter
     except AttributeError:
         # no converter, move on

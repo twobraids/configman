@@ -193,7 +193,6 @@ class ValueSource(object):
             )
             try:
                 argparse_namespace, self.extra_args =  namespace_and_extra_args
-                #print "EXTRAS", self.extra_args
             except TypeError:
                 argparse_namespace = argparse.Namespace()
             #print "pushing onto stack", self.parser._brand, self.parser._actions
@@ -270,7 +269,7 @@ class ValueSource(object):
                 else:
                     kwargs.action = 'store'
                     kwargs.type = an_opt.from_string_converter
-                    print "CCCC", opt_name, kwargs.type
+                    #print "CCCC", opt_name, kwargs.type
 
                 kwargs.default = dont_care(an_opt.default)
                 kwargs.help = an_opt.doc

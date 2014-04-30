@@ -606,7 +606,7 @@ class ConfigurationManager(object):
                         # then skip this value
                         new_value = val_src_dict[key]
                         if isinstance(new_value, DontCare) or \
-                            not hasattr(new_value, 'modified'):
+                            hasattr(new_value, 'modified'):
                                 continue
                         # overlay the default with the new value from
                         # the value source.  This assignment may come
