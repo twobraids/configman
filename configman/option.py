@@ -144,6 +144,7 @@ class Option(object):
         if isinstance(val, basestring):
             val = val.strip("'").strip('"')
             try:
+                print "EVAL?", self.from_string_converter
                 self.value = self.from_string_converter(val)
             except TypeError:
                 self.value = val
