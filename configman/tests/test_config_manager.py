@@ -937,7 +937,7 @@ c.string =   from ini
         )
         r = sorted(c._get_options())
         e = sorted([
-            ('admin.print_conf', 'print_conf', None),
+            ('admin.print_conf', 'print_conf', ''),
             ('admin.dump_conf', 'dump_conf', ''),
             ('admin.conf', 'conf', None),
             ('admin.strict', 'strict', False),
@@ -946,6 +946,7 @@ c.string =   from ini
             ('sub.name', 'name', 'ethel')
         ])
         for expected, result in zip(e, r):
+            print expected
             expected_key, expected_name, expected_default = expected
             result_key, result_option = result
             self.assertEqual(expected_key, result_key)

@@ -36,20 +36,17 @@
 #
 # ***** END LICENSE BLOCK *****
 
-"""This module implements a configuration value source from the commandline.
-It uses getopt in its implementation.  It is thought that this implementation
-will be supplanted by the argparse implementation when using Python 2.7 or
-greater.
+"""This module implements a configuration value source from the commandline
+implemented using argparse.  This was a difficult module to make because of
+some fundemental differences with the way that configman and argparse set up
+their respective priorities.
 
-This module declares that its ValueSource constructor implementation can
-handle the getopt module or a list.  If specified as the getopt module, the
-constructor will fetch the source of argv from the configmanager that was
-passed in.  If specified as a list, the constructor will assume the list
-represents the argv source."""
+One of the primary problems is that both configman and argparse have their own
+data definition specs.  Configman has Options while argparse has Actions.  Both
+libraries can use their own specs, so a translation layer had to be created.
+"""
 
 import argparse
-import copy
-import itertools
 
 from configman.dontcare import dont_care
 from configman.option import Option
@@ -78,6 +75,7 @@ def issubclass_with_no_type_error(potential_subclass, parent_class):
     except TypeError:
         return False
 
+
 #==============================================================================
 class ValueSource(object):
     """The ValueSource implementation for the getopt module.  This class will
@@ -87,7 +85,8 @@ class ValueSource(object):
         self.source = source
         self.parsers = []
         self.argv_source = tuple(conf_manager.argv_source)
-        if (source is argparse
+        if (
+            source is argparse
             or issubclass_with_no_type_error(source, argparse.ArgumentParser)
         ):
             self.parser = None
@@ -111,7 +110,10 @@ class ValueSource(object):
     # regard to the overall --admin.strict setting.
     command_line_value_source = True
 
+    #--------------------------------------------------------------------------
     def _brand_parser(self, parser):
+        """we create several parser instances.  It has proven handy to mark
+        them"""
         try:
             parser._brand = self._brand
         except AttributeError:
@@ -119,13 +121,13 @@ class ValueSource(object):
             parser._brand = self._brand
         self._brand += 1
 
-
     #--------------------------------------------------------------------------
     def _get_known_args(self, conf_manager):
         return set(
             x
             for x in conf_manager.option_definitions.keys_breadth_first()
         )
+
     #--------------------------------------------------------------------------
     def _option_to_command_line_str(self, an_option, key):
         if an_option.is_argument:
@@ -215,7 +217,7 @@ class ValueSource(object):
                 args=self.argv_source
             )
             try:
-                argparse_namespace, self.extra_args =  namespace_and_extra_args
+                argparse_namespace, self.extra_args = namespace_and_extra_args
             except TypeError:
                 argparse_namespace = argparse.Namespace()
             self.parsers = [self.parser]
@@ -262,7 +264,7 @@ class ValueSource(object):
         current_args = self._get_known_args(config_manager)
         new_args = current_args - self.known_args
         for opt_name in config_manager.option_definitions.keys_breadth_first():
-            if opt_name not in new_args :
+            if opt_name not in new_args:
                 continue
             an_opt = config_manager.option_definitions[opt_name]
             if isinstance(an_opt, Option):

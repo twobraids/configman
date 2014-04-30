@@ -573,7 +573,7 @@ class ConfigurationManager(object):
                 return required_type(source)
 
             values_from_all_sources = [
-                v.get_values(self, True)
+                _must_be(v.get_values(self, True), DotDictWithAcquisition)
                 for v in self.values_source_list
             ]
             for key in (k for k in all_keys if k not in known_keys):
@@ -601,6 +601,7 @@ class ConfigurationManager(object):
                         # via acquisition, so the key given may not have
                         # been an exact match for what was returned.
                         opt.default = new_value
+                        print "tttt", key, opt.default
                     except KeyError, x:
                         pass  # okay, that source doesn't have this value
 
