@@ -369,17 +369,6 @@ def get_from_string_converter(thing):
 
 
 #------------------------------------------------------------------------------
-def from_str(thing):
-    if not isinstance(basestring, thing):
-        return thing
-    for key, value in from_string_converters.iteritems():
-        if isinstance(thing, key):
-            return value(thing)
-    return None
-
-
-
-#------------------------------------------------------------------------------
 # to string Section
 #     these are methods that will take some object and convert it into a string
 #     representation that is human readably friendly

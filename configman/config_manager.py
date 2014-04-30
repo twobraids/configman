@@ -633,6 +633,7 @@ class ConfigurationManager(object):
                 try:
                     try:
                         # try to fetch new requirements from this value
+                        print "RRRRR", an_option.value
                         new_req = an_option.value.get_required_config()
                     except AttributeError:
                         new_req = an_option.value.required_config

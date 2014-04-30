@@ -142,11 +142,13 @@ class Option(object):
         if val is None:
             val = self.default
         if isinstance(val, basestring):
+            val = val.strip("""'""")
             try:
                 self.value = self.from_string_converter(val)
             except TypeError:
                 self.value = val
             except ValueError:
+
                 error_message = "In '%s', '%s' fails to convert '%s'" % (
                     self.name,
                     self.from_string_converter,
