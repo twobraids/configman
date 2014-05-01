@@ -97,7 +97,7 @@ class ValueSource(object):
             self.parsers = [source]
             self.parser_class = ControlledErrorReportingArgumentParser
             self.known_args = set(action.dest for action in source._actions)
-            source.parse_through_configman = False
+            source.parse_through_configman = False  # say no to recursion here
             self._brand_parser(source)
         else:
             raise CantHandleTypeException()
@@ -184,10 +184,13 @@ class ValueSource(object):
             # the value may be a modified 'dont_care' object,
             # that means we do care now and we should get the modified value &
             # return it as a bare value converted to a string
+            print "BARE", value.as_bare_value(), type(value.as_bare_value())
+            print "BSTR", to_str(value.as_bare_value()),
             return to_str(value.as_bare_value())
         except AttributeError:
             # 'dont_care' doesn't exist - this must be not be dont_care
             pass
+        print "NATURAL '%s'" % to_str(value)
         return to_str(value)
 
     #--------------------------------------------------------------------------
@@ -237,7 +240,9 @@ class ValueSource(object):
         d = DotDict()
         for key, value in iteritems_breadth_first(argparse_namespace.__dict__):
             if self._we_care_about_this_value(value):
+                print key
                 d[key] = self._val_as_str(value)
+                print self._val_as_str(value)
         return d
 
     #--------------------------------------------------------------------------

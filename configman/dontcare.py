@@ -11,15 +11,16 @@ class DontCare(object):
     def __str__(self):
         return to_str(self._value)
     def __getattr__(self, key):
-        self.modified__ = True
         return getattr(self._value, key)
     def __call__(self, *args, **kwargs):
-        self.modified__ = True
         return self._value(*args, **kwargs)
     def __iter__(self):
-        self.modified__ = True
         for x in self._value:
             yield x
+    def append(self, item):
+        print 'appending'
+        self.modified__ = True
+        return self._value.append(item)
     def from_string_converter(self):
         return get_from_string_converter(type(self.value))
     def dont_care(self):
@@ -42,6 +43,10 @@ def dont_care(value):
     except KeyError:
         try:
             class X(value_type):
+                def __init__(self, value):
+                    super(X, self).__init__(value)
+                    self.original_type = value_type
+                    self.modified__ = False
                 @classmethod
                 def __hash__(kls):
                     return hash(kls.__name__)
@@ -56,10 +61,10 @@ def dont_care(value):
                     except AttributeError:
                         return True
                 def as_bare_value(self):
-                    return self
+                    return self.original_type(self)
             X.__name__ = 'DontCareAbout_%s' % to_str(value_type)
 
-        except TypeError:
+        except TypeError, x:
             X = DontCare
     classes[value_type] = X
     x = X(value)

@@ -159,13 +159,16 @@ def boolean_converter(input_str):
 
 
 #------------------------------------------------------------------------------
-def list_converter(input_str, item_converter=str, item_separator=','):
+def list_converter(input_str, item_converter=str, item_separator=',',
+                   list_to_collection_converter=None):
     """ a conversion function for list
     """
     result = [
         item_converter(x.strip())
         for x in input_str.split(item_separator) if x.strip()
     ]
+    if list_to_collection_converter:
+        return list_to_collection_converter(result)
     return result
 
 

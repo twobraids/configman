@@ -46,6 +46,8 @@ try:
     from .. import namespace
     from .. import converters
 
+    from configman.dontcare import dont_care
+
     # horrors
     def find_action_name_by_value(registry, target):
         target_type = type(target)
@@ -64,19 +66,43 @@ try:
         )
         return kwargs
 
+    #def jigger_the_type_of_the_return_value(self, an_action):
+        #action_type = an_action.type
+        #if action_type is None:
+            #if an_action.const:
+                #action_type = type(an_action.const)
+            #else:
+                #action_type = type(an_action.default)
+        #if action_type is type(None):
+            #action_type = str
+
+    def create_custom_from_string_converter(const, default):
+        def from_string_converter(value):
+            if value == const:
+                return const
+            return dont_care(default)
+        return from_string_converter
 
     def setup_definitions(source, destination):
         # assume that source is of type argparse
         for an_action in source._actions:
             not_for_definition = an_action.default != argparse.SUPPRESS
             kwargs = get_args_and_values(an_action)
+
+            # figure out what would be an appropriate from_string_converter
             kwargs['action'] = find_action_name_by_value(
                 source._optionals._registries,
                 an_action
             )
             action_type = an_action.type
             if action_type is None:
-                action_type = type(an_action.default)
+                if an_action.const:
+                    action_type = create_custom_from_string_converter(
+                        an_action.const,
+                        an_action.default
+                    )
+                else:
+                    action_type = type(an_action.default)
             if action_type is type(None):
                 action_type = str
             try:
@@ -88,13 +114,50 @@ try:
                         ],
                         item_separator=' ',
                     )
+                elif kwargs['action'] == 'append':
+                    if type(an_action.default) is list:
+                        from_string_type_converter = partial(
+                            converters.list_converter,
+                            item_converter=converters.from_string_converters[
+                                str
+                            ],
+                            item_separator=',',
+                        )
+                    else:
+                        from_string_type_converter = partial(
+                            converters.list_converter,
+                            item_converter=converters.from_string_converters[
+                                str
+                            ],
+                            item_separator=',',
+                            list_to_collection_converter=type(
+                                an_action.default
+                            )
+                        )
                 else:
                     from_string_type_converter = action_type
             except KeyError:
                 from_string_type_converter = action_type
+            if an_action.dest in destination:
+                print "DUPLICATE"
+                from_string_type_converter = \
+                    destination[an_action.dest].from_string_converter
+                default = destination[an_action.dest].default
+            else:
+                print "NOT DUPLICATE"
+                default = an_action.default
+
+            if an_action.dest == 'const_collection':
+                print "const_collection option:"
+                print "  default", default
+                print "  from_string_converter", from_string_type_converter
+                print "  to_string_converter", converters.to_str
+                print "  doc", an_action.help
+                print "  number_of_values", an_action.nargs
+                print "  is_argument", not kwargs['option_strings']
             destination.add_option(
                 name=an_action.dest,
-                default=an_action.default,
+                default=default,
                 from_string_converter=from_string_type_converter,
                 to_string_converter=converters.to_str,
                 doc=an_action.help,
@@ -104,6 +167,6 @@ try:
 
     type_to_setup_association = {argparse.ArgumentParser: setup_definitions}
 
-except ImportError:
+except ImportError, x:
 
     type_to_setup_association = {}
