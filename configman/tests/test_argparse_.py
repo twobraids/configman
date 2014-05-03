@@ -233,8 +233,8 @@ class TestCaseForArgumentParser(TestCase):
         an_argparser.parse_through_configman = True
         result = an_argparser.parse_args(args=[])
         self.assertTrue(isinstance(result, DotDict))
-        self.assertEqual(str(result.constant_value), '')
         self.assertTrue(result.constant_value.dont_care())
+        self.assertEqual(str(result.constant_value), '')
         self.assertTrue(result.boolean_switch.dont_care())
         self.assertTrue(result.collection.dont_care())
         self.assertTrue(result.const_collection.dont_care())

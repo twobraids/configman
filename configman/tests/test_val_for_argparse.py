@@ -266,8 +266,9 @@ class TestCaseForValSourceArgparse(TestCase):
                 parents
             ):
                 mocked_parser = Mock()
-                mocked_namespace = Mock()
-                mocked_namespace.__dict__ = {'a': 1, 'b': 2}
+                mocked_namespace = argparse.Namespace()
+                mocked_namespace.a = 1
+                mocked_namespace.b = 2
                 mocked_parser.parse_known_args.return_value = (
                     mocked_namespace,
                     ['--extra', '--extra']
@@ -288,6 +289,61 @@ class TestCaseForValSourceArgparse(TestCase):
         ))
         self.assertTrue(vs.parser is None)
         self.assertTrue(isinstance(result, DotDict))
+        #self.assertEqual(dict(result), {'a': 1, 'b': 2})
+        self.assertEqual(dict(result), {'a': '1', 'b': '2'})
+
+    def test_get_values_2(self):
+        class MyArgumentValueSource(ValueSource):
+            def _create_new_argparse_instance(
+                self,
+                parser_class,
+                config_manager,
+                auto_help,
+                parents
+            ):
+                mocked_parser = Mock()
+                mocked_namespace = argparse.Namespace()
+                mocked_namespace.a = 1
+                mocked_namespace.b = 2
+                mocked_parser.parse_args.return_value = mocked_namespace
+                return mocked_parser
+
+        vs = self.setup_value_source(
+            type_of_value_source=MyArgumentValueSource
+        )
+        config_manager = Mock()
+        config_manager.option_definitions = self.setup_configman_namespace()
+        result = vs.get_values(config_manager, False)
+
+        parser = vs.parser
+        self.assertFalse(hasattr(vs, 'extra_args'))
+        self.assertTrue(parser.parse_args.called_once_with(
+            vs.argv_source
+        ))
+        self.assertTrue(isinstance(result, DotDict))
+        #self.assertEqual(dict(result), {'a': 1, 'b': 2})
+        self.assertEqual(dict(result), {'a': '1', 'b': '2'})
+
+    def test_create_new_argparse_instance(self):
+        class MyArgumentValueSource(ValueSource):
+            def _setup_argparse(self, parser, config_manager):
+                return
+        vs = self.setup_value_source(MyArgumentValueSource)
+        n = self.setup_configman_namespace()
+        c = Mock()
+        c.app_name = 'MyApp'
+        c.app_version = '1.2'
+        c.app_description = "it's the app"
+        parent = Mock()
+        p = vs._create_new_argparse_instance(
+            ArgumentParser,
+            c,
+            False,
+            []
+        )
+        self.assertTrue(isinstance(p, ArgumentParser))
+        self.assertEqual(p._brand, 1)
+
 
 
 
