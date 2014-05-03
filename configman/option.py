@@ -41,6 +41,13 @@ import collections
 import converters as conv
 from config_exceptions import CannotConvertError, OptionError
 
+#------------------------------------------------------------------------------
+def is_subclass(candidate, superclass):
+    try:
+        return issubclass(candidate, superclass)
+    except TypeError:
+        return False
+
 
 #==============================================================================
 class Option(object):
@@ -86,6 +93,13 @@ class Option(object):
         self.likely_to_be_changed = likely_to_be_changed
         self.not_for_definition = not_for_definition
         self.reference_value_from = reference_value_from
+        if (number_of_values is None
+            and (
+                isinstance(default, collections.Sequence) or
+                is_subclass(from_string_converter, collections.Sequence)
+            )
+        ):
+            number_of_values = '*'
         self.number_of_values = number_of_values
         if foreign_data:
             self.foreign_data = {foreign_data[0]: foreign_data[1]}

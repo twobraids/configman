@@ -36,8 +36,6 @@
 #
 # ***** END LICENSE BLOCK *****
 
-# this is a stub for future implementation
-
 try:
     import argparse
     import inspect

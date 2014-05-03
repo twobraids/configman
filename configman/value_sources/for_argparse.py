@@ -48,6 +48,8 @@ libraries can use their own specs, so a translation layer had to be created.
 
 import argparse
 
+import collections
+
 from configman.dontcare import dont_care
 from configman.option import Option
 from configman.dotdict import DotDict, iteritems_breadth_first
@@ -122,27 +124,33 @@ class ValueSource(object):
         self._brand += 1
 
     #--------------------------------------------------------------------------
-    def _get_known_args(self, conf_manager):
+    @staticmethod
+    def _get_known_args(conf_manager):
         return set(
             x
             for x in conf_manager.option_definitions.keys_breadth_first()
         )
 
     #--------------------------------------------------------------------------
-    def _option_to_command_line_str(self, an_option, key):
+    @staticmethod
+    def _option_to_command_line_str(an_option, key):
         if an_option.is_argument:
-            if an_option.number_of_values is not None:
-                return to_str(an_option.value).split(',')
-            return to_str(an_option.value)
+            if (an_option.number_of_values is not None
+                and isinstance(an_option.value, collections.Sequence)
+            ):
+                return [to_str(x) for x in an_option.value]
+            return str(an_option.value)
         if an_option.number_of_values == 0:
             return None
         if an_option.from_string_converter in (bool, boolean_converter):
             if an_option.value:
                 return "--%s" % key
             return None
-        return "--%s=%s" % (
+        if an_option.value is None:
+            return None
+        return '--%s="%s"' % (
             key,
-            to_str(an_option.value)
+            to_str(an_option)
         )
 
     #--------------------------------------------------------------------------
@@ -179,22 +187,21 @@ class ValueSource(object):
             return final_arg_list
 
     #--------------------------------------------------------------------------
-    def _val_as_str(self, value):
+    @staticmethod
+    def _val_as_str(value):
         try:
             # the value may be a modified 'dont_care' object,
             # that means we do care now and we should get the modified value &
             # return it as a bare value converted to a string
-            print "BARE", value.as_bare_value(), type(value.as_bare_value())
-            print "BSTR", to_str(value.as_bare_value()),
             return to_str(value.as_bare_value())
         except AttributeError:
             # 'dont_care' doesn't exist - this must be not be dont_care
             pass
-        print "NATURAL '%s'" % to_str(value)
         return to_str(value)
 
     #--------------------------------------------------------------------------
-    def _we_care_about_this_value(self, value):
+    @staticmethod
+    def _we_care_about_this_value(value):
         """we want this value source to only return items that were not
         the unchanged defaults.  If this test succeeds, then the value is not
         the default and should be returned to configman.  If the test returns
@@ -240,9 +247,9 @@ class ValueSource(object):
         d = DotDict()
         for key, value in iteritems_breadth_first(argparse_namespace.__dict__):
             if self._we_care_about_this_value(value):
-                print key
+                #print key
                 d[key] = self._val_as_str(value)
-                print self._val_as_str(value)
+                #print self._val_as_str(value)
         return d
 
     #--------------------------------------------------------------------------

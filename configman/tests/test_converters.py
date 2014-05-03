@@ -189,7 +189,7 @@ class TestCase(unittest.TestCase):
 
     #--------------------------------------------------------------------------
     def test_sequence_to_string(self):
-        function = converters._sequence_to_string
+        function = converters.sequence_to_string
         self.assertEqual(function([]), '')
         self.assertEqual(function(tuple()), '')
 

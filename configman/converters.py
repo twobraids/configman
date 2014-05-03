@@ -440,10 +440,10 @@ def _arbitrary_object_to_string(a_thing):
 
 
 #------------------------------------------------------------------------------
-def _sequence_to_string(a_list):
+def sequence_to_string(a_list, delimiter=", "):
     """a dedicated function that turns a list into a comma delimited string
     of items converted.  This method will flatten nested lists."""
-    return ', '.join(to_str(x) for x in a_list)
+    return delimiter.join(to_str(x) for x in a_list)
 
 
 #------------------------------------------------------------------------------
@@ -465,8 +465,8 @@ _to_string_converters = {
     float: str,
     str: str,
     unicode: unicode,
-    list: _sequence_to_string,
-    tuple: _sequence_to_string,
+    list: sequence_to_string,
+    tuple: sequence_to_string,
     bool: lambda x: 'True' if x else 'False',
     dict: json.dumps,
     datetime.datetime: datetime_util.datetime_to_ISO_string,
