@@ -41,7 +41,8 @@ from unittest import SkipTest, TestCase
 try:
     from configman.argparse_ import (
         ControlledErrorReportingArgumentParser,
-        ArgumentParser
+        ArgumentParser,
+        argparse
     )
 except ImportError:
     raise SkipTest
@@ -139,24 +140,28 @@ class TestCaseForArgumentParser(TestCase):
         a = an_argparser.add_argument(
             '-c', action='store_const',
             dest='constant_value',
-            default='default',
+            #default='default',
             const='value-to-store',
             help='Store a constant value'
         )
 
         a = an_argparser.add_argument(
-            '-t', action='store_true',
+            '-t',
+            action='store_true',
+            default=False,
             dest='boolean_switch',
             help='Set a switch to true'
         )
-        self.assertFalse(a.default)
+        self.assertFalse(a.default.as_bare_value())
 
         a = an_argparser.add_argument(
-            '-f', action='store_false',
+            '-f',
+            action='store_false',
+            default=False,
             dest='boolean_switch',
             help='Set a switch to false'
         )
-        self.assertTrue(a.default)
+        self.assertFalse(a.default.as_bare_value())
 
         a = an_argparser.add_argument(
             '-a', action='append', dest='collection',
@@ -178,9 +183,9 @@ class TestCaseForArgumentParser(TestCase):
             const='value-2-to-append',
             help='Add different values to list'
         )
-        self.assertTrue(a.default is None)
+        self.assertTrue(a.default.as_bare_value() is None)
 
-    def test_parse_args(self):
+    def create_testing_argparser(self):
         an_argparser = ArgumentParser()
         an_argparser.print_usage = Mock()
         an_argparser.exit = Mock()
@@ -235,28 +240,32 @@ class TestCaseForArgumentParser(TestCase):
             help='Add different values to list'
         )
         an_argparser.value_source_list = [an_argparser]
+        return an_argparser
+
+    def test_parse_args_1(self):
+        an_argparser = self.create_testing_argparser()
 
         an_argparser.parse_through_configman = True
         result = an_argparser.parse_args(args=['-c'])
         self.assertTrue(isinstance(result, DotDict))
         self.assertEqual(result.constant_value, 'value-to-store')
-        self.assertFalse(hasattr(result.constant_value, 'dont_care'))
+        #self.assertFalse(hasattr(result.constant_value, 'dont_care'))
 
         an_argparser.parse_through_configman = True
         result = an_argparser.parse_args(args=[])
         self.assertTrue(isinstance(result, DotDict))
-        #print result.constant_value, type(result.constant_value)
-        self.assertTrue(result.constant_value.dont_care())
-        self.assertEqual(str(result.constant_value), '')
-        self.assertTrue(result.boolean_switch.dont_care())
-        self.assertTrue(result.collection.dont_care())
-        self.assertTrue(result.const_collection.dont_care())
+        print result.constant_value, type(result.constant_value)
+        #self.assertTrue(result.constant_value.dont_care())
+        self.assertTrue(result.constant_value is None)
+        #self.assertTrue(result.boolean_switch.dont_care())
+        #self.assertTrue(result.collection.dont_care())
+        #self.assertTrue(result.const_collection.dont_care())
 
         an_argparser.parse_through_configman = True
         result = an_argparser.parse_args(args=['-t'])
         self.assertTrue(isinstance(result, DotDict))
         self.assertTrue(result.boolean_switch)
-        self.assertTrue(result.constant_value.dont_care())
+        #self.assertTrue(result.constant_value.dont_care())
 
         an_argparser.parse_through_configman = True
         result = an_argparser.parse_args(args=['-a', '1', '-a', '2'])
@@ -267,6 +276,46 @@ class TestCaseForArgumentParser(TestCase):
         #result = an_argparser.parse_args(args=['-A', '-B'])
         result = an_argparser.parse_args(args=['-A', '-B'])
         self.assertTrue(isinstance(result, DotDict))
+        self.assertEqual(
+            result.const_collection,
+            ['value-1-to-append', 'value-2-to-append']
+        )
+
+    def test_parse_args_2(self):
+        an_argparser = self.create_testing_argparser()
+
+        an_argparser.parse_through_configman = False
+        result = an_argparser.parse_args(args=['-c'])
+        print result, type(result)
+        self.assertTrue(isinstance(result, argparse.Namespace))
+        self.assertEqual(result.constant_value, 'value-to-store')
+        self.assertFalse(hasattr(result.constant_value, 'dont_care'))
+
+        an_argparser.parse_through_configman = False
+        result = an_argparser.parse_args(args=[])
+        self.assertTrue(isinstance(result, argparse.Namespace))
+        print result.constant_value, type(result.constant_value)
+        self.assertTrue(result.constant_value.dont_care())
+        self.assertTrue(result.constant_value.as_bare_value() is None)
+        self.assertTrue(result.boolean_switch.dont_care())
+        self.assertTrue(result.collection.dont_care())
+        self.assertTrue(result.const_collection.dont_care())
+
+        an_argparser.parse_through_configman = False
+        result = an_argparser.parse_args(args=['-t'])
+        self.assertTrue(isinstance(result, argparse.Namespace))
+        self.assertTrue(result.boolean_switch)
+        self.assertTrue(result.constant_value.dont_care())
+
+        an_argparser.parse_through_configman = False
+        result = an_argparser.parse_args(args=['-a', '1', '-a', '2'])
+        self.assertTrue(isinstance(result, argparse.Namespace))
+        self.assertEqual(result.collection, ['1', '2'])
+
+        an_argparser.parse_through_configman = False
+        #result = an_argparser.parse_args(args=['-A', '-B'])
+        result = an_argparser.parse_args(args=['-A', '-B'])
+        self.assertTrue(isinstance(result, argparse.Namespace))
         self.assertEqual(
             result.const_collection,
             ['value-1-to-append', 'value-2-to-append']

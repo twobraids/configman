@@ -810,7 +810,10 @@ class ConfigurationManager(object):
         for key, val in source.items():
             value_type = type(val)
             if isinstance(val, Option) or isinstance(val, Aggregation):
-                destination[key] = val.value
+                try:
+                    destination[key] = val.value.as_bare_value()
+                except AttributeError:
+                    destination[key] = val.value
             elif value_type == Namespace:
                 destination[key] = d = mapping_class()
                 self._walk_config_copy_values(val, d, mapping_class)

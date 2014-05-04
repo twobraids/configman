@@ -180,11 +180,14 @@ try:
             #else:
                 #print "NOT here"
                 #default = dont_care(an_action.default)
-            default = dont_care(an_action.default)
+            #if not hasattr(an_action.default, 'as_bare_value'):
+                #default = dont_care(an_action.default)
 
-            #if an_action.dest == 'constant_value':
-                #print 'constant_value: default', default, type(default), default._value, type(
-                                                                                             #default._value)
+            try:
+                default = an_action.default.as_bare_value()
+            except AttributeError:
+                default = an_action.default
+
             destination.add_option(
                 name=an_action.dest,
                 default=default,

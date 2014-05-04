@@ -291,8 +291,8 @@ class TestCaseForValSourceArgparse(TestCase):
         ))
         self.assertTrue(vs.parser is None)
         self.assertTrue(isinstance(result, DotDict))
-        #self.assertEqual(dict(result), {'a': 1, 'b': 2})
-        self.assertEqual(dict(result), {'a': '1', 'b': '2'})
+        self.assertEqual(dict(result), {'a': 1, 'b': 2})
+        #self.assertEqual(dict(result), {'a': '1', 'b': '2'})
 
     def test_get_values_2(self):
         class MyArgumentValueSource(ValueSource):
@@ -323,10 +323,10 @@ class TestCaseForValSourceArgparse(TestCase):
             vs.argv_source
         ))
         self.assertTrue(isinstance(result, DotDict))
-        #self.assertEqual(dict(result), {'a': 1, 'b': 2})  # for when this is
+        self.assertEqual(dict(result), {'a': 1, 'b': 2})  # for when this is
                                                            # switched to real
                                                            # return values
-        self.assertEqual(dict(result), {'a': '1', 'b': '2'})
+        #self.assertEqual(dict(result), {'a': '1', 'b': '2'})
 
     def test_create_new_argparse_instance(self):
         class MyArgumentValueSource(ValueSource):
