@@ -48,6 +48,8 @@ import getopt
 import mock
 
 import configman
+from configman.config_file_future_proxy import ConfigFileFutureProxy
+from configman import command_line
 import configman.config_manager as config_manager
 from configman.option import Option
 from configman.dotdict import DotDict, DotDictWithAcquisition
@@ -1553,6 +1555,7 @@ c.string =   from ini
         try:
             c = config_manager.ConfigurationManager(
                 (n,),
+                values_source_list=[ConfigFileFutureProxy, command_line],
                 argv_source=['--admin.conf=x.ini']
             )
             with c.context() as config:
@@ -1683,30 +1686,30 @@ c.string =   from ini
         )
 
     #--------------------------------------------------------------------------
-    def test_acquisition(self):
-        """define a common key in two sub-namespaces.  Then offer only a value
-        from the base namespace.  Both sub-namespace Options should have the
-        end value from the base value namespace."""
-        rc = Namespace()
-        rc.namespace('source')
-        rc.source.add_option('cls',
-                             default='configman.tests.test_config_manager.T1',
-                             from_string_converter=class_converter)
-        rc.namespace('destination')
-        rc.destination.add_option(
-            'cls',
-            default='configman.tests.test_config_manager.T2',
-            from_string_converter=class_converter
-        )
-        cm = config_manager.ConfigurationManager(
-            rc,
-            [
-                {'cls': 'configman.tests.test_config_manager.T2'},
-            ],
-        )
-        c = cm.get_config()
-        self.assertEqual(c.source.cls, T2)
-        self.assertEqual(c.destination.cls, T2)
+    #def test_acquisition(self):  # we don't do aquisition anymore
+        #"""define a common key in two sub-namespaces.  Then offer only a value
+        #from the base namespace.  Both sub-namespace Options should have the
+        #end value from the base value namespace."""
+        #rc = Namespace()
+        #rc.namespace('source')
+        #rc.source.add_option('cls',
+                             #default='configman.tests.test_config_manager.T1',
+                             #from_string_converter=class_converter)
+        #rc.namespace('destination')
+        #rc.destination.add_option(
+            #'cls',
+            #default='configman.tests.test_config_manager.T2',
+            #from_string_converter=class_converter
+        #)
+        #cm = config_manager.ConfigurationManager(
+            #rc,
+            #[
+                #{'cls': 'configman.tests.test_config_manager.T2'},
+            #],
+        #)
+        #c = cm.get_config()
+        #self.assertEqual(c.source.cls, T2)
+        #self.assertEqual(c.destination.cls, T2)
 
     #--------------------------------------------------------------------------
     def test_admin_conf_all_handlers_fail(self):

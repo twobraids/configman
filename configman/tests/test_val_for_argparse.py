@@ -392,7 +392,7 @@ class TestCaseForValSourceArgparse(TestCase):
         self.assertTrue('kappa' in actions)
 
         self.assertTrue('--alpha' not in actions['alpha'].option_strings)
-        self.assertEqual(actions['alpha'].default, '3')  # TODO: string?
+        self.assertEqual(actions['alpha'].default, 3)
         self.assertTrue(actions['alpha'].default.dont_care())
 
         self.assertTrue('--beta' in actions['beta'].option_strings)

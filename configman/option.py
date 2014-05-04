@@ -118,7 +118,7 @@ class Option(object):
         attribute.
         """
         try:
-            print self.value, self.to_string_converter,
+            print "JJJJJ", self.value, self.to_string_converter,
             s = self.to_string_converter(self.value)
             print s
         except TypeError:
@@ -236,7 +236,8 @@ class Option(object):
             is_argument=self.is_argument,
             likely_to_be_changed=self.likely_to_be_changed,
             not_for_definition=self.not_for_definition,
-            reference_value_from=self.reference_value_from
+            reference_value_from=self.reference_value_from,
+            number_of_values=self.number_of_values
         )
         return o
 

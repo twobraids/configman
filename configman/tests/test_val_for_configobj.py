@@ -350,9 +350,10 @@ bad_option=bar  # other comment
             )
             c = config_manager.ConfigurationManager(
                 [n],
-                use_admin_controls=True,
+                #values_source_list=[],
+                use_admin_controls=False,
                 use_auto_help=False,
-                argv_source=[]
+                argv_source=[],
             )
             expected = "# the doc string\n#a=one:One\n"
             out = StringIO()

@@ -254,7 +254,6 @@ class TestCaseForArgumentParser(TestCase):
         an_argparser.parse_through_configman = True
         result = an_argparser.parse_args(args=[])
         self.assertTrue(isinstance(result, DotDict))
-        print result.constant_value, type(result.constant_value)
         #self.assertTrue(result.constant_value.dont_care())
         self.assertTrue(result.constant_value is None)
         #self.assertTrue(result.boolean_switch.dont_care())
@@ -286,7 +285,6 @@ class TestCaseForArgumentParser(TestCase):
 
         an_argparser.parse_through_configman = False
         result = an_argparser.parse_args(args=['-c'])
-        print result, type(result)
         self.assertTrue(isinstance(result, argparse.Namespace))
         self.assertEqual(result.constant_value, 'value-to-store')
         self.assertFalse(hasattr(result.constant_value, 'dont_care'))
@@ -294,7 +292,6 @@ class TestCaseForArgumentParser(TestCase):
         an_argparser.parse_through_configman = False
         result = an_argparser.parse_args(args=[])
         self.assertTrue(isinstance(result, argparse.Namespace))
-        print result.constant_value, type(result.constant_value)
         self.assertTrue(result.constant_value.dont_care())
         self.assertTrue(result.constant_value.as_bare_value() is None)
         self.assertTrue(result.boolean_switch.dont_care())

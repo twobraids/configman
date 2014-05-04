@@ -54,7 +54,7 @@ import def_sources
 #==============================================================================
 # for convenience define some external symbols here
 from option import Option, Aggregation
-from dotdict import DotDict, DotDictWithAcquisition
+from dotdict import DotDict, DotDictWithAcquisition, iteritems_breadth_first
 from dontcare import DontCare
 from namespace import Namespace
 from required_config import RequiredConfig
@@ -229,8 +229,11 @@ class ConfigurationManager(object):
             self
         )
 
+        #print "a", self.option_definitions['a'].default, type(self.option_definitions['a'].default)
         known_keys = self._overlay_expand()
+        #print "aa", self.option_definitions['a'].default, type(self.option_definitions['a'].default)
         self._check_for_mismatches(known_keys)
+        #print "aaa", self.option_definitions['a'].default, type(self.option_definitions['a'].default)
 
         # the app_name, app_version and app_description are to come from
         # if 'application' option if it is present. If it is not present,
@@ -570,7 +573,11 @@ class ConfigurationManager(object):
             def _must_be(source, required_type):
                 if isinstance(source, required_type):
                     return source
-                return required_type(source)
+                new_mapping = required_type()
+                for key, value in iteritems_breadth_first(source, include_dicts=True):
+                    if key in all_keys:
+                        new_mapping[key] = value
+                return new_mapping
 
             values_from_all_sources = [
                 _must_be(v.get_values(self, True), DotDictWithAcquisition)

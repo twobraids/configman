@@ -249,8 +249,8 @@ class ValueSource(object):
             else:
                 option_format = '%s#%s=%s\n'
 
-            print an_option.to_string_converter
-            option_value = str(an_option)
+            #print an_option.to_string_converter
+            #option_value = str(an_option)
 
             print >>output_stream, option_format % (
                 indent_spacer,

@@ -248,7 +248,7 @@ class ValueSource(object):
             )
 
         d = DotDict()
-        for key, value in iteritems_breadth_first(argparse_namespace.__dict__):
+        for key, value in argparse_namespace.__dict__.iteritems():
             if self._we_care_about_this_value(value):
                 d[key] = value
                 #d[key] = self._val_as_str(value)  # TODO: we ought to let
@@ -284,7 +284,6 @@ class ValueSource(object):
                 continue
             an_opt = config_manager.option_definitions[opt_name]
             if isinstance(an_opt, Option):
-
                 if an_opt.is_argument:  # is positional argument
                     option_name = opt_name
                 else:
@@ -301,13 +300,12 @@ class ValueSource(object):
                     kwargs.action = 'store_true'
                 else:
                     kwargs.action = 'store'
-                    kwargs.type = to_str
+                    #kwargs.type = to_str
 
-                kwargs.default = dont_care(to_str(an_opt.default))  # TODO: not original value?
+                kwargs.default = dont_care(an_opt.default)
                 kwargs.help = an_opt.doc
                 if not an_opt.is_argument:
                     kwargs.dest = opt_name
-
                 parser.add_argument(*args, **kwargs)
         self.known_args = current_args.union(new_args)
 
