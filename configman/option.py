@@ -118,7 +118,9 @@ class Option(object):
         attribute.
         """
         try:
+            print self.value, self.to_string_converter,
             s = self.to_string_converter(self.value)
+            print s
         except TypeError:
             s = conv.to_str(self.value)
         if self.from_string_converter in conv.converters_requiring_quotes:

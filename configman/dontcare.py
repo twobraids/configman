@@ -83,7 +83,6 @@ class DontCare(object):
         for x in self._value:
             yield x
     def append(self, item):
-        print 'appending'
         self.modified__ = True
         return self._value.append(item)
     def from_string_converter(self):
@@ -122,10 +121,8 @@ def dont_care(value):
                 def __hash__(kls):
                     return hash(kls.__name__)
                 def append(self, item):
-                    print "APPENDING", item
                     self.modified__ = True
                     result = super(X, self).append(item)
-                    print "  done: ", self
                     return result
                 def from_string_converter(self):
                     return get_from_string_converter(value_type)

@@ -173,16 +173,6 @@ try:
                     # skip this one, it has to be a single letter argument,
                     # not a switch
 
-            #print "BEFOR", an_action.dest, an_action.const, an_action.default
-            #if an_action.const and an_action.default is None:
-                #print "HERE", an_action.dest, an_action.const
-                #default = dont_care(an_action.const)
-            #else:
-                #print "NOT here"
-                #default = dont_care(an_action.default)
-            #if not hasattr(an_action.default, 'as_bare_value'):
-                #default = dont_care(an_action.default)
-
             try:
                 default = an_action.default.as_bare_value()
             except AttributeError:

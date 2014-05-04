@@ -454,7 +454,11 @@ def to_str(a_thing):
     try:
         converter = _to_string_converters[type(a_thing)]
     except KeyError:
-        converter = _arbitrary_object_to_string
+        try:
+            converter = _to_string_converters[type(a_thing.as_bare_value())]
+            a_thing = a_thing.as_bare_value()
+        except (AttributeError, KeyError):
+            converter = _arbitrary_object_to_string
     return converter(a_thing)
 
 #------------------------------------------------------------------------------

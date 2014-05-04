@@ -286,13 +286,11 @@ class ConfigurationManager(object):
 
     #--------------------------------------------------------------------------
     def get_config(self, mapping_class=DotDictWithAcquisition):
-        print "starting configman.get_config"
         config = self._generate_config(mapping_class)
         if self._aggregate(self.option_definitions, config, config):
             # state changed, must regenerate
             return self._generate_config(mapping_class)
         else:
-            print "done with configman.get_config"
             return config
 
     #--------------------------------------------------------------------------
