@@ -39,12 +39,14 @@
 from unittest import SkipTest, TestCase
 
 try:
-    from configman.argparse_ import (
-        ControlledErrorReportingArgumentParser,
-        ArgumentParser
-    )
+    import argparse
 except ImportError:
     raise SkipTest
+
+from configman.argparse_ import (
+    ControlledErrorReportingArgumentParser,
+    ArgumentParser
+)
 
 from mock import Mock
 from os import environ
@@ -54,7 +56,8 @@ from functools import partial
 from configman import Namespace
 from configman.converters import (
     list_converter,
-    sequence_to_string
+    sequence_to_string,
+    to_str
 )
 
 from configman.config_file_future_proxy import ConfigFileFutureProxy
@@ -96,6 +99,7 @@ class TestCaseForValSourceArgparse(TestCase):
             'beta',
             default='the second',
             doc='the first parameter',
+            short_form = 'b',
         )
         n.add_option(
             'gamma',
@@ -116,7 +120,7 @@ class TestCaseForValSourceArgparse(TestCase):
             default=False,
         )
         n.add_option(
-            'kapa',
+            'kappa',
             default=[7, 8],
             from_string_converter=partial(
                 list_converter,
@@ -193,7 +197,7 @@ class TestCaseForValSourceArgparse(TestCase):
         vs = self.setup_value_source()
         self.assertEqual(
             vs._get_known_args(config_manager),
-            set(['alpha', 'beta', 'gamma', 'delta', 'kapa'])
+            set(['alpha', 'beta', 'gamma', 'delta', 'kappa'])
         )
 
     def test_option_to_command_line_str_1(self):
@@ -204,7 +208,7 @@ class TestCaseForValSourceArgparse(TestCase):
             'beta': '--beta="the second"',
             'gamma': '--gamma="1 2 3"',
             #'delta': '--delta="False"',  # not returned as it is the default
-            'kapa': ['7', '8']
+            'kappa': ['7', '8']
         }
         for k in n.keys_breadth_first():
             op = vs._option_to_command_line_str(n[k], k)
@@ -223,7 +227,7 @@ class TestCaseForValSourceArgparse(TestCase):
             'beta': '--beta="the second"',
             'gamma': None,
             #'delta': '--delta="False"',  # not returned as it is the default
-            'kapa': ['7', '8']
+            'kappa': ['7', '8']
         }
         for k in n.keys_breadth_first():
             op = vs._option_to_command_line_str(n[k], k)
@@ -321,28 +325,95 @@ class TestCaseForValSourceArgparse(TestCase):
             vs.argv_source
         ))
         self.assertTrue(isinstance(result, DotDict))
-        #self.assertEqual(dict(result), {'a': 1, 'b': 2})
+        #self.assertEqual(dict(result), {'a': 1, 'b': 2})  # for when this is
+                                                           # switched to real
+                                                           # return values
         self.assertEqual(dict(result), {'a': '1', 'b': '2'})
 
     def test_create_new_argparse_instance(self):
         class MyArgumentValueSource(ValueSource):
+            def __init__(self, *args, **kwargs):
+                super(MyArgumentValueSource, self).__init__(*args, **kwargs)
+                self.call_counter_proxy = Mock()
             def _setup_argparse(self, parser, config_manager):
+                self.call_counter_proxy(parser, config_manager)
                 return
         vs = self.setup_value_source(MyArgumentValueSource)
+        self.assertTrue(isinstance(vs.parsers[0], argparse.ArgumentParser))
+        self.assertTrue('wilma' in (x.dest for x in vs.parsers[0]._actions))
         n = self.setup_configman_namespace()
-        c = Mock()
-        c.app_name = 'MyApp'
-        c.app_version = '1.2'
-        c.app_description = "it's the app"
+        config_manager = Mock()
+        config_manager.app_name = 'MyApp'
+        config_manager.app_version = '1.2'
+        config_manager.app_description = "it's the app"
         parent = Mock()
-        p = vs._create_new_argparse_instance(
-            ArgumentParser,
-            c,
+        parser = vs._create_new_argparse_instance(
+            ControlledErrorReportingArgumentParser,
+            config_manager,
             False,
-            []
+            vs.parsers
         )
-        self.assertTrue(isinstance(p, ArgumentParser))
-        self.assertEqual(p._brand, 1)
+        parser.add_argument('--bogus', dest='bogus', action='store', default=2)
+        self.assertTrue(
+            isinstance(parser, ControlledErrorReportingArgumentParser)
+        )
+        self.assertEqual(parser._brand, 1)
+        vs.call_counter_proxy.assert_called_once_with(parser, config_manager)
+        self.assertEqual(parser.prog, 'MyApp')
+        #self.assertEqual(parser.version, '1.2')  #TODO: fix versions
+        self.assertEqual(parser.description, "it's the app")
+        self.assertTrue('help' not in (x.dest for x in parser._actions))
+        self.assertTrue('bogus' in (x.dest for x in parser._actions))
+        self.assertTrue('wilma' in (x.dest for x in parser._actions))
+
+        second_parser = vs._create_new_argparse_instance(
+            ControlledErrorReportingArgumentParser,
+            config_manager,
+            True,
+            [parser]
+        )
+        self.assertEqual(second_parser._brand, 2)
+        for x in second_parser._actions:
+            print x.dest
+        self.assertTrue('help' in (x.dest for x in second_parser._actions))
+        self.assertTrue('bogus' in (x.dest for x in second_parser._actions))
+        self.assertTrue('wilma' in (x.dest for x in second_parser._actions))
+
+    def test_setup_argparse(self):
+        vs = self.setup_value_source()
+        n = self.setup_configman_namespace()
+        config_manager = Mock()
+        config_manager.option_definitions = n
+        parser = vs.parsers[0]
+        self.assertTrue('wilma' in (x.dest for x in parser._actions))
+
+        vs._setup_argparse(parser, config_manager)
+
+        actions = dict((x.dest, x) for x in parser._actions)
+        self.assertTrue('alpha' in actions)
+        self.assertTrue('beta' in actions)
+        self.assertTrue('gamma' in actions)
+        self.assertTrue('kappa' in actions)
+
+        print actions['alpha'].option_strings
+        self.assertTrue('--alpha' not in actions['alpha'].option_strings)
+        self.assertEqual(actions['alpha'].default, '3')  # TODO: string?
+        self.assertTrue(actions['alpha'].default.dont_care())
+
+        self.assertTrue('--beta' in actions['beta'].option_strings)
+        self.assertTrue('-b' in actions['beta'].option_strings)
+        self.assertTrue(actions['beta'].default.dont_care())
+
+        self.assertTrue('--gamma' in actions['gamma'].option_strings)
+        self.assertTrue(actions['gamma'].default.dont_care())
+
+        self.assertTrue('--delta' in actions['delta'].option_strings)
+        self.assertTrue(actions['delta'].default.dont_care())
+
+        self.assertTrue('--kappa' not in actions['kappa'].option_strings)
+        self.assertTrue(actions['kappa'].default.dont_care())
+
+
 
 
 

@@ -40,7 +40,8 @@ class ArgumentParser(ControlledErrorReportingArgumentParser):
 
     #--------------------------------------------------------------------------
     def add_argument(self, *args, **kwargs):
-        if 'default' in kwargs and 'const' not in kwargs:
+        #if 'default' in kwargs and 'const' not in kwargs:  #DEBUG
+        if 'default' in kwargs:
             kwargs['default'] = dont_care(kwargs['default'])
         action = super(ArgumentParser, self).add_argument(*args, **kwargs)
         return action
@@ -57,6 +58,9 @@ class ArgumentParser(ControlledErrorReportingArgumentParser):
                 app_version=self.version,
                 app_description=self.description,
             )
-            return configuration_manager.get_config()
+            conf =  configuration_manager.get_config()
+            print "end of configman section"
+            return conf
         else:
             return super(ArgumentParser, self).parse_args(args, namespace)
+

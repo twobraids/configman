@@ -68,10 +68,8 @@ def setup_definitions(source, destination):
     target_setup_func = None
     try:
         target_setup_func = definition_dispatch[type(source)]
-        print "YYYY", source, target_setup_func
     except KeyError:
         for a_key in definition_dispatch.keys():
-            print "XXXX", source, a_key
             if isinstance(source, a_key):
                 target_setup_func = definition_dispatch[a_key]
                 break

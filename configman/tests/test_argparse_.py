@@ -51,6 +51,7 @@ from os import environ
 
 from configman.config_file_future_proxy import ConfigFileFutureProxy
 from configman.dotdict import DotDict
+from configman.dontcare import dont_care
 
 
 #==============================================================================
@@ -185,40 +186,51 @@ class TestCaseForArgumentParser(TestCase):
         an_argparser.exit = Mock()
         self.assertEqual(0, len(an_argparser._actions))
         an_argparser.add_argument(
-            '-s', action='store', dest='simple_value',
-            default=17, help='Store a simple value'
+            '-s',
+            action='store',
+            dest='simple_value',
+            default=17,
+            help='Store a simple value'
         )
         a = an_argparser.add_argument(
-            '-c', action='store_const',
+            '-c',
+            action='store_const',
             dest='constant_value',
             const='value-to-store',
             help='Store a constant value'
         )
         an_argparser.add_argument(
-            '-t', action='store_true',
+            '-t',
+            action='store_true',
             default=False,
             dest='boolean_switch',
             help='Set a switch to true'
         )
         an_argparser.add_argument(
-            '-f', action='store_false',
+            '-f',
+            action='store_false',
             default=False,
             dest='boolean_switch',
             help='Set a switch to false'
         )
         an_argparser.add_argument(
-            '-a', action='append', dest='collection',
+            '-a',
+            action='append', dest='collection',
             default=[],
             help='Add repeated values to a list',
         )
         an_argparser.add_argument(
-            '-A', action='append_const', dest='const_collection',
+            '-A',
+            action='append_const',
+            dest='const_collection',
             const='value-1-to-append',
             default=[],
             help='Add different values to list'
         )
         an_argparser.add_argument(
-            '-B', action='append_const', dest='const_collection',
+            '-B',
+            action='append_const',
+            dest='const_collection',
             const='value-2-to-append',
             help='Add different values to list'
         )
@@ -248,21 +260,240 @@ class TestCaseForArgumentParser(TestCase):
         an_argparser.parse_through_configman = True
         result = an_argparser.parse_args(args=['-a', '1', '-a', '2'])
         self.assertTrue(isinstance(result, DotDict))
-        print result.collection
+        print "CRCRCRCRC", result.collection
+        print result.collection, type(result.collection)
         self.assertEqual(result.collection, ['1', '2'])
 
-        #an_argparser.parse_through_configman = True
+        print "STARTING NEW"
+        an_argparser.parse_through_configman = True
         #result = an_argparser.parse_args(args=['-A', '-B'])
+        result = an_argparser.parse_args(args=['-A', '-B'])
+        print "QJJJJJJJ", dict(result)
+        self.assertTrue(isinstance(result, DotDict))
+        print "aoeu", result.const_collection, type(result.const_collection)
+        self.assertEqual(
+            result.const_collection,
+            ['value-1-to-append', 'value-2-to-append']
+        )
+
+    def test_parse_args_2(self):
+        an_argparser = ArgumentParser()
+        an_argparser.print_usage = Mock()
+        an_argparser.exit = Mock()
+        self.assertEqual(0, len(an_argparser._actions))
+        an_argparser.parse_through_configman = False
+        an_argparser.add_argument(
+            '-s',
+            action='store',
+            dest='simple_value',
+            default=17,
+            help='Store a simple value'
+        )
+        a = an_argparser.add_argument(
+            '-c',
+            action='store_const',
+            dest='constant_value',
+            const='value-to-store',
+            help='Store a constant value'
+        )
+        an_argparser.add_argument(
+            '-t',
+            action='store_true',
+            default=False,
+            dest='boolean_switch',
+            help='Set a switch to true'
+        )
+        an_argparser.add_argument(
+            '-f',
+            action='store_false',
+            default=False,
+            dest='boolean_switch',
+            help='Set a switch to false'
+        )
+        an_argparser.add_argument(
+            '-a',
+            action='append', dest='collection',
+            default=[],
+            help='Add repeated values to a list',
+        )
+        an_argparser.add_argument(
+            '-A',
+            action='append_const',
+            dest='const_collection',
+            const='value-1-to-append',
+            #default=dont_care([]),
+            default=[],
+            help='Add different values to list'
+        )
+        an_argparser.add_argument(
+            '-B',
+            action='append_const',
+            dest='const_collection',
+            const='value-2-to-append',
+            default=[],
+            #default=['str'],
+            help='Add different values to list'
+        )
+
+        #an_argparser.parse_through_configman = True
+        #result = an_argparser.parse_args(args=['-a', '1', '-a', '2'])
+        #print "CRCRCRCRC", result.collection
+        #print result.collection, type(result.collection)
+        #self.assertEqual(result.collection, ['1', '2'])
+
+        print "STARTING NEW"
+        an_argparser.parse_through_configman = True
+        #result = an_argparser.parse_args(args=['-A', '-B'])
+        result = an_argparser.parse_args(args=['-A', '-B'])
+        print "QJJJJJJJ", result.__dict__
         #self.assertTrue(isinstance(result, DotDict))
-        #print "aoeu", result.const_collection, type(result.const_collection)
-        #self.assertEqual(
-            #result.const_collection,
-            #['value-1-to-append', 'value-2-to-append']
-        #)
+        print "aoeu", result.const_collection, type(result.const_collection)
+        self.assertEqual(
+            result.const_collection,
+            ['value-1-to-append', 'value-2-to-append']
+        )
+
+    def test_parse_args_3(self):
+        an_argparser = ArgumentParser()
+        an_argparser.print_usage = Mock()
+        an_argparser.exit = Mock()
+        self.assertEqual(0, len(an_argparser._actions))
+        an_argparser.parse_through_configman = False
+        an_argparser.add_argument(
+            '-s',
+            action='store',
+            dest='simple_value',
+            default=17,
+            help='Store a simple value'
+        )
+        a = an_argparser.add_argument(
+            '-c',
+            action='store_const',
+            dest='constant_value',
+            const='value-to-store',
+            help='Store a constant value'
+        )
+        an_argparser.add_argument(
+            '-t',
+            action='store_true',
+            default=False,
+            dest='boolean_switch',
+            help='Set a switch to true'
+        )
+        an_argparser.add_argument(
+            '-f',
+            action='store_false',
+            default=False,
+            dest='boolean_switch',
+            help='Set a switch to false'
+        )
+        an_argparser.add_argument(
+            '-a',
+            action='append', dest='collection',
+            default=[],
+            help='Add repeated values to a list',
+        )
+        an_argparser.add_argument(
+            '-A',
+            action='append_const',
+            dest='const_collection',
+            const='value-1-to-append',
+            #default=dont_care([]),
+            default=[],
+            help='Add different values to list'
+        )
+        an_argparser.add_argument(
+            '-B',
+            action='append_const',
+            dest='const_collection',
+            const='value-2-to-append',
+            #default=['str'],
+            help='Add different values to list'
+        )
+
+        #an_argparser.parse_through_configman = True
+        #result = an_argparser.parse_args(args=['-a', '1', '-a', '2'])
+        #print "CRCRCRCRC", result.collection
+        #print result.collection, type(result.collection)
+        #self.assertEqual(result.collection, ['1', '2'])
+
+        print "STARTING NEW"
+        an_argparser.parse_through_configman = True
+        #result = an_argparser.parse_args(args=['-A', '-B'])
+        result = an_argparser.parse_args(args=['-A', '-B'])
+        print "QJJJJJJJ", result.__dict__
+        #self.assertTrue(isinstance(result, DotDict))
+        print "aoeu", result.const_collection, type(result.const_collection)
+        self.assertEqual(
+            result.const_collection,
+            ['value-1-to-append', 'value-2-to-append']
+        )
 
 
 
+    def test_parse_args_4(self):
+        an_argparser = ArgumentParser()
+        an_argparser.print_usage = Mock()
+        an_argparser.exit = Mock()
+        self.assertEqual(0, len(an_argparser._actions))
+        an_argparser.add_argument(
+            '-s',
+            action='store',
+            dest='simple_value',
+            default=17,
+            help='Store a simple value'
+        )
+        a = an_argparser.add_argument(
+            '-c',
+            action='store_const',
+            dest='constant_value',
+            const='value-to-store',
+            help='Store a constant value'
+        )
+        an_argparser.add_argument(
+            '-t',
+            action='store_true',
+            default=False,
+            dest='boolean_switch',
+            help='Set a switch to true'
+        )
+        an_argparser.add_argument(
+            '-f',
+            action='store_false',
+            default=False,
+            dest='boolean_switch',
+            help='Set a switch to false'
+        )
+        an_argparser.add_argument(
+            '-a',
+            action='append', dest='collection',
+            default=[],
+            help='Add repeated values to a list',
+        )
+        an_argparser.add_argument(
+            '-A',
+            action='append_const',
+            dest='const_collection',
+            const='value-1-to-append',
+            default=[],
+            help='Add different values to list'
+        )
+        an_argparser.add_argument(
+            '-B',
+            action='append_const',
+            dest='const_collection',
+            const='value-2-to-append',
+            help='Add different values to list'
+        )
+        an_argparser.value_source_list = [an_argparser]
 
+
+        an_argparser.parse_through_configman = True
+        result = an_argparser.parse_args(args=['-a', '1', '-a', '2'])
+        self.assertTrue(isinstance(result, DotDict))
+        print "CRCRCRCRC", result.collection
+        print result.collection, type(result.collection)
+        self.assertEqual(result.collection, ['1', '2'])
 
 
 

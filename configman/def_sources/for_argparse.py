@@ -40,6 +40,7 @@ try:
     import argparse
     import inspect
     from functools import partial
+    from collections import Sequence
 
     from .. import namespace
     from .. import converters
@@ -83,9 +84,15 @@ try:
 
     def setup_definitions(source, destination):
         # assume that source is of type argparse
-        for an_action in source._actions:
+        for i, an_action in enumerate(source._actions):
             not_for_definition = an_action.default != argparse.SUPPRESS
             kwargs = get_args_and_values(an_action)
+
+            if an_action.dest in destination:
+                continue
+
+            print "##### DEFINING #%02d" % i,  an_action.dest, an_action.default, type(
+                                                                                      an_action.default)
 
             # figure out what would be an appropriate from_string_converter
             kwargs['action'] = find_action_name_by_value(
@@ -112,8 +119,10 @@ try:
                         ],
                         item_separator=' ',
                     )
-                elif kwargs['action'] == 'append':
-                    if type(an_action.default) is list:
+                elif (kwargs['action'] == 'append'
+                      or kwargs['action'] == 'append_const'
+                ):
+                    if isinstance(type(an_action.default), Sequence):
                         from_string_type_converter = partial(
                             converters.list_converter,
                             item_converter=converters.from_string_converters[
@@ -121,6 +130,8 @@ try:
                             ],
                             item_separator=',',
                         )
+                        if an_action.default is not None:
+                            default = an_action.default
                     else:
                         from_string_type_converter = partial(
                             converters.list_converter,
@@ -136,18 +147,35 @@ try:
                     from_string_type_converter = action_type
             except KeyError:
                 from_string_type_converter = action_type
-            if an_action.dest in destination:
-                print "DUPLICATE"
-                from_string_type_converter = \
-                    destination[an_action.dest].from_string_converter
-                default = destination[an_action.dest].default
+
+            # find short form
+            short_form = None
+            for an_option_string in kwargs['option_strings']:
+                try:
+                    if (
+                        an_option_string[0] == an_option_string[1]
+                        and an_option_string[0] in source.prefix_chars
+                        and an_option_string[1] in source.prefix_chars
+                    ):
+                        continue  # clearly a double prefix switch
+                    if (
+                        an_option_string[0] in source.prefix_chars
+                        and len(an_option_string) == 2
+                    ):
+                        short_form = an_option_string[1]
+                except IndexError:
+                    pass
+                    # skip this one, it has to be a single letter argument,
+                    # not a switch
+
+            if an_action.const and default is None:
+                default = dont_care(an_action.const)
             else:
-                print "NOT DUPLICATE"
-                default = an_action.default
+                default = dont_care(an_action.default)
 
             if an_action.dest == 'const_collection':
                 print "const_collection option:"
-                print "  default", default
+                print "  default", default, type(default)
                 print "  from_string_converter", from_string_type_converter
                 print "  to_string_converter", converters.to_str
                 print "  doc", an_action.help
@@ -156,6 +184,7 @@ try:
             destination.add_option(
                 name=an_action.dest,
                 default=default,
+                short_form=short_form,
                 from_string_converter=from_string_type_converter,
                 to_string_converter=converters.to_str,
                 doc=an_action.help,

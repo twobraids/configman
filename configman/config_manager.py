@@ -545,6 +545,8 @@ class ConfigurationManager(object):
         known_keys = set()  # a set of keys that have been expanded
 
         while new_keys_discovered:  # loop until nothing more is done
+            print 'begin overlay round'
+            print '  will not consider:', known_keys
             # keys holds a list of all keys in the option definitons in
             # breadth first order using this form: [ 'x', 'y', 'z', 'x.a',
             # 'x.b', 'z.a', 'z.b', 'x.a.j', 'x.a.k', 'x.b.h']
@@ -577,6 +579,7 @@ class ConfigurationManager(object):
                 for v in self.values_source_list
             ]
             for key in (k for k in all_keys if k not in known_keys):
+                print "overlay considering:", key
                 #if not isinstance(an_option, Option):
                 #   continue  # aggregations and other types are ignored
                 # loop through all the value sources looking for values
@@ -590,18 +593,21 @@ class ConfigurationManager(object):
                         self.option_definitions[reference_value_from]
                         [top_key].default
                     )
-                for val_src_dict in values_from_all_sources:
+                for i, val_src_dict in enumerate(values_from_all_sources):
                     try:
                         # get the Option for this key
                         opt = self.option_definitions[key]
                         # get the new value from the
                         new_value = val_src_dict[key]
+                        print key
+                        if key == "const_collection":
+                            print 'vs%d' % i, new_value, type(new_value)
                         # overlay the default with the new value from
                         # the value source.  This assignment may come
                         # via acquisition, so the key given may not have
                         # been an exact match for what was returned.
                         opt.default = new_value
-                        print "tttt", key, opt.default
+                        print '   ', opt.default, type(opt.default)
                     except KeyError, x:
                         pass  # okay, that source doesn't have this value
 

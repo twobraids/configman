@@ -155,10 +155,14 @@ class ValueSource(object):
 
     #--------------------------------------------------------------------------
     def create_fake_args(self, config_manager):
+        print 'creating fake args'
         # all of this is to keep argparse from barfing if the minumum number
         # of required arguments is not in place at run time.  It may be that
         # some config file or environment will bring them in later.   argparse
         # needs to cope using this placebo argv
+        for key in config_manager.option_definitions.keys_breadth_first():
+            an_option = config_manager.option_definitions[key]
+            print "   ", key, an_option.name, an_option.default, type(an_option.default)
         args = [
             self._option_to_command_line_str(
                 config_manager.option_definitions[key],
@@ -170,18 +174,22 @@ class ValueSource(object):
                 Option
             ) and config_manager.option_definitions[key].is_argument
         ]
+        print "args:", args
         flattened_arg_list = []
         for x in args:
             if isinstance(x, list):
                 flattened_arg_list.extend(x)
             else:
                 flattened_arg_list.append(x)
+        print "flattened", flattened_arg_list
         final_arg_list = [
             x.strip()
             for x in flattened_arg_list
             if x is not None and x.strip() != ''
         ]
+        print 'final:', final_arg_list
         try:
+            print 'plus+', self.extra_args
             return final_arg_list + self.extra_args
         except AttributeError:
             return final_arg_list
@@ -215,17 +223,31 @@ class ValueSource(object):
 
     #--------------------------------------------------------------------------
     def get_values(self, config_manager, ignore_mismatches):
+        print "enter get_values"
         if ignore_mismatches:
             if self.parser is None:
+                print "enter top section", self.parsers
                 self.parser = self._create_new_argparse_instance(
                     self.parser_class,
                     config_manager,
                     False,
                     self.parsers,
                 )
-            namespace_and_extra_args = self.parser.parse_known_args(
-                args=self.argv_source
-            )
+                # DEBUG --------
+                print "  created new parser: p%0d" % self.parser._brand
+                for i, action in enumerate(self.parser._actions):
+                    print "action #%02d" % i
+                    print "BEFORE p%02d " % self.parser._brand, action.dest, action.default, type(action.default)
+                    print "             ", action.type
+                print "  start parsing", self.argv_source
+            try:
+                namespace_and_extra_args = self.parser.parse_known_args(
+                    args=self.argv_source
+                )
+            except Exception, x:
+                print x
+
+            print "  done parsing"
             try:
                 argparse_namespace, self.extra_args = namespace_and_extra_args
             except TypeError:
@@ -234,18 +256,29 @@ class ValueSource(object):
             self.parser = None
         else:
             fake_args = self.create_fake_args(config_manager)
+            print "entering middle section\ncreating final parser with parents", self.parsers[0]._brand, len(
+                                                                                                            self.parsers)
             self.parser = self._create_new_argparse_instance(
                 self.parser_class,
                 config_manager,
                 True,
                 self.parsers,
             )
+            print "final processor p%02d about to parse" % self.parser._brand
+            print fake_args
+            for i, an_action in enumerate(self.parser._actions):
+                print i, an_action
             argparse_namespace = self.parser.parse_args(
                 args=fake_args,
             )
+            print "    ", argparse_namespace.const_collection, type(argparse_namespace.const_collection)
 
         d = DotDict()
+        print "enter get_values bottom section"
         for key, value in iteritems_breadth_first(argparse_namespace.__dict__):
+            if key == 'const_collection':
+                print "AFTER p%02d" % self.parsers[0]._brand, value, type(
+                                                                                 value)
             if self._we_care_about_this_value(value):
                 #print key
                 #d[key] = value
@@ -254,6 +287,7 @@ class ValueSource(object):
                                                   # argpars create it's own
                                                   # real values
                 #print self._val_as_str(value)
+        print "done with get_values"
         return d
 
     #--------------------------------------------------------------------------
@@ -279,6 +313,7 @@ class ValueSource(object):
     def _setup_argparse(self, parser, config_manager):
         current_args = self._get_known_args(config_manager)
         new_args = current_args - self.known_args
+        print "parser p%02d" % parser._brand, "being setup with ", new_args
         for opt_name in config_manager.option_definitions.keys_breadth_first():
             if opt_name not in new_args:
                 continue
@@ -294,7 +329,6 @@ class ValueSource(object):
                     option_short_form = '-%s' % an_opt.short_form
                     args = (option_name, option_short_form)
                 else:
-                    option_short_form = None
                     args = (option_name,)
 
                 kwargs = DotDict()
@@ -304,7 +338,7 @@ class ValueSource(object):
                     kwargs.action = 'store'
                     kwargs.type = to_str
 
-                kwargs.default = dont_care(to_str(an_opt.default))
+                kwargs.default = dont_care(to_str(an_opt.default))  # TODO: not original value?
                 kwargs.help = an_opt.doc
                 if not an_opt.is_argument:
                     kwargs.dest = opt_name

@@ -94,6 +94,8 @@ class Option(object):
         self.not_for_definition = not_for_definition
         self.reference_value_from = reference_value_from
         if (number_of_values is None
+            and not isinstance(default, basestring)
+            and not is_subclass(from_string_converter, basestring)
             and (
                 isinstance(default, collections.Sequence) or
                 is_subclass(from_string_converter, collections.Sequence)
