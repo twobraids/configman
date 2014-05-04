@@ -336,15 +336,23 @@ def regex_converter(input_str):
     return re.compile(input_str)
 
 #------------------------------------------------------------------------------
+def str_quote_stripper(input_str):
+    while (input_str
+        and input_str[0] == input_str[-1]
+        and input_str[0] in ("'", '"')
+    ):
+        input_str = input_str.strip(input_str[0])
+    return input_str
+
+#------------------------------------------------------------------------------
 # a mapping of some types to converter methods to assist in finding the right
 # conversion automatically
-
 
 #------------------------------------------------------------------------------
 from_string_converters = {
     int: int,
     float: float,
-    str: str,
+    str: str_quote_stripper,
     unicode: unicode,
     bool: boolean_converter,
     dict: json.loads,

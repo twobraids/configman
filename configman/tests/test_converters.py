@@ -352,3 +352,25 @@ class TestCase(unittest.TestCase):
         self.assertEqual(to_str(False), 'False')
         self.assertEqual(to_str(None), '')
         self.assertEqual(to_str((2, False, int, max)), '2, False, int, max')
+
+    def test_str_quote_stripper(self):
+        a = """'"single and double quoted"'"""
+        self.assertEqual(converters.str_quote_stripper(a), 'single and double quoted')
+
+        a = """'single quoted'"""
+        self.assertEqual(converters.str_quote_stripper(a), 'single quoted')
+
+        a = '''"double quoted"'''
+        self.assertEqual(converters.str_quote_stripper(a), 'double quoted')
+
+        a = '"""triple quoted"""'
+        self.assertEqual(converters.str_quote_stripper(a), 'triple quoted')
+
+        a = "'''triple quoted'''"
+        self.assertEqual(converters.str_quote_stripper(a), 'triple quoted')
+
+        a = '''"trailing apostrophy'"'''
+        self.assertEqual(
+            converters.str_quote_stripper(a),
+            "trailing apostrophy'"
+        )
