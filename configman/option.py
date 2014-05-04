@@ -118,7 +118,6 @@ class Option(object):
         attribute.
         """
         try:
-            print "JJJJJ", self.value, self.to_string_converter,
             s = self.to_string_converter(self.value)
             print s
         except TypeError:

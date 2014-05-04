@@ -139,6 +139,8 @@ class ValueSource(object):
                 and isinstance(an_option.value, collections.Sequence)
             ):
                 return [to_str(x) for x in an_option.value]
+            if an_option.value is None:
+                return []
             return str(an_option.value)
         if an_option.number_of_values == 0:
             return None
@@ -237,6 +239,8 @@ class ValueSource(object):
             self.parser = None
         else:
             fake_args = self.create_fake_args(config_manager)
+            if '--help' in self.argv_source or "-h" in self.argv_source:
+                fake_args.append("--help")
             self.parser = self._create_new_argparse_instance(
                 self.parser_class,
                 config_manager,

@@ -40,10 +40,6 @@ class ArgumentParser(ControlledErrorReportingArgumentParser):
 
     #--------------------------------------------------------------------------
     def add_argument(self, *args, **kwargs):
-        #if 'const'  in kwargs and 'default' not in kwargs:
-            #kwargs['default'] = None
-        #if 'default' in kwargs:
-            #kwargs['default'] = dont_care(kwargs['default'])
         action = super(ArgumentParser, self).add_argument(*args, **kwargs)
         if not hasattr(action.default, "as_bare_value"):
             action.default = dont_care(action.default)
