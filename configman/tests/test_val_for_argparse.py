@@ -135,7 +135,6 @@ class TestCaseForValSourceArgparse(TestCase):
         )
         for k, o in n.iteritems():
             o.set_value()
-            print "eeee", o.value, o.default
         return n
 
 
@@ -231,7 +230,6 @@ class TestCaseForValSourceArgparse(TestCase):
         }
         for k in n.keys_breadth_first():
             op = vs._option_to_command_line_str(n[k], k)
-            print "------", n[k], op
             try:
                 self.assertEqual(op, expected[k])
             except KeyError, key:
@@ -373,8 +371,6 @@ class TestCaseForValSourceArgparse(TestCase):
             [parser]
         )
         self.assertEqual(second_parser._brand, 2)
-        for x in second_parser._actions:
-            print x.dest
         self.assertTrue('help' in (x.dest for x in second_parser._actions))
         self.assertTrue('bogus' in (x.dest for x in second_parser._actions))
         self.assertTrue('wilma' in (x.dest for x in second_parser._actions))
@@ -395,7 +391,6 @@ class TestCaseForValSourceArgparse(TestCase):
         self.assertTrue('gamma' in actions)
         self.assertTrue('kappa' in actions)
 
-        print actions['alpha'].option_strings
         self.assertTrue('--alpha' not in actions['alpha'].option_strings)
         self.assertEqual(actions['alpha'].default, '3')  # TODO: string?
         self.assertTrue(actions['alpha'].default.dont_care())

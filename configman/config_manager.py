@@ -286,11 +286,13 @@ class ConfigurationManager(object):
 
     #--------------------------------------------------------------------------
     def get_config(self, mapping_class=DotDictWithAcquisition):
+        print "starting configman.get_config"
         config = self._generate_config(mapping_class)
         if self._aggregate(self.option_definitions, config, config):
             # state changed, must regenerate
             return self._generate_config(mapping_class)
         else:
+            print "done with configman.get_config"
             return config
 
     #--------------------------------------------------------------------------
@@ -545,8 +547,6 @@ class ConfigurationManager(object):
         known_keys = set()  # a set of keys that have been expanded
 
         while new_keys_discovered:  # loop until nothing more is done
-            print 'begin overlay round'
-            print '  will not consider:', known_keys
             # keys holds a list of all keys in the option definitons in
             # breadth first order using this form: [ 'x', 'y', 'z', 'x.a',
             # 'x.b', 'z.a', 'z.b', 'x.a.j', 'x.a.k', 'x.b.h']
@@ -579,7 +579,6 @@ class ConfigurationManager(object):
                 for v in self.values_source_list
             ]
             for key in (k for k in all_keys if k not in known_keys):
-                print "overlay considering:", key
                 #if not isinstance(an_option, Option):
                 #   continue  # aggregations and other types are ignored
                 # loop through all the value sources looking for values
@@ -599,15 +598,11 @@ class ConfigurationManager(object):
                         opt = self.option_definitions[key]
                         # get the new value from the
                         new_value = val_src_dict[key]
-                        print key
-                        if key == "const_collection":
-                            print 'vs%d' % i, new_value, type(new_value)
                         # overlay the default with the new value from
                         # the value source.  This assignment may come
                         # via acquisition, so the key given may not have
                         # been an exact match for what was returned.
                         opt.default = new_value
-                        print '   ', opt.default, type(opt.default)
                     except KeyError, x:
                         pass  # okay, that source doesn't have this value
 
@@ -621,6 +616,7 @@ class ConfigurationManager(object):
                 #if not isinstance(an_option, Option):
                 #    continue  # aggregations, namespaces are ignored
                 # apply the from string conversion to make the real value
+                #an_option.set_value(an_option.default)
                 an_option.set_value(an_option.default)
                 # new values have been seen, don't let loop break
                 new_keys_discovered = True

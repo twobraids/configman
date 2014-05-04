@@ -59,7 +59,6 @@ class ArgumentParser(ControlledErrorReportingArgumentParser):
                 app_description=self.description,
             )
             conf =  configuration_manager.get_config()
-            print "end of configman section"
             return conf
         else:
             return super(ArgumentParser, self).parse_args(args, namespace)

@@ -91,31 +91,36 @@ try:
             if an_action.dest in destination:
                 continue
 
-            print "##### DEFINING #%02d" % i,  an_action.dest, an_action.default, type(
-                                                                                      an_action.default)
-
             # figure out what would be an appropriate from_string_converter
             kwargs['action'] = find_action_name_by_value(
                 source._optionals._registries,
                 an_action
             )
-            action_type = an_action.type
-            if action_type is None:
-                if an_action.const:
-                    action_type = create_custom_from_string_converter(
-                        an_action.const,
-                        an_action.default
+            target_value_type = an_action.type
+            if target_value_type is None:
+                if kwargs['action'] == 'store_const':
+                    target_value_type = converters.get_from_string_converter(
+                        an_action.const
                     )
                 else:
-                    action_type = type(an_action.default)
-            if action_type is type(None):
-                action_type = str
+                    try:
+                        target_value_type = \
+                            converters.get_from_string_converter(
+                                an_action.default.as_bare_value()
+                            )
+                    except AttributeError:
+                        target_value_type = \
+                            converters.get_from_string_converter(
+                                an_action.default
+                            )
+            if target_value_type is type(None) or target_value_type is None:
+                target_value_type = str
             try:
                 if kwargs['nargs']:
                     from_string_type_converter = partial(
                         converters.list_converter,
                         item_converter=converters.from_string_converters[
-                            action_type
+                            target_value_type
                         ],
                         item_separator=' ',
                     )
@@ -144,9 +149,9 @@ try:
                             )
                         )
                 else:
-                    from_string_type_converter = action_type
+                    from_string_type_converter = target_value_type
             except KeyError:
-                from_string_type_converter = action_type
+                from_string_type_converter = target_value_type
 
             # find short form
             short_form = None
@@ -168,19 +173,18 @@ try:
                     # skip this one, it has to be a single letter argument,
                     # not a switch
 
-            if an_action.const and default is None:
-                default = dont_care(an_action.const)
-            else:
-                default = dont_care(an_action.default)
+            #print "BEFOR", an_action.dest, an_action.const, an_action.default
+            #if an_action.const and an_action.default is None:
+                #print "HERE", an_action.dest, an_action.const
+                #default = dont_care(an_action.const)
+            #else:
+                #print "NOT here"
+                #default = dont_care(an_action.default)
+            default = dont_care(an_action.default)
 
-            if an_action.dest == 'const_collection':
-                print "const_collection option:"
-                print "  default", default, type(default)
-                print "  from_string_converter", from_string_type_converter
-                print "  to_string_converter", converters.to_str
-                print "  doc", an_action.help
-                print "  number_of_values", an_action.nargs
-                print "  is_argument", not kwargs['option_strings']
+            #if an_action.dest == 'constant_value':
+                #print 'constant_value: default', default, type(default), default._value, type(
+                                                                                             #default._value)
             destination.add_option(
                 name=an_action.dest,
                 default=default,

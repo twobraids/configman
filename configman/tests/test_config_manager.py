@@ -946,7 +946,6 @@ c.string =   from ini
             ('sub.name', 'name', 'ethel')
         ])
         for expected, result in zip(e, r):
-            print expected
             expected_key, expected_name, expected_default = expected
             result_key, result_option = result
             self.assertEqual(expected_key, result_key)
