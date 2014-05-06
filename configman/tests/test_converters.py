@@ -98,14 +98,11 @@ class TestCase(unittest.TestCase):
     def test_str_dict_keys(self):
         function = converters.str_dict_keys
         result = function({u'name': u'Lärs', 'age': 99, 10: 11})
-        self.assertEqual(result, {'name': u'Lärs', 'age': 99, 10: 11})
+        self.assertEqual(result, {'name': u'Lärs', 'age': 99, '10': 11})
 
         for key in result.keys():
-            if key in ('name', 'age'):
-                self.assertTrue(not isinstance(key, unicode))
-                self.assertTrue(isinstance(key, str))
-            else:
-                self.assertTrue(isinstance(key, int))
+            self.assertTrue(not isinstance(key, unicode))
+            self.assertTrue(isinstance(key, str))
 
     #--------------------------------------------------------------------------
     def test_some_unicode_stuff(self):
@@ -270,6 +267,17 @@ class TestCase(unittest.TestCase):
         self.assertEqual(
             function('1, 2, 3'),
             [1, 2, 3]
+        )
+
+    #--------------------------------------------------------------------------
+    def test_str_to_list_of_strs(self):
+        function = converters.list_space_separated_strings
+        self.assertEqual(function(''), [])
+
+        result = function("""'你好' this "is" silly""")
+        self.assertEqual(
+            result,
+            ["'你好'", 'this', '"is"', 'silly']
         )
 
     #--------------------------------------------------------------------------

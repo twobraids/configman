@@ -363,7 +363,6 @@ class TestCase(unittest.TestCase):
     #--------------------------------------------------------------------------
     def test_set_value_from_other_option(self):
         o1 = Option('name')
-        print "o1.from_string_converter", o1.from_string_converter
         o1.set_value('Peter')
         o2 = Option('name')
         o2.set_value(o1)

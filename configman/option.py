@@ -112,7 +112,6 @@ class Option(object):
             from_string_converter = conv.class_converter(from_string_converter)
         if from_string_converter is None:
             if default is not None:
-                print 'option _set_from_string_converter'
                 from_string_converter = conv.get_from_string_converter(default)
         self.from_string_converter = from_string_converter
         self._from_string_converter_key = conv._arbitrary_object_to_string(
@@ -129,7 +128,6 @@ class Option(object):
         """
         try:
             s = self.to_string_converter(self.value)
-            print s
         except TypeError:
             s = conv.to_str(self.value)
         if self.from_string_converter in conv.converters_requiring_quotes:
@@ -182,7 +180,6 @@ class Option(object):
             if from_string_converter is None:
                 from_string_converter = conv.get_from_string_converter(val)
             try:
-                print from_string_converter
                 self.value = from_string_converter(val)
             except Exception:
                 error_message = "In '%s', '%s' fails to convert '%s'" % (
@@ -191,7 +188,7 @@ class Option(object):
                     val
                 )
                 raise CannotConvertError(error_message)
-        elif isinstance(val, Option):   # these never happen
+        elif isinstance(val, Option):
             self.set_value(val.default)
         elif isinstance(val, collections.Mapping) and 'default' in val:
             self.set_value(val["default"])

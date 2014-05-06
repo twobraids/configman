@@ -112,7 +112,7 @@ def str_dict_keys(a_dict):
         if isinstance(key, unicode):
             new_dict[str(key)] = a_dict[key]
         else:
-            new_dict[key] = a_dict[key]
+            new_dict[to_str(key)] = a_dict[key]
     return new_dict
 
 
@@ -297,7 +297,7 @@ from_string_converter_lookup_by_str[
 
 
 #------------------------------------------------------------------------------
-def list_converter(input_str, item_converter=str, item_separator=',',
+def list_converter(input_str, item_converter=to_str, item_separator=',',
                    list_to_collection_converter=None):
     """ a conversion function for list
     """
@@ -308,10 +308,15 @@ def list_converter(input_str, item_converter=str, item_separator=',',
         item_converter(x.strip())
         for x in input_str.split(item_separator) if x.strip()
     ]
-    if list_to_collection_converter:
+    if list_to_collection_converter is not None:
         return list_to_collection_converter(result)
     return result
 from_string_converter_lookup_by_str[to_str(list_converter)] = list_converter
+
+#------------------------------------------------------------------------------
+list_space_separated_strings = partial(list_converter, item_separator=' ')
+from_string_converter_lookup_by_str[to_str(list_space_separated_strings)] = \
+    list_space_separated_strings
 
 #------------------------------------------------------------------------------
 list_comma_separated_ints = partial(list_converter, item_converter=int)
@@ -477,17 +482,12 @@ def classes_in_namespaces_converter(
                 into the original string of classnames.  This is used
                 primarily as for the output of the 'help' option"""
                 return cls.original_class_list_str
-                #return ', '.join(
-                    #to_str(v[name_of_class_option].value)
-                    #for v in cls.get_required_config().values()
-                    #if isinstance(v, Namespace)
-                #)
 
         return InnerClassList  # result of class_list_converter
     return class_list_converter  # result of classes_in_namespaces_converter
-#from_string_converter_lookup_by_str[
-    #to_str(classes_in_namespaces_converter)
-#] = classes_in_namespaces_converter
+from_string_converter_lookup_by_str[
+    to_str(classes_in_namespaces_converter)
+] = classes_in_namespaces_converter
 
 
 #------------------------------------------------------------------------------
@@ -554,7 +554,6 @@ def get_from_string_converter(thing):
         # no converter, move on
         pass
     for key, value in from_string_converters.iteritems():
-        print 'trying', key, value
         if thing is key or isinstance(thing, key):
             return value
     return None
