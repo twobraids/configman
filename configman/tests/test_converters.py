@@ -97,8 +97,8 @@ class TestCase(unittest.TestCase):
     #--------------------------------------------------------------------------
     def test_str_dict_keys(self):
         function = converters.str_dict_keys
-        result = function({u'name': u'Peter', 'age': 99, 10: 11})
-        self.assertEqual(result, {'name': u'Peter', 'age': 99, 10: 11})
+        result = function({u'name': u'Lärs', 'age': 99, 10: 11})
+        self.assertEqual(result, {'name': u'Lärs', 'age': 99, 10: 11})
 
         for key in result.keys():
             if key in ('name', 'age'):
@@ -106,6 +106,15 @@ class TestCase(unittest.TestCase):
                 self.assertTrue(isinstance(key, str))
             else:
                 self.assertTrue(isinstance(key, int))
+
+    #--------------------------------------------------------------------------
+    def test_some_unicode_stuff(self):
+        fn = converters.get_from_string_converter('Lärs')
+        self.assertTrue(fn('Lärs'), 'Lärs')
+        self.assertTrue(fn('"""Lärs"""'), 'Lärs')
+        fn = converters.get_from_string_converter(u'Lärs')
+        self.assertTrue(fn(u'Lärs'), u'Lärs')
+        self.assertTrue(fn(u'"""你好, says Lärs"""'), u'你好, says Lärs')
 
     #--------------------------------------------------------------------------
     def test_io_converter(self):
@@ -212,7 +221,7 @@ class TestCase(unittest.TestCase):
         self.assertFalse(converters.boolean_converter('NO'))
         self.assertFalse(converters.boolean_converter(''))
         self.assertFalse(converters.boolean_converter(
-            'what a world, what a world'
+            '你好, says Lärs'
         ))
 
         self.assertRaises(ValueError, converters.boolean_converter, 99)
@@ -236,7 +245,7 @@ class TestCase(unittest.TestCase):
         self.assertEqual(function(int), 'int')
 
     #--------------------------------------------------------------------------
-    def test_str_to_list(self):
+    def test_str_to_list_of_strings(self):
         function = converters.list_converter
         self.assertEqual(function(''), [])
 
@@ -249,8 +258,18 @@ class TestCase(unittest.TestCase):
             ['configman.tests', 'configman']
         )
         self.assertEqual(
-            function('int, str, 123, hello'),
-            ['int', 'str', '123', 'hello']
+            function('int, str, 123, 你好'),
+            ['int', 'str', '123', '你好']
+        )
+
+    #--------------------------------------------------------------------------
+    def test_str_to_list_of_ints(self):
+        function = converters.list_comma_separated_ints
+        self.assertEqual(function(''), [])
+
+        self.assertEqual(
+            function('1, 2, 3'),
+            [1, 2, 3]
         )
 
     #--------------------------------------------------------------------------
@@ -269,8 +288,8 @@ class TestCase(unittest.TestCase):
             'configman.tests, configman'
         )
         self.assertEqual(
-            function([int, str, 123, "hello"]),
-            'int, str, 123, hello'
+            function([int, str, 123, "你好"]),
+            'int, str, 123, 你好'
         )
 
     #--------------------------------------------------------------------------

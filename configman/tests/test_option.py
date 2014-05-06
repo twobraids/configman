@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
 #
@@ -196,9 +197,9 @@ class TestCase(unittest.TestCase):
 
     #--------------------------------------------------------------------------
     def test_setting_known_from_string_converter_onOption(self):
-        opt = Option('name', default=u'Peter')
-        self.assertEqual(opt.default, u'Peter')
-        self.assertEqual(opt.from_string_converter, unicode)
+        opt = Option('name', default=u'Lärs')
+        self.assertEqual(opt.default, u'Lärs')
+        self.assertEqual(opt.from_string_converter, conv.str_quote_stripper)
 
         opt = Option('name', default=100)
         self.assertEqual(opt.default, 100)
@@ -362,6 +363,7 @@ class TestCase(unittest.TestCase):
     #--------------------------------------------------------------------------
     def test_set_value_from_other_option(self):
         o1 = Option('name')
+        print "o1.from_string_converter", o1.from_string_converter
         o1.set_value('Peter')
         o2 = Option('name')
         o2.set_value(o1)

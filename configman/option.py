@@ -116,7 +116,7 @@ class Option(object):
                 from_string_converter = conv.get_from_string_converter(default)
         self.from_string_converter = from_string_converter
         self._from_string_converter_key = conv._arbitrary_object_to_string(
-            default
+            from_string_converter
         )
 
     #--------------------------------------------------------------------------
@@ -166,6 +166,12 @@ class Option(object):
 
     #--------------------------------------------------------------------------
     def set_value(self, val=None, converters=None):
+        """assign a new value to this option.
+            val - the new value.  If None, then assign the option's default
+            converters - use the custom converter from the converter's
+                         mapping, keyed by the option's
+                         '_from_string_converter_key'
+        """
         if val is None:
             val = self.default
         if isinstance(val, basestring):
@@ -179,6 +185,8 @@ class Option(object):
             except (AttributeError, KeyError):  # don't know if converters is a
                                                 # module, instance or dict
                 from_string_converter = self.from_string_converter
+            if from_string_converter is None:
+                from_string_converter = conv.get_from_string_converter(val)
             try:
                 self.value = from_string_converter(val)
             except Exception:
