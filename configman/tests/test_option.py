@@ -387,6 +387,22 @@ class TestCase(unittest.TestCase):
         self.assertEqual(o1.value, val)
 
     #--------------------------------------------------------------------------
+    def test_set_value_with_foreign_converter(self):
+        o1 = Option('my_int', from_string_converter=int, default=33)
+        foreign_converter = {
+            'int': lambda x: int(x) * 10,
+            'configman.converters.str_quote_stripper':
+                lambda x: conv.str_quote_stripper(x).strip('4').strip('ä')
+        }
+        o1.set_value('88', converters=foreign_converter)
+        self.assertEqual(o1.value, 880)
+
+        o2 = Option('my_str', default='hello')
+        o2.set_value("""'4ä33ä4'""", converters=foreign_converter)
+        self.assertEqual(o2.value, "33")
+
+
+    #--------------------------------------------------------------------------
     def test_set_default(self):
         o1 = Option(
           'name',

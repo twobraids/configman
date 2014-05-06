@@ -159,12 +159,6 @@ class Option(object):
             return '<Option: %r, default=%r>' % (self.name, self.default)
 
     #--------------------------------------------------------------------------
-    #@staticmethod
-    #def _deduce_converter(default):
-        #default_type = type(default)
-        #return conv.from_string_converters.get(default_type, default_type)
-
-    #--------------------------------------------------------------------------
     def set_value(self, val=None, converters=None):
         """assign a new value to this option.
             val - the new value.  If None, then assign the option's default
@@ -177,9 +171,9 @@ class Option(object):
         if isinstance(val, basestring):
             try:
                 if converters is not None:
-                    from_string_converter = converters(
+                    from_string_converter = converters[
                         self._from_string_converter_key
-                    )
+                    ]
                 else:
                     from_string_converter = self.from_string_converter
             except (AttributeError, KeyError):  # don't know if converters is a
@@ -188,6 +182,7 @@ class Option(object):
             if from_string_converter is None:
                 from_string_converter = conv.get_from_string_converter(val)
             try:
+                print from_string_converter
                 self.value = from_string_converter(val)
             except Exception:
                 error_message = "In '%s', '%s' fails to convert '%s'" % (
