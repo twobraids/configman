@@ -58,29 +58,14 @@ from .dotdict import DotDict, DotDictWithAcquisition
 
 import datetime_util
 
-registry = DotDictWithAcquisition()
-
-registry.exact_matches = DotDictWithAcquisition()
-registry.subclass_matches = DotDictWithAcquisition()
-registry.instance_of_matches = DotDictWithAcquisition()
-registry.exact_matches = DotDictWithAcquisition()
-
 # to be used for string representation of a converter to an actual converter
 # function lookup.  Example:  "configman.converters.boolean_converter" maps to
 # the actual function configman.converters.boolean_converter
 from_string_converter_lookup_by_str = DotDictWithAcquisition()
 
-
 #------------------------------------------------------------------------------
 # Utilities Section
 #------------------------------------------------------------------------------
-
-class BaseConverterSystem(object):
-    def __init__(self, ):
-        self.registry = DotDictWithAcquisition()
-
-    def register_serialize(serializer):
-        pass
 
 #------------------------------------------------------------------------------
 _all_named_builtins = dir(__builtin__)
@@ -253,17 +238,6 @@ _to_string_converters = {
 #     these are methods that will take a string and convert it into an instance
 #     of some type.
 #------------------------------------------------------------------------------
-
-# converter_general_form : fn(the_serialized_form, the_class_to_instantiate):
-
-# finding a converter general form :
-#    * exact match lookup by type
-#    * exact match by the type of an instance
-#     (the type of the object to create)
-#    * match by issubclass
-#    * match by isinstance
-#
-#
 
 
 #------------------------------------------------------------------------------
