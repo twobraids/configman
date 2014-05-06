@@ -365,6 +365,8 @@ def class_converter(input_str):
         return obj
     except AttributeError, x:
         raise CannotConvertError("%s cannot be found" % input_str)
+    except ImportError, x:
+        raise CannotConvertError(str(x))
 from_string_converter_lookup_by_str[to_str(class_converter)] = class_converter
 
 

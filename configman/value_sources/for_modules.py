@@ -41,7 +41,7 @@ import sys
 
 from configman.namespace import Namespace
 from configman.option import Option, Aggregation
-from configman.converters import to_str
+from configman.converters import to_str, class_converter
 
 file_name_extension = 'py'
 
@@ -54,8 +54,13 @@ can_handle = (
 class ValueSource(object):
     #--------------------------------------------------------------------------
     def __init__(self, source, the_config_manager=None):
+        if isinstance(source, basestring):
+            source = class_converter(source)
         module_dict = source.__dict__.copy()
-        to_remove = [k for k in module_dict.keys() if k.startswith('__')]
+        to_remove = [
+            k for k in module_dict.keys()
+            if k.startswith('__') and k != "__doc__"
+        ]
         for a_key in to_remove:
             del module_dict[a_key]
         self.source = module_dict

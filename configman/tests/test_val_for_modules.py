@@ -41,6 +41,7 @@ from cStringIO import StringIO
 
 from mock import Mock
 
+from configman.config_exceptions import CannotConvertError
 from configman.value_sources.for_modules import ValueSource
 from configman.value_sources.source_exceptions import CantHandleTypeException
 from configman.dotdict import DotDict
@@ -73,7 +74,7 @@ class TestCase(unittest.TestCase):
     def test_failure_1(self):
         config_manager = Mock()
         self.assertRaises(
-            CantHandleTypeException,
+            CannotConvertError,
             ValueSource,
             'configman.tests.values_4_module_tests_1'
         )
@@ -81,7 +82,7 @@ class TestCase(unittest.TestCase):
     def test_failure_2(self):
         config_manager = Mock()
         self.assertRaises(
-            CantHandleTypeException,
+            CannotConvertError,
             ValueSource,
             'configman/tests/test_val_for_modules.py'
         )
