@@ -51,13 +51,29 @@ from namespace import Namespace
 from .datetime_util import datetime_from_ISO_string as datetime_converter
 from .datetime_util import date_from_ISO_string as date_converter
 from .config_exceptions import CannotConvertError
+from .dotdict import DotDict, DotDictWithAcquisition
 
 import datetime_util
+
+registry = DotDictWithAcquisition()
+
+registry.exact_matches = DotDictWithAcquisition()
+registry.subclass_matches = DotDictWithAcquisition()
+registry.instance_of_matches = DotDictWithAcquisition()
+registry.exact_matches = DotDictWithAcquisition()
+
+
 
 #------------------------------------------------------------------------------
 # Utilities Section
 #------------------------------------------------------------------------------
 
+class BaseConverterSystem(object):
+    def __init__(self, ):
+        self.registry = DotDictWithAcquisition()
+
+    def register_serialize(serializer):
+        pass
 
 #------------------------------------------------------------------------------
 _all_named_builtins = dir(__builtin__)
@@ -127,6 +143,16 @@ def io_converter(input_str):
 #     of some type.
 #------------------------------------------------------------------------------
 
+# converter_general_form : fn(the_serialized_form, the_class_to_instantiate):
+
+# finding a converter general form :
+#    * exact match lookup by type
+#    * exact match by the type of an instance
+#     (the type of the object to create)
+#    * match by issubclass
+#    * match by isinstance
+#
+#
 
 #------------------------------------------------------------------------------
 def timedelta_converter(input_str):
@@ -417,7 +443,7 @@ def _arbitrary_object_to_string(a_thing):
     # does it have a to_str function?
     try:
         return a_thing.to_str()
-    except AttributeError:
+    except (AttributeError, KeyError):
         # nope, no to_str function
         pass
 
@@ -481,6 +507,7 @@ _to_string_converters = {
     tuple: sequence_to_string,
     bool: lambda x: 'True' if x else 'False',
     dict: json.dumps,
+    DotDict: json.dumps,
     datetime.datetime: datetime_util.datetime_to_ISO_string,
     datetime.date: datetime_util.date_to_ISO_string,
     datetime.timedelta: datetime_util.timedelta_to_str,
