@@ -74,19 +74,17 @@ class Option(object):
         self.short_form = short_form
         self.default = default
         self.doc = doc
-        if from_string_converter is None:
-            if default is not None:
-                # take a qualified guess from the default value
-                from_string_converter = self._deduce_converter(default)
-        if isinstance(from_string_converter, basestring):
-            from_string_converter = conv.class_converter(from_string_converter)
-        self.from_string_converter = from_string_converter
+
+        self._set_from_string_converter(default, from_string_converter)
+
         # if this is not set, the type is used in converters.py to attempt
         # the conversion
         self.to_string_converter = to_string_converter
+
         if value is None:
             value = default
         self.value = value
+
         self.is_argument = is_argument
         self.exclude_from_print_conf = exclude_from_print_conf
         self.exclude_from_dump_conf = exclude_from_dump_conf
@@ -108,6 +106,18 @@ class Option(object):
         else:
             self.foreign_data = {}
 
+    #--------------------------------------------------------------------------
+    def _set_from_string_converter(self, default, from_string_converter):
+        if isinstance(from_string_converter, basestring):
+            from_string_converter = conv.class_converter(from_string_converter)
+        if from_string_converter is None:
+            if default is not None:
+                print 'option _set_from_string_converter'
+                from_string_converter = conv.get_from_string_converter(default)
+        self.from_string_converter = from_string_converter
+        self._from_string_converter_key = conv._arbitrary_object_to_string(
+            default
+        )
 
     #--------------------------------------------------------------------------
     def __str__(self):
@@ -149,36 +159,37 @@ class Option(object):
             return '<Option: %r, default=%r>' % (self.name, self.default)
 
     #--------------------------------------------------------------------------
-    @staticmethod
-    def _deduce_converter(default):
-        default_type = type(default)
-        return conv.from_string_converters.get(default_type, default_type)
+    #@staticmethod
+    #def _deduce_converter(default):
+        #default_type = type(default)
+        #return conv.from_string_converters.get(default_type, default_type)
 
     #--------------------------------------------------------------------------
-    def set_value(self, val=None):
+    def set_value(self, val=None, converters=None):
         if val is None:
             val = self.default
         if isinstance(val, basestring):
             try:
-                self.value = self.from_string_converter(val)
-            except TypeError:
-                self.value = val
-            except ValueError:
-                val = val.strip("'").strip('"')
-                try:
-                    self.value = self.from_string_converter(val)
-                    return
-                except ValueError:
-                    # the error handling of the next line will do just fine.
-                    pass
+                if converters is not None:
+                    from_string_converter = converters(
+                        self._from_string_converter_key
+                    )
+                else:
+                    from_string_converter = self.from_string_converter
+            except (AttributeError, KeyError):  # don't know if converters is a
+                                                # module, instance or dict
+                from_string_converter = self.from_string_converter
+            try:
+                self.value = from_string_converter(val)
+            except Exception:
                 error_message = "In '%s', '%s' fails to convert '%s'" % (
                     self.name,
                     self.from_string_converter,
                     val
                 )
                 raise CannotConvertError(error_message)
-        elif isinstance(val, Option):
-            self.value = val.default
+        elif isinstance(val, Option):   # these never happen
+            self.set_value(val.default)
         elif isinstance(val, collections.Mapping) and 'default' in val:
             self.set_value(val["default"])
         else:

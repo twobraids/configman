@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
 #
@@ -111,7 +112,7 @@ class TestCase(unittest.TestCase):
         function = converters.io_converter
         import sys
         import os
-        self.assertEqual(function(100.0), 100.0)
+        self.assertRaises(ValueError, function, 100.0)
         self.assertEqual(function('stdout'), sys.stdout)
         self.assertEqual(function('STDOut'), sys.stdout)
         self.assertEqual(function('Stderr'), sys.stderr)
@@ -159,7 +160,72 @@ class TestCase(unittest.TestCase):
          configman.tests.test_converters.Foo
 
         """),
-            Foo)
+            Foo
+        )
+
+    #--------------------------------------------------------------------------
+    def test_class_converter_with_builtin(self):
+        function = converters.class_converter
+        self.assertEqual(function('int'), int)
+        self.assertEqual(function('float'), float)
+        self.assertEqual(function('range'), range)
+        self.assertEqual(function('hex'), hex)
+
+    #--------------------------------------------------------------------------
+    def test_class_converter_with_modules(self):
+        function = converters.class_converter
+        self.assertEqual(function('unittest'), unittest)
+        self.assertEqual(function('datetime'), datetime)
+        self.assertEqual(function('configman.converters'), converters)
+
+    #--------------------------------------------------------------------------
+    def test_class_converter_with_classes_from_modules(self):
+        function = converters.class_converter
+        self.assertEqual(function('unittest.TestCase'), unittest.TestCase)
+        self.assertEqual(function('configman.RequiredConfig'), RequiredConfig)
+        self.assertEqual(function('configman.Namespace'), Namespace)
+
+    #--------------------------------------------------------------------------
+    def test_class_converter_with_functions_from_modules(self):
+        function = converters.class_converter(
+            'configman.dotdict.iteritems_breadth_first'
+        )
+        self.assertEqual(function.__name__, 'iteritems_breadth_first')
+
+    #--------------------------------------------------------------------------
+    def test_boolean_converter(self):
+        self.assertTrue(converters.boolean_converter('TRUE'))
+        self.assertTrue(converters.boolean_converter('"""TRUE"""'))
+        self.assertTrue(converters.boolean_converter('true'))
+        self.assertTrue(converters.boolean_converter('t'))
+        self.assertTrue(converters.boolean_converter('1'))
+        self.assertTrue(converters.boolean_converter('T'))
+        self.assertTrue(converters.boolean_converter('yes'))
+        self.assertTrue(converters.boolean_converter("'yes'"))
+        self.assertTrue(converters.boolean_converter('y'))
+
+        self.assertFalse(converters.boolean_converter('FALSE'))
+        self.assertFalse(converters.boolean_converter('false'))
+        self.assertFalse(converters.boolean_converter('f'))
+        self.assertFalse(converters.boolean_converter('F'))
+        self.assertFalse(converters.boolean_converter('no'))
+        self.assertFalse(converters.boolean_converter('NO'))
+        self.assertFalse(converters.boolean_converter(''))
+        self.assertFalse(converters.boolean_converter(
+            'what a world, what a world'
+        ))
+
+        self.assertRaises(ValueError, converters.boolean_converter, 99)
+
+    #--------------------------------------------------------------------------
+    def test_regex_converter(self):
+        self.assertRaises(ValueError, converters.regex_converter, 99)
+        self.assertTrue(
+            converters.regex_converter("'''.*'''").match('anything')
+        )
+        self.assertTrue(
+            converters.regex_converter("asdf").match("asdf")
+        )
 
     #--------------------------------------------------------------------------
     def test_py_obj_to_str(self):

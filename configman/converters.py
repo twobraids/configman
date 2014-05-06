@@ -40,9 +40,12 @@ import sys
 import re
 import datetime
 import types
-import inspect
 import json
 import __builtin__
+import decimal
+
+from functools import partial
+from collections import OrderedDict
 
 
 from required_config import RequiredConfig
@@ -62,6 +65,10 @@ registry.subclass_matches = DotDictWithAcquisition()
 registry.instance_of_matches = DotDictWithAcquisition()
 registry.exact_matches = DotDictWithAcquisition()
 
+# to be used for string representation of a converter to an actual converter
+# function lookup.  Example:  "configman.converters.boolean_converter" maps to
+# the actual function configman.converters.boolean_converter
+from_string_converter_lookup_by_str = DotDictWithAcquisition()
 
 
 #------------------------------------------------------------------------------
@@ -124,19 +131,123 @@ def str_dict_keys(a_dict):
     return new_dict
 
 
+###############################################################################
 #------------------------------------------------------------------------------
-def io_converter(input_str):
-    """ a conversion function for to select stdout, stderr or open a file for
-    writing"""
-    if type(input_str) is str:
-        input_str_lower = input_str.lower()
-        if input_str_lower == 'stdout':
-            return sys.stdout
-        if input_str_lower == 'stderr':
-            return sys.stderr
-        return open(input_str, "w")
-    return input_str
+# to string Section
+#     these are methods that will take some object and convert it into a string
+#     representation that is human readably friendly
+#------------------------------------------------------------------------------
 
+
+#------------------------------------------------------------------------------
+# a mapping of all the builtin types to human readable strings
+_builtin_to_str = dict(
+    (val, key)
+    for key, val in __builtin__.__dict__.iteritems()
+    if not key.startswith('__') and key is not 'None'
+)
+
+
+#------------------------------------------------------------------------------
+# a bunch of known mappings of builtin items to strings
+known_mapping_type_to_str = dict(
+    (val, key) for key, val in __builtin__.__dict__.iteritems()
+)
+
+
+#------------------------------------------------------------------------------
+def _arbitrary_object_to_string(a_thing):
+    """take a python object of some sort, and convert it into a human readable
+    string"""
+    # is it None?
+    if a_thing is None:
+        return ''
+
+    # is it already a string?
+    if isinstance(a_thing, basestring):
+        return a_thing
+
+    # does it have a to_str function?
+    try:
+        return a_thing.to_str()
+    except (AttributeError, KeyError):
+        # nope, no to_str function
+        pass
+
+    # is it a built in?
+    try:
+        return known_mapping_type_to_str[a_thing]
+    except KeyError:
+        # nope, not a builtin
+        pass
+
+    # is it something from a loaded module?
+    try:
+        if a_thing.__module__ not in ('__builtin__', 'exceptions'):
+            return "%s.%s" % (a_thing.__module__, a_thing.__name__)
+    except AttributeError:
+        # nope, not one of these
+        pass
+
+    # maybe it has a __name__ attribute?
+    try:
+        return a_thing.__name__
+    except AttributeError:
+        # nope, not one of these
+        pass
+
+    # punt and see what happens if we just cast it to string
+    return str(a_thing)
+
+
+#------------------------------------------------------------------------------
+def sequence_to_string(a_list, delimiter=", "):
+    """a dedicated function that turns a list into a comma delimited string
+    of items converted.  This method will flatten nested lists."""
+    return delimiter.join(to_str(x) for x in a_list)
+
+
+#------------------------------------------------------------------------------
+def to_str(a_thing):
+    """the ultimate authority in converting a thing into a human readable
+    string.  Give it anything  and you'll likely get something just fine
+    from it."""
+    try:
+        converter = _to_string_converters[type(a_thing)]
+    except KeyError:
+        try:
+            converter = _to_string_converters[type(a_thing.as_bare_value())]
+            a_thing = a_thing.as_bare_value()
+        except (AttributeError, KeyError):
+            converter = _arbitrary_object_to_string
+    return converter(a_thing)
+
+#------------------------------------------------------------------------------
+# a mapping of types to methods that will convert the an object of the given
+# type to a string.
+_to_string_converters = {
+    int: str,
+    float: str,
+    str: str,
+    unicode: unicode,
+    list: sequence_to_string,
+    tuple: sequence_to_string,
+    bool: lambda x: 'True' if x else 'False',
+    dict: json.dumps,
+    DotDict: json.dumps,
+    datetime.datetime: datetime_util.datetime_to_ISO_string,
+    datetime.date: datetime_util.date_to_ISO_string,
+    datetime.timedelta: datetime_util.timedelta_to_str,
+    type: _arbitrary_object_to_string,
+    types.ModuleType: _arbitrary_object_to_string,
+    types.FunctionType: _arbitrary_object_to_string,
+    types.BuiltinMethodType: _arbitrary_object_to_string,
+    types.BuiltinFunctionType: _arbitrary_object_to_string,
+    _builtin_function_or_method_type: lambda x: x.__name__,
+    _compiled_regexp_type: lambda x: x.pattern,
+}
+
+###############################################################################
 #------------------------------------------------------------------------------
 # from string Section
 #     these are methods that will take a string and convert it into an instance
@@ -154,34 +265,61 @@ def io_converter(input_str):
 #
 #
 
+
+#------------------------------------------------------------------------------
+def io_converter(input_str):
+    """ a conversion function for to select stdout, stderr or open a file for
+    writing"""
+    if not isinstance(input_str, basestring):
+        raise ValueError(input_str)
+    input_str = str_quote_stripper(input_str)
+    input_str_lower = input_str.lower()
+    if input_str_lower == 'stdout':
+        return sys.stdout
+    if input_str_lower == 'stderr':
+        return sys.stderr
+    return open(input_str, "w")
+from_string_converter_lookup_by_str[to_str(io_converter)] = io_converter
+
+
 #------------------------------------------------------------------------------
 def timedelta_converter(input_str):
     """a conversion function for time deltas"""
-    if isinstance(input_str, basestring):
-        days, hours, minutes, seconds = 0, 0, 0, 0
-        details = input_str.split(':')
-        if len(details) >= 4:
-            days = int(details[-4])
-        if len(details) >= 3:
-            hours = int(details[-3])
-        if len(details) >= 2:
-            minutes = int(details[-2])
-        if len(details) >= 1:
-            seconds = int(details[-1])
-        return datetime.timedelta(
-            days=days,
-            hours=hours,
-            minutes=minutes,
-            seconds=seconds
-        )
-    raise ValueError(input_str)
+    if not isinstance(input_str, basestring):
+        raise ValueError(input_str)
+    input_str = str_quote_stripper(input_str)
+    days, hours, minutes, seconds = 0, 0, 0, 0
+    details = input_str.split(':')
+    if len(details) >= 4:
+        days = int(details[-4])
+    if len(details) >= 3:
+        hours = int(details[-3])
+    if len(details) >= 2:
+        minutes = int(details[-2])
+    if len(details) >= 1:
+        seconds = int(details[-1])
+    return datetime.timedelta(
+        days=days,
+        hours=hours,
+        minutes=minutes,
+        seconds=seconds
+    )
+from_string_converter_lookup_by_str[
+    to_str(timedelta_converter)
+] = timedelta_converter
 
 
 #------------------------------------------------------------------------------
 def boolean_converter(input_str):
     """ a conversion function for boolean
     """
+    if not isinstance(input_str, basestring):
+        raise ValueError(input_str)
+    input_str = str_quote_stripper(input_str)
     return input_str.lower() in ("true", "t", "1", "y", "yes")
+from_string_converter_lookup_by_str[
+    to_str(boolean_converter)
+] = boolean_converter
 
 
 #------------------------------------------------------------------------------
@@ -189,6 +327,9 @@ def list_converter(input_str, item_converter=str, item_separator=',',
                    list_to_collection_converter=None):
     """ a conversion function for list
     """
+    if not isinstance(input_str, basestring):
+        raise ValueError(input_str)
+    input_str = str_quote_stripper(input_str)
     result = [
         item_converter(x.strip())
         for x in input_str.split(item_separator) if x.strip()
@@ -196,14 +337,26 @@ def list_converter(input_str, item_converter=str, item_separator=',',
     if list_to_collection_converter:
         return list_to_collection_converter(result)
     return result
+from_string_converter_lookup_by_str[to_str(list_converter)] = list_converter
 
+#------------------------------------------------------------------------------
+list_comma_separated_ints = partial(list_converter, item_converter=int)
+from_string_converter_lookup_by_str[to_str(list_comma_separated_ints)] = \
+    list_comma_separated_ints
+
+#------------------------------------------------------------------------------
+list_space_separated_ints = partial(
+    list_converter,
+    item_converter=int,
+    item_separator=',',
+)
+from_string_converter_lookup_by_str[to_str(list_space_separated_ints)] = \
+    list_space_separated_ints
 
 #------------------------------------------------------------------------------
 import __builtin__
 _all_named_builtins = dir(__builtin__)
-builtin_to_str = dict(
-    (val, key) for key, val in __builtin__.__dict__.iteritems()
-)
+
 
 #------------------------------------------------------------------------------
 def class_converter(input_str):
@@ -211,7 +364,9 @@ def class_converter(input_str):
     """
     if not input_str:
         return None
-    input_str = input_str.strip("'")
+    if not isinstance(input_str, basestring):
+        raise ValueError(input_str)
+    input_str = str_quote_stripper(input_str)
     if '.' not in input_str and input_str in _all_named_builtins:
         return eval(input_str)
     parts = [x.strip() for x in input_str.split('.') if x.strip()]
@@ -231,6 +386,7 @@ def class_converter(input_str):
         return obj
     except AttributeError, x:
         raise CannotConvertError("%s cannot be found" % input_str)
+from_string_converter_lookup_by_str[to_str(class_converter)] = class_converter
 
 
 #------------------------------------------------------------------------------
@@ -355,42 +511,66 @@ def classes_in_namespaces_converter(
 
         return InnerClassList  # result of class_list_converter
     return class_list_converter  # result of classes_in_namespaces_converter
+#from_string_converter_lookup_by_str[
+    #to_str(classes_in_namespaces_converter)
+#] = classes_in_namespaces_converter
 
 
 #------------------------------------------------------------------------------
 def regex_converter(input_str):
+    if not isinstance(input_str, basestring):
+        raise ValueError(input_str)
+    input_str = str_quote_stripper(input_str)
     return re.compile(input_str)
+from_string_converter_lookup_by_str[to_str(regex_converter)] = regex_converter
+
 
 #------------------------------------------------------------------------------
 def str_quote_stripper(input_str):
-    while (input_str
+    if not isinstance(input_str, basestring):
+        raise ValueError(input_str)
+    while (
+        input_str
         and input_str[0] == input_str[-1]
         and input_str[0] in ("'", '"')
     ):
         input_str = input_str.strip(input_str[0])
     return input_str
+from_string_converter_lookup_by_str[
+    to_str(str_quote_stripper)
+] = str_quote_stripper
 
 #------------------------------------------------------------------------------
 # a mapping of some types to converter methods to assist in finding the right
 # conversion automatically
 
 #------------------------------------------------------------------------------
-from_string_converters = {
-    int: int,
-    float: float,
-    str: str_quote_stripper,
-    unicode: unicode,
-    bool: boolean_converter,
-    dict: json.loads,
-    list: list_converter,
-    datetime.datetime: datetime_converter,
-    datetime.date: date_converter,
-    datetime.timedelta: timedelta_converter,
-    types.FunctionType: class_converter,
-    _compiled_regexp_type: regex_converter,
-    _builtin_function_or_method_type: class_converter,
-    type: class_converter,
-}
+_associations = [
+    (bool, boolean_converter),
+    (int, int),
+    (long, long),
+    (float, float),
+    (str, str_quote_stripper),
+    (unicode, unicode),
+    (dict, json.loads),
+    (list, list_converter),
+    (datetime.datetime, datetime_converter),
+    (datetime.date, date_converter),
+    (datetime.timedelta, timedelta_converter),
+    (decimal.Decimal, decimal.Decimal),
+    (types.FunctionType, class_converter),
+    (_compiled_regexp_type, regex_converter),
+    (_builtin_function_or_method_type, class_converter),
+]
+
+from_string_converters = OrderedDict()
+
+for key, value in _associations:
+    from_string_converters[key] = value
+    from_string_converter_lookup_by_str[to_str(key)] = value
+from_string_converters[type] = class_converter
+from_string_converter_lookup_by_str[to_str(type)] = class_converter
+
 
 #------------------------------------------------------------------------------
 def get_from_string_converter(thing):
@@ -400,122 +580,16 @@ def get_from_string_converter(thing):
         # no converter, move on
         pass
     for key, value in from_string_converters.iteritems():
+        print 'trying', key, value
         if thing is key or isinstance(thing, key):
             return value
     return None
 
 
-#------------------------------------------------------------------------------
-# to string Section
-#     these are methods that will take some object and convert it into a string
-#     representation that is human readably friendly
-#------------------------------------------------------------------------------
-
-
-#------------------------------------------------------------------------------
-# a mapping of all the builtin types to human readable strings
-_builtin_to_str = dict(
-    (val, key)
-    for key, val in __builtin__.__dict__.iteritems()
-    if not key.startswith('__') and key is not 'None'
-)
-
+# other stuff
 #------------------------------------------------------------------------------
 # in an Option, the from_string_converter may have required that a string have
 # quotes.  This is a list of those converters for the benefit of the Option
 # class when it wants to convert _to_ a string.  It helps to make sure that
 # the from/to conversion can survive a round trip
 converters_requiring_quotes = [eval, regex_converter]
-
-
-#------------------------------------------------------------------------------
-def _arbitrary_object_to_string(a_thing):
-    """take a python object of some sort, and convert it into a human readable
-    string"""
-    # is it None?
-    if a_thing is None:
-        return ''
-
-    # is it already a string?
-    if isinstance(a_thing, basestring):
-        return a_thing
-
-    # does it have a to_str function?
-    try:
-        return a_thing.to_str()
-    except (AttributeError, KeyError):
-        # nope, no to_str function
-        pass
-
-    # is it something from a loaded module?
-    try:
-        if a_thing.__module__ not in ('__builtin__', 'exceptions'):
-            return "%s.%s" % (a_thing.__module__, a_thing.__name__)
-    except AttributeError:
-        # nope, not one of these
-        pass
-
-    # is it a built in?
-    try:
-        return _builtin_to_str[a_thing]
-    except KeyError:
-        # nope, not a builtin
-        pass
-
-    # maybe it has a __name__ attribute?
-    try:
-        return a_thing.__name__
-    except AttributeError:
-        # nope, not one of these
-        pass
-
-    # punt and see what happens if we just cast it to string
-    return str(a_thing)
-
-
-#------------------------------------------------------------------------------
-def sequence_to_string(a_list, delimiter=", "):
-    """a dedicated function that turns a list into a comma delimited string
-    of items converted.  This method will flatten nested lists."""
-    return delimiter.join(to_str(x) for x in a_list)
-
-
-#------------------------------------------------------------------------------
-def to_str(a_thing):
-    """the ultimate authority in converting a thing into a human readable
-    string.  Give it anything  and you'll likely get something just fine
-    from it."""
-    try:
-        converter = _to_string_converters[type(a_thing)]
-    except KeyError:
-        try:
-            converter = _to_string_converters[type(a_thing.as_bare_value())]
-            a_thing = a_thing.as_bare_value()
-        except (AttributeError, KeyError):
-            converter = _arbitrary_object_to_string
-    return converter(a_thing)
-
-#------------------------------------------------------------------------------
-# a mapping of types to methods that will convert the an object of the given
-# type to a string.
-_to_string_converters = {
-    int: str,
-    float: str,
-    str: str,
-    unicode: unicode,
-    list: sequence_to_string,
-    tuple: sequence_to_string,
-    bool: lambda x: 'True' if x else 'False',
-    dict: json.dumps,
-    DotDict: json.dumps,
-    datetime.datetime: datetime_util.datetime_to_ISO_string,
-    datetime.date: datetime_util.date_to_ISO_string,
-    datetime.timedelta: datetime_util.timedelta_to_str,
-    type: _arbitrary_object_to_string,
-    types.ModuleType: _arbitrary_object_to_string,
-    types.FunctionType: _arbitrary_object_to_string,
-    types.BuiltinMethodType: _arbitrary_object_to_string,
-    types.BuiltinFunctionType: _arbitrary_object_to_string,
-    _builtin_function_or_method_type: lambda x: x.__name__,
-    _compiled_regexp_type: lambda x: x.pattern,
-}
