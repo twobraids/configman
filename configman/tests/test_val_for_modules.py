@@ -91,15 +91,12 @@ class TestCase(unittest.TestCase):
         config_manager = Mock()
         vs = ValueSource('configman.tests.values_for_module_tests_1')
         v = vs.get_values(config_manager, True)
-        print v
         dd = DotDict()
         for k, v in v.iteritems():
             dd[k] = v
         s = StringIO()
         vs.write(dd, s)
         r = s.getvalue()
-        print "------------------"
-        print r
 
 
 

@@ -580,7 +580,7 @@ class ConfigurationManager(object):
                 return new_mapping
 
             values_from_all_sources = [
-                _must_be(v.get_values(self, True), DotDictWithAcquisition)
+                (v, _must_be(v.get_values(self, True), DotDictWithAcquisition))
                 for v in self.values_source_list
             ]
             for key in (k for k in all_keys if k not in known_keys):
@@ -597,7 +597,7 @@ class ConfigurationManager(object):
                         self.option_definitions[reference_value_from]
                         [top_key].default
                     )
-                for i, val_src_dict in enumerate(values_from_all_sources):
+                for a_value_source, val_src_dict in values_from_all_sources:
                     try:
                         # get the Option for this key
                         opt = self.option_definitions[key]
@@ -608,6 +608,7 @@ class ConfigurationManager(object):
                         # via acquisition, so the key given may not have
                         # been an exact match for what was returned.
                         opt.default = new_value
+                        opt._brand = a_value_source
                     except KeyError, x:
                         pass  # okay, that source doesn't have this value
 
@@ -622,7 +623,7 @@ class ConfigurationManager(object):
                 #    continue  # aggregations, namespaces are ignored
                 # apply the from string conversion to make the real value
                 #an_option.set_value(an_option.default)
-                an_option.set_value(an_option.default)
+                an_option.set_value(an_option.default)  #TODO: use the current brand to get a converter
                 # new values have been seen, don't let loop break
                 new_keys_discovered = True
                 try:

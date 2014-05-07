@@ -175,6 +175,8 @@ class TestCase(unittest.TestCase):
         """test namespace w/getopt w/short form"""
         n = config_manager.Namespace()
         n.add_option('a', 1, doc='the a')
+        print "AAAA", n.a.default
+        print "AAAA", n.a.from_string_converter
         n.b = 17
         n.c = config_manager.Namespace()
         n.c.add_option('extra', 3.14159, 'the x', short_form='e')
@@ -186,6 +188,7 @@ class TestCase(unittest.TestCase):
             use_auto_help=False
         )
         self.assertEqual(type(c.option_definitions.b), config_manager.Option)
+        print c.option_definitions.a.value
         self.assertEqual(c.option_definitions.a.value, 2)
         self.assertEqual(c.option_definitions.b.value, 17)
         self.assertEqual(c.option_definitions.b.default, 17)

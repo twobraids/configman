@@ -37,6 +37,7 @@
 # ***** END LICENSE BLOCK *****
 
 import collections
+import datetime  # DEBUG
 
 import converters as conv
 from config_exceptions import CannotConvertError, OptionError
@@ -76,10 +77,7 @@ class Option(object):
         self.doc = doc
 
         self._set_from_string_converter(default, from_string_converter)
-
-        # if this is not set, the type is used in converters.py to attempt
-        # the conversion
-        self.to_string_converter = to_string_converter
+        self._set_to_string_converter(default, to_string_converter)
 
         if value is None:
             value = default
@@ -116,6 +114,27 @@ class Option(object):
         self.from_string_converter = from_string_converter
         self._from_string_converter_key = conv._arbitrary_object_to_string(
             from_string_converter
+        )
+
+    #--------------------------------------------------------------------------
+    def _set_to_string_converter(self, default, to_string_converter):
+        if isinstance(to_string_converter, basestring):
+            to_string_converter = conv.class_converter(to_string_converter)
+        if to_string_converter is None:
+            if self.from_string_converter is None:
+                if default is not None:
+                    to_string_converter = conv.get_to_string_converter(default)
+            else:
+                to_string_converter = (
+                    conv.get_to_string_converter_by_reverse_lookup(
+                        self.from_string_converter
+                    )
+                )
+        if to_string_converter is None:
+            to_string_converter = conv._arbitrary_object_to_string
+        self.to_string_converter = to_string_converter
+        self._to_string_converter_key = conv._arbitrary_object_to_string(
+            to_string_converter
         )
 
     #--------------------------------------------------------------------------

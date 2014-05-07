@@ -45,7 +45,7 @@ import __builtin__
 import decimal
 
 from functools import partial
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 
 from required_config import RequiredConfig
@@ -62,6 +62,7 @@ import datetime_util
 # function lookup.  Example:  "configman.converters.boolean_converter" maps to
 # the actual function configman.converters.boolean_converter
 from_string_converter_lookup_by_str = DotDictWithAcquisition()
+to_string_converter_lookup_by_str = DotDictWithAcquisition()
 
 #------------------------------------------------------------------------------
 # Utilities Section
@@ -115,6 +116,41 @@ def str_dict_keys(a_dict):
             new_dict[to_str(key)] = a_dict[key]
     return new_dict
 
+#------------------------------------------------------------------------------
+# got a better memoizer?  feel free to replace...
+def _memoizeArgsOnly (max_cache_size=1000):
+    """Python 2.4 compatible memoize decorator.
+    It creates a cache that has a maximum size.  If the cache exceeds the max,
+    it is thrown out and a new one made.  With such behavior, it is wise to set
+    the cache just a little larger that the maximum expected need.
+
+    Parameters:
+      max_cache_size - the size to which a cache can grow
+
+    Limitations:
+      The cache works only on args, not kwargs
+    """
+    def wrapper (f):
+        def fn (*args):
+            try:
+                return fn.cache[args]
+            except KeyError:
+                if fn.count >= max_cache_size:
+                    fn.cache = {}
+                    fn.count = 0
+                result = f(*args)
+                fn.cache[args] = result
+                fn.count += 1
+                return result
+            except TypeError:
+                return f(*args)
+        fn.cache = {}
+        fn.count = 0
+        return fn
+    return wrapper
+memoize = _memoizeArgsOnly  # to allow for easy replacement of the memoize
+                            # decorator used below
+
 
 ###############################################################################
 #------------------------------------------------------------------------------
@@ -141,6 +177,7 @@ known_mapping_type_to_str = dict(
 
 
 #------------------------------------------------------------------------------
+#@memoize(1000)
 def _arbitrary_object_to_string(a_thing):
     """take a python object of some sort, and convert it into a human readable
     string"""
@@ -193,44 +230,71 @@ def sequence_to_string(a_list, delimiter=", "):
 
 
 #------------------------------------------------------------------------------
+def reqex_to_str(a_compilied_regular_expression):
+    return a_compilied_regular_expression.pattern
+
+
+#------------------------------------------------------------------------------
+def _builtin_function_or_method_type_to_str(a_builtin_thing):
+    return a_builtin_thing.__name__
+
+
+#------------------------------------------------------------------------------
+@memoize(10000)
+def get_to_string_converter(a_thing):
+    try:
+        converter = to_string_converters[type(a_thing)]
+    except KeyError:
+        try:
+            converter = to_string_converters[type(a_thing.as_bare_value())]
+            a_thing = a_thing.as_bare_value()
+        except (AttributeError, KeyError):
+            converter = _arbitrary_object_to_string
+    return converter
+
+#------------------------------------------------------------------------------
 def to_str(a_thing):
     """the ultimate authority in converting a thing into a human readable
     string.  Give it anything  and you'll likely get something just fine
     from it."""
-    try:
-        converter = _to_string_converters[type(a_thing)]
-    except KeyError:
-        try:
-            converter = _to_string_converters[type(a_thing.as_bare_value())]
-            a_thing = a_thing.as_bare_value()
-        except (AttributeError, KeyError):
-            converter = _arbitrary_object_to_string
-    return converter(a_thing)
+    converter = get_to_string_converter(a_thing)
+    result = converter(a_thing)
+    return result
 
 #------------------------------------------------------------------------------
 # a mapping of types to methods that will convert the an object of the given
 # type to a string.
-_to_string_converters = {
-    int: str,
-    float: str,
-    str: str,
-    unicode: unicode,
-    list: sequence_to_string,
-    tuple: sequence_to_string,
-    bool: lambda x: 'True' if x else 'False',
-    dict: json.dumps,
-    DotDict: json.dumps,
-    datetime.datetime: datetime_util.datetime_to_ISO_string,
-    datetime.date: datetime_util.date_to_ISO_string,
-    datetime.timedelta: datetime_util.timedelta_to_str,
-    type: _arbitrary_object_to_string,
-    types.ModuleType: _arbitrary_object_to_string,
-    types.FunctionType: _arbitrary_object_to_string,
-    types.BuiltinMethodType: _arbitrary_object_to_string,
-    types.BuiltinFunctionType: _arbitrary_object_to_string,
-    _builtin_function_or_method_type: lambda x: x.__name__,
-    _compiled_regexp_type: lambda x: x.pattern,
-}
+_to_string_converters = [
+    (int, str),
+    (float, str),
+    (str, str),
+    (unicode, unicode),
+    (list, sequence_to_string),
+    (tuple, sequence_to_string),
+    (bool, str),
+    (dict, json.dumps),
+    (DotDict, json.dumps),  # TODO, must be changed
+    (datetime.datetime, datetime_util.datetime_to_ISO_string),
+    (datetime.date, datetime_util.date_to_ISO_string),
+    (datetime.timedelta, datetime_util.timedelta_to_str),
+    (type, _arbitrary_object_to_string),
+    (types.ModuleType, _arbitrary_object_to_string),
+    (types.FunctionType, _arbitrary_object_to_string),
+    (types.BuiltinMethodType, _arbitrary_object_to_string),
+    (types.BuiltinFunctionType, _arbitrary_object_to_string),
+    (_builtin_function_or_method_type, lambda x: x.__name__),
+    (_compiled_regexp_type, reqex_to_str),
+    (type, _arbitrary_object_to_string)
+]
+
+to_string_converters = OrderedDict()
+
+for key, value in _to_string_converters:
+    to_string_converters[key] = value
+    to_string_converter_lookup_by_str[to_str(key)] = value
+
+
+# for reverse lookup, see the end of the file after the from_string section
 
 ###############################################################################
 #------------------------------------------------------------------------------
@@ -338,6 +402,7 @@ _all_named_builtins = dir(__builtin__)
 
 
 #------------------------------------------------------------------------------
+@memoize(10000)
 def class_converter(input_str):
     """ a conversion that will import a module and class name
     """
@@ -522,10 +587,10 @@ from_string_converter_lookup_by_str[
 
 #------------------------------------------------------------------------------
 _associations = [
-    (bool, boolean_converter),
-    (int, int),
     (long, long),
     (float, float),
+    (int, int),
+    (bool, boolean_converter),
     (unicode, str_quote_stripper),
     (str, str_quote_stripper),
     (dict, json.loads),
@@ -549,12 +614,22 @@ from_string_converter_lookup_by_str[to_str(type)] = class_converter
 
 
 #------------------------------------------------------------------------------
+#@memoize(10000)
 def get_from_string_converter(thing):
     try:
         return thing.from_string_converter
     except AttributeError:
         # no converter, move on
         pass
+    # try exact type match first
+    try:
+        if isinstance(thing, type):
+            return from_string_converters[thing]
+        return from_string_converters[type(thing)]
+    except KeyError:
+        # not found with exact match
+        pass
+    # look for an "isinstance" relationship
     for key, value in from_string_converters.iteritems():
         if thing is key or isinstance(thing, key):
             return value
@@ -568,3 +643,41 @@ def get_from_string_converter(thing):
 # class when it wants to convert _to_ a string.  It helps to make sure that
 # the from/to conversion can survive a round trip
 converters_requiring_quotes = [eval, regex_converter]
+
+#------------------------------------------------------------------------------
+#  reverse lookup for to string converters from from string converters
+_to_string_converters_indexed_by_from_string_converters = [
+    (long, str),
+    (float, str),
+    (int, str),
+    (bool, str),
+    (unicode, str),
+    (str, str),
+    (dict, json.dumps),
+    (list, sequence_to_string),
+    (tuple, sequence_to_string),
+    (boolean_converter, str),
+    (datetime_converter, datetime_util.datetime_to_ISO_string),
+    (date_converter, datetime_util.date_to_ISO_string),
+    (timedelta_converter, datetime_util.timedelta_to_str),
+    (decimal.Decimal, str),
+    (class_converter, _arbitrary_object_to_string),
+    (regex_converter, reqex_to_str),
+]
+
+to_string_converters_by_from_string_converters = {}
+
+for key, value in _to_string_converters_indexed_by_from_string_converters:
+    to_string_converters_by_from_string_converters[key] = value
+
+
+#------------------------------------------------------------------------------
+def get_to_string_converter_by_reverse_lookup(a_from_string_converter):
+    try:
+        return to_string_converters_by_from_string_converters[
+            a_from_string_converter
+        ]
+    except KeyError:
+        return None
+
+
