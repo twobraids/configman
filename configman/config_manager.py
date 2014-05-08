@@ -574,7 +574,10 @@ class ConfigurationManager(object):
                 if isinstance(source, required_type):
                     return source
                 new_mapping = required_type()
-                for key, value in iteritems_breadth_first(source, include_dicts=True):
+                for key, value in iteritems_breadth_first(
+                    source,
+                    include_dicts=True
+                ):
                     if key in all_keys:
                         new_mapping[key] = value
                 return new_mapping
@@ -608,7 +611,13 @@ class ConfigurationManager(object):
                         # via acquisition, so the key given may not have
                         # been an exact match for what was returned.
                         opt.default = new_value
-                        opt._brand = a_value_source
+                        # brand the option as having been set by this value
+                        # source.  Later when we convert this option to it's
+                        # proper value, we'll look for overridden type
+                        # converters using this brand as a lookup key
+                        opt._from_string_brand = conv.class_converter(
+                            conv.to_str(type(a_value_source))
+                        )
                     except KeyError, x:
                         pass  # okay, that source doesn't have this value
 

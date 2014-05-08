@@ -132,14 +132,18 @@ def _memoizeArgsOnly (max_cache_size=1000):
     """
     def wrapper (f):
         def fn (*args):
+            # Python says True == 1, therefore if we cache based on value alone
+            # for the cases of True and 1, then we have ambiguity.  This is a
+            # hack to differentiate them based on type for the cache.
+            key = (args, type(args[0]))
             try:
-                return fn.cache[args]
+                return fn.cache[key]
             except KeyError:
                 if fn.count >= max_cache_size:
                     fn.cache = {}
                     fn.count = 0
                 result = f(*args)
-                fn.cache[args] = result
+                fn.cache[key] = result
                 fn.count += 1
                 return result
             except TypeError:
@@ -162,11 +166,11 @@ memoize = _memoizeArgsOnly  # to allow for easy replacement of the memoize
 
 #------------------------------------------------------------------------------
 # a mapping of all the builtin types to human readable strings
-_builtin_to_str = dict(
-    (val, key)
-    for key, val in __builtin__.__dict__.iteritems()
-    if not key.startswith('__') and key is not 'None'
-)
+#_builtin_to_str = dict(
+    #(val, key)
+    #for key, val in __builtin__.__dict__.iteritems()
+    #if not key.startswith('__') and key is not 'None'
+#)
 
 
 #------------------------------------------------------------------------------
@@ -177,7 +181,34 @@ known_mapping_type_to_str = dict(
 
 
 #------------------------------------------------------------------------------
-#@memoize(1000)
+@memoize(10000)
+def get_to_string_converter(a_thing):
+    try:
+        # try for an exact type match
+        converter = to_string_converters[type(a_thing)]
+    except KeyError:
+        try:
+            # is this item wrapped in an DontCare instance?
+            converter = to_string_converters[type(a_thing.as_bare_value())]
+            a_thing = a_thing.as_bare_value()
+        except (AttributeError, KeyError):
+            # gosh, we have no idea, punt
+            converter = _arbitrary_object_to_string
+    return converter
+
+#------------------------------------------------------------------------------
+@memoize(10000)
+def to_str(a_thing):
+    """the ultimate authority in converting a thing into a human readable
+    string.  Give it anything  and you'll likely get something just fine
+    from it."""
+    converter = get_to_string_converter(a_thing)
+    result = converter(a_thing)
+    return result
+
+
+#------------------------------------------------------------------------------
+@memoize(1000)
 def _arbitrary_object_to_string(a_thing):
     """take a python object of some sort, and convert it into a human readable
     string"""
@@ -192,7 +223,7 @@ def _arbitrary_object_to_string(a_thing):
     # does it have a to_str function?
     try:
         return a_thing.to_str()
-    except (AttributeError, KeyError):
+    except (AttributeError, KeyError, TypeError):
         # nope, no to_str function
         pass
 
@@ -227,39 +258,21 @@ def sequence_to_string(a_list, delimiter=", "):
     """a dedicated function that turns a list into a comma delimited string
     of items converted.  This method will flatten nested lists."""
     return delimiter.join(to_str(x) for x in a_list)
-
+to_string_converter_lookup_by_str[_arbitrary_object_to_string(sequence_to_string)] = \
+    sequence_to_string
 
 #------------------------------------------------------------------------------
 def reqex_to_str(a_compilied_regular_expression):
     return a_compilied_regular_expression.pattern
+to_string_converter_lookup_by_str[_arbitrary_object_to_string(reqex_to_str)] = reqex_to_str
 
 
 #------------------------------------------------------------------------------
 def _builtin_function_or_method_type_to_str(a_builtin_thing):
     return a_builtin_thing.__name__
-
-
-#------------------------------------------------------------------------------
-@memoize(10000)
-def get_to_string_converter(a_thing):
-    try:
-        converter = to_string_converters[type(a_thing)]
-    except KeyError:
-        try:
-            converter = to_string_converters[type(a_thing.as_bare_value())]
-            a_thing = a_thing.as_bare_value()
-        except (AttributeError, KeyError):
-            converter = _arbitrary_object_to_string
-    return converter
-
-#------------------------------------------------------------------------------
-def to_str(a_thing):
-    """the ultimate authority in converting a thing into a human readable
-    string.  Give it anything  and you'll likely get something just fine
-    from it."""
-    converter = get_to_string_converter(a_thing)
-    result = converter(a_thing)
-    return result
+to_string_converter_lookup_by_str[
+    _arbitrary_object_to_string(_builtin_function_or_method_type_to_str)
+] = _builtin_function_or_method_type_to_str
 
 #------------------------------------------------------------------------------
 # a mapping of types to methods that will convert the an object of the given
@@ -291,7 +304,7 @@ to_string_converters = OrderedDict()
 
 for key, value in _to_string_converters:
     to_string_converters[key] = value
-    to_string_converter_lookup_by_str[to_str(key)] = value
+    to_string_converter_lookup_by_str[_arbitrary_object_to_string(key)] = value
 
 
 # for reverse lookup, see the end of the file after the from_string section
@@ -614,9 +627,10 @@ from_string_converter_lookup_by_str[to_str(type)] = class_converter
 
 
 #------------------------------------------------------------------------------
-#@memoize(10000)
+@memoize(10000)
 def get_from_string_converter(thing):
     try:
+
         return thing.from_string_converter
     except AttributeError:
         # no converter, move on
@@ -672,6 +686,7 @@ for key, value in _to_string_converters_indexed_by_from_string_converters:
 
 
 #------------------------------------------------------------------------------
+@memoize(10000)
 def get_to_string_converter_by_reverse_lookup(a_from_string_converter):
     try:
         return to_string_converters_by_from_string_converters[

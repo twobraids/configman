@@ -46,6 +46,7 @@ from source_exceptions import (CantHandleTypeException, ValueException,
                                NotEnoughInformationException)
 from ..namespace import Namespace
 from ..option import Option
+from ..converters import to_str, list_converter
 
 file_name_extension = 'ini'
 
@@ -54,7 +55,6 @@ can_handle = (
     configobj.ConfigObj,
     basestring,
 )
-
 
 #==============================================================================
 class ConfigObjWithIncludes(configobj.ConfigObj):
@@ -298,3 +298,4 @@ class ValueSource(object):
                     indent_size=indent_size,
                     output_stream=output_stream
                 )
+

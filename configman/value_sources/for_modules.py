@@ -42,6 +42,7 @@ import sys
 from configman.namespace import Namespace
 from configman.option import Option, Aggregation
 from configman.converters import to_str, class_converter
+from configman.dotdict import DotDictWithAcquisition
 
 file_name_extension = 'py'
 
@@ -49,6 +50,63 @@ file_name_extension = 'py'
 can_handle = (
     types.ModuleType,
 )
+
+#------------------------------------------------------------------------------
+def del_no_exception(collection, key):
+    try:
+        del collection[key]
+    except KeyError:
+        pass
+
+#------------------------------------------------------------------------------
+def format_str(a_string):
+    quote_candidates = {
+        'single': "'",
+        'double': '"',
+        'triple single': '"""',
+        'triple double': "'''"
+    }
+    if '\r' in a_string or '\n' in a_string:
+        del_no_exception(quote_candidates['single'])
+        del_no_exception(quote_candidates['double'])
+
+    if "'" in a_string:
+        del_no_exception(quote_candidates['single'])
+
+    if '"' in a_string:
+        del_no_exception(quote_candidates['double'])
+
+    if '"""' in a_string:
+        del_no_exception(quote_candidates['triple double'])
+
+    if "'''" in a_string:
+        del_no_exception(quote_candidates['triple single'])
+
+    if len(quote_candidates) == 0:
+        # use triple double, but escape any other double quotes
+        a_string = a_string.replace('"', '\"')
+        quote = '"""'
+    else:
+        quote = quote_candidates[quote_candidates.keys()[0]]
+
+    return "%s%s%s" % (quote, a_string, quote)
+
+#------------------------------------------------------------------------------
+def format_sequence_converter(a_list):
+    sequence_type = type(a_list)
+
+
+
+
+
+to_string_converters = DotDictWithAcquisition()
+to_string_converters['str'] = format_str
+to_string_converters['configman.converters.sequence_to_string'] = \
+    format_sequence_converter
+
+#------------------------------------------------------------------------------
+def to_str(a_thing):
+    pass
 
 #==============================================================================
 class ValueSource(object):
@@ -72,18 +130,16 @@ class ValueSource(object):
     #--------------------------------------------------------------------------
     @staticmethod
     def write_option(key, an_option, output_stream):
-        value = to_str(an_option.value)
-        for quote in ['"', "'", "'''", '"""']:
-            if quote not in value:
-                break
-
+        value = self.to_str(to_string_converters)
         print >>output_stream, '%s = %s%s%s' % (
-            key, quote, to_str(an_option.value), quote
+            key, quote, value, quote
         )
 
     #--------------------------------------------------------------------------
     @staticmethod
     def write_namespace(key, a_namespace, output_stream):
+        if a_namespace.doc:
+            print >>output_stream, '#', a_namespace.doc
         print >>output_stream, '%s = DotDict()' % key
 
     #--------------------------------------------------------------------------

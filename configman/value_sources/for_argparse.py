@@ -197,10 +197,12 @@ class ValueSource(object):
             # the value may be a modified 'dont_care' object,
             # that means we do care now and we should get the modified value &
             # return it as a bare value converted to a string
+            print "tttt", value, type(value)
             return to_str(value.as_bare_value())
         except AttributeError:
             # 'dont_care' doesn't exist - this must be not be dont_care
             pass
+        print to_str(value)
         return to_str(value)
 
     #--------------------------------------------------------------------------

@@ -154,6 +154,20 @@ class Option(object):
         return s
 
     #--------------------------------------------------------------------------
+    #def to_str(self, converter_library):
+        #"""return an instance of Option's value as a string.
+
+        #The option instance doesn't actually have to be from the Option class.
+        #All it requires is that the passed option instance has a ``value``
+        #attribute.
+        #"""
+        #try:
+            #converter = converter_library[self._to_string_converter_key]
+            #return converter(self.value)
+        #except KeyError:
+            #return self.__str__()
+
+    #--------------------------------------------------------------------------
     def __eq__(self, other):
         if isinstance(other, Option):
             return (
