@@ -328,11 +328,19 @@ class ConverterService(object):
                 pass
             except Exception, x:
                 raise CannotConvertError(
-                    "There is no converter for '%s' to '%s'" % (
+                    "Error in conversion for '%s' to '%s': %s" % (
                         _arbitrary_object_to_string(a_thing),
-                        objective_key
+                        objective_key,
+                        x
                     )
                 )
+        raise CannotConvertError(
+            "There is no converter for '%s' to '%s'" % (
+                _arbitrary_object_to_string(a_thing),
+                objective_key
+            )
+        )
+
 
     #--------------------------------------------------------------------------
     @memoize_instance_method(1000)
@@ -743,18 +751,29 @@ converter_service.register_converter(
 def utf8_converter(input_str):
     if not isinstance(input_str, basestring):
         raise ValueError(input_str)
+    input_str = str_quote_stripper(input_str)
     return unicode(input_str, "utf-8")
 converter_service.register_converter(
     AnyInstanceOf(str),
     utf8_converter,
     conversion_objective=unicode
 )
+
+
 #------------------------------------------------------------------------------
-def do_nothing(value):
-    return value
+def str_quote_stripper(input_str):
+    if not isinstance(input_str, basestring):
+        raise ValueError(input_str)
+    while (
+        input_str
+        and input_str[0] == input_str[-1]
+        and input_str[0] in ("'", '"')
+    ):
+        input_str = input_str.strip(input_str[0])
+    return input_str
 converter_service.register_converter(
     AnyInstanceOf(unicode),
-    do_nothing,
+    str_quote_stripper,
     conversion_objective=unicode
 )
 

@@ -109,10 +109,13 @@ class TestCase(unittest.TestCase):
         fn = converters.utf8_converter
         self.assertEqual(fn('Lärs'), u'L\xe4rs')
         self.assertEqual(fn('"""Lärs"""'), u'L\xe4rs')
-        fn = converters.do_nothing
+        fn = converters.str_quote_stripper
         self.assertEqual(fn(u'Lärs'), u'Lärs')
         self.assertEqual(fn(u'"""你好, says Lärs"""'), u'你好, says Lärs')
-        self.assertEqual(converters.convert('Lärs', 'unicode'), u'L\xe4rs')
+        self.assertEqual(
+            converters.converter_service.convert('Lärs', 'unicode'),
+            u'L\xe4rs'
+        )
 
     ##--------------------------------------------------------------------------
     #def test_io_converter(self):
