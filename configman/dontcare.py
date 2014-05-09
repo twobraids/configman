@@ -38,7 +38,7 @@
 
 import types
 
-from configman.converters import to_str, get_from_string_converter
+from configman.converters import to_str
 
 classes = {}
 

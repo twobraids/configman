@@ -62,6 +62,14 @@ from configman.config_exceptions import CannotConvertError
 import __builtin__
 from functools import partial
 
+#------------------------------------------------------------------------------
+# Utilities Section
+#------------------------------------------------------------------------------
+
+
+#------------------------------------------------------------------------------
+_compiled_regexp_type = type(re.compile(r'x'))
+
 
 #------------------------------------------------------------------------------
 def last_repeat_generator(iterable):
@@ -71,7 +79,7 @@ def last_repeat_generator(iterable):
         yield x
 
 #------------------------------------------------------------------------------
-def memoize_function (max_cache_size=1000, arg_type_index=0):
+def memoize (max_cache_size=1000, arg_type_index=0):
     """Python 2.4 compatible memoize decorator.
     It creates a cache that has a maximum size.  If the cache exceeds the max,
     it is thrown out and a new one made.  With such behavior, it is wise to set
@@ -106,7 +114,7 @@ def memoize_function (max_cache_size=1000, arg_type_index=0):
         fn.count = 0
         return fn
     return wrapper
-memoize_instance_method = partial(memoize_function, arg_type_index=1)
+memoize_instance_method = partial(memoize, arg_type_index=1)
 
 #------------------------------------------------------------------------------
 # a bunch of known mappings of builtin items to strings
@@ -114,9 +122,14 @@ known_mapping_type_to_str = dict(
     (val, key) for key, val in __builtin__.__dict__.iteritems()
     if val not in (True, False)
 )
+known_mapping_str_to_type = dict(
+    (key, val) for key, val in __builtin__.__dict__.iteritems()
+    if val not in (True, False)
+)
+
 
 #------------------------------------------------------------------------------
-@memoize_function(1000)
+@memoize(1000)
 def _arbitrary_object_to_string(a_thing):
     """take a python object of some sort, and convert it into a human readable
     string"""
@@ -321,6 +334,34 @@ class ConverterService(object):
                     )
                 )
 
+    #--------------------------------------------------------------------------
+    @memoize_instance_method(1000)
+    def get_converter(
+        self,
+        a_thing,
+        objective_key='str',
+        converter_function_key=None,  # used to lookup a
+    ):
+        for converter_element in self.converter_search_generator(
+            a_thing, converter_function_key, objective_key
+        ):
+            try:
+                if converter_element is None:
+                    continue
+                return converter_element.converter_function
+            except TypeError:
+                # likely "None not callable"
+                pass
+            except Exception, x:
+                raise CannotConvertError(
+                    "There is no converter for '%s' to '%s'" % (
+                        _arbitrary_object_to_string(a_thing),
+                        objective_key
+                    )
+                )
+        return None
+
+
 #==============================================================================
 #class ConverterLibrary(object):
     #def __init__(self)
@@ -361,6 +402,12 @@ converter_service.register_converter(bool, str, str)
 converter_service.register_converter(True, str, str)
 converter_service.register_converter(False, str, str)
 
+converter_service.register_converter(str, int, int)
+converter_service.register_converter(str, float, float)
+converter_service.register_converter(str, long, long)
+converter_service.register_converter(str, long, long)
+
+
 #------------------------------------------------------------------------------
 converter_service.register_no_match_converter(
     'str',
@@ -373,15 +420,348 @@ def sequence_to_string(a_list, delimiter=", "):
     """a dedicated function that turns a list into a comma delimited string
     of items converted.  This method will flatten nested lists."""
     return delimiter.join(to_str(x) for x in a_list)
-
 converter_service.register_converter(
     AnyInstanceOf(list),
     sequence_to_string,
     conversion_objective=str
 )
 
-def stupid_int_converter(an_int):
-    return str(an_int * 10)
+#------------------------------------------------------------------------------
+def reqex_to_str(a_compilied_regular_expression):
+    return a_compilied_regular_expression.pattern
+converter_service.register_converter(
+    AnyInstanceOf(_compiled_regexp_type),
+    reqex_to_str,
+    conversion_objective=str
+)
+
+#------------------------------------------------------------------------------
+def timedelta_converter(input_str):
+    """a conversion function for time deltas"""
+    if not isinstance(input_str, basestring):
+        raise ValueError(input_str)
+    input_str = str_quote_stripper(input_str)
+    days, hours, minutes, seconds = 0, 0, 0, 0
+    details = input_str.split(':')
+    if len(details) >= 4:
+        days = int(details[-4])
+    if len(details) >= 3:
+        hours = int(details[-3])
+    if len(details) >= 2:
+        minutes = int(details[-2])
+    if len(details) >= 1:
+        seconds = int(details[-1])
+    return datetime.timedelta(
+        days=days,
+        hours=hours,
+        minutes=minutes,
+        seconds=seconds
+    )
+converter_service.register_converter(
+    AnyInstanceOf(str),
+    timedelta_converter,
+    conversion_objective=datetime.timedelta
+)
+
+#------------------------------------------------------------------------------
+def timedelta_converter(input_str):
+    """a conversion function for time deltas"""
+    if not isinstance(input_str, basestring):
+        raise ValueError(input_str)
+    input_str = str_quote_stripper(input_str)
+    days, hours, minutes, seconds = 0, 0, 0, 0
+    details = input_str.split(':')
+    if len(details) >= 4:
+        days = int(details[-4])
+    if len(details) >= 3:
+        hours = int(details[-3])
+    if len(details) >= 2:
+        minutes = int(details[-2])
+    if len(details) >= 1:
+        seconds = int(details[-1])
+    return datetime.timedelta(
+        days=days,
+        hours=hours,
+        minutes=minutes,
+        seconds=seconds
+    )
+converter_service.register_converter(
+    AnyInstanceOf(str),
+    timedelta_converter,
+    conversion_objective=datetime.timedelta
+)
+
+#------------------------------------------------------------------------------
+converter_service.register_converter(
+    AnyInstanceOf(str),
+    datetime_converter,
+    conversion_objective=datetime.datetime
+)
+converter_service.register_converter(
+    AnyInstanceOf(str),
+    date_converter,
+    conversion_objective=datetime.date
+)
+
+#------------------------------------------------------------------------------
+def boolean_converter(input_str):
+    """ a conversion function for boolean
+    """
+    if not isinstance(input_str, basestring):
+        raise ValueError(input_str)
+    input_str = str_quote_stripper(input_str)
+    return input_str.lower() in ("true", "t", "1", "y", "yes")
+converter_service.register_converter(
+    AnyInstanceOf(str),
+    boolean_converter,
+    conversion_objective=bool
+)
+
+
+#------------------------------------------------------------------------------
+def list_converter(input_str, item_converter=to_str, item_separator=',',
+                   list_to_collection_converter=None):
+    """ a conversion function for list
+    """
+    if not isinstance(input_str, basestring):
+        raise ValueError(input_str)
+    input_str = str_quote_stripper(input_str)
+    result = [
+        item_converter(x.strip())
+        for x in input_str.split(item_separator) if x.strip()
+    ]
+    if list_to_collection_converter is not None:
+        return list_to_collection_converter(result)
+    return result
+converter_service.register_converter(
+    AnyInstanceOf(str),
+    list_converter,
+    conversion_objective=list
+)
+list_space_separated_strings = partial(list_converter, item_separator=' ')
+# not registered, for_* handlers may wish to register if needed
+#converter_service.register_converter(
+    #AnyInstanceOf(str),
+    #list_space_separated_strings,
+    #conversion_objective=list
+#)
+
+list_comma_separated_ints = partial(list_converter, item_converter=int)
+# not registered, for_* handlers may wish to register if needed
+#converter_service.register_converter(
+    #AnyInstanceOf(str),
+    #list_comma_separated_ints,
+    #conversion_objective=list
+#)
+list_space_separated_ints = partial(
+    list_converter,
+    item_converter=int,
+    item_separator=',',
+)
+# not registered, for_* handlers may wish to register if needed
+#converter_service.register_converter(
+    #AnyInstanceOf(str),
+    #list_space_separated_ints,
+    #conversion_objective=list
+#)
+
+#------------------------------------------------------------------------------
+@memoize(10000)
+def class_converter(input_str):
+    """ a conversion that will import a module and class name
+    """
+    if not input_str:
+        return None
+    if not isinstance(input_str, basestring):
+        raise ValueError(input_str)
+    input_str = str_quote_stripper(input_str)
+    if '.' not in input_str and input_str in _all_named_builtins:
+        return eval(input_str)
+    parts = [x.strip() for x in input_str.split('.') if x.strip()]
+    try:
+        try:
+            # first try as a complete module
+            package = __import__(input_str)
+        except ImportError:
+            # it must be a class from a module
+            if len(parts) == 1:
+                # since it has only one part, it must be a class from __main__
+                parts = ('__main__', input_str)
+            package = __import__('.'.join(parts[:-1]), globals(), locals(), [])
+        obj = package
+        for name in parts[1:]:
+            obj = getattr(obj, name)
+        return obj
+    except AttributeError, x:
+        raise CannotConvertError("%s cannot be found" % input_str)
+    except ImportError, x:
+        raise CannotConvertError(str(x))
+converter_service.register_converter(
+    AnyInstanceOf(str),
+    class_converter,
+    conversion_objective=object
+)
+
+
+#------------------------------------------------------------------------------
+def classes_in_namespaces_converter(
+    template_for_namespace="cls%d",
+    name_of_class_option='cls',
+    instantiate_classes=False
+):
+    """take a comma delimited  list of class names, convert each class name
+    into an actual class as an option within a numbered namespace.  This
+    function creates a closure over a new function.  That new function,
+    in turn creates a class derived from RequiredConfig.  The inner function,
+    'class_list_converter', populates the InnerClassList with a Namespace for
+    each of the classes in the class list.  In addition, it puts the each class
+    itself into the subordinate Namespace.  The requirement discovery mechanism
+    of configman then reads the InnerClassList's requried config, pulling in
+    the namespaces and associated classes within.
+
+    For example, if we have a class list like this: "Alpha, Beta", then this
+    converter will add the following Namespaces and options to the
+    configuration:
+
+        "cls0" - the subordinate Namespace for Alpha
+        "cls0.cls" - the option containing the class Alpha itself
+        "cls1" - the subordinate Namespace for Beta
+        "cls1.cls" - the option containing the class Beta itself
+
+    Optionally, the 'class_list_converter' inner function can embue the
+    InnerClassList's subordinate namespaces with aggregates that will
+    instantiate classes from the class list.  This is a convenience to the
+    programmer who would otherwise have to know ahead of time what the
+    namespace names were so that the classes could be instantiated within the
+    context of the correct namespace.  Remember the user could completely
+    change the list of classes at run time, so prediction could be difficult.
+
+        "cls0" - the subordinate Namespace for Alpha
+        "cls0.cls" - the option containing the class Alpha itself
+        "cls0.cls_instance" - an instance of the class Alpha
+        "cls1" - the subordinate Namespace for Beta
+        "cls1.cls" - the option containing the class Beta itself
+        "cls1.cls_instance" - an instance of the class Beta
+
+    parameters:
+        template_for_namespace - a template for the names of the namespaces
+                                 that will contain the classes and their
+                                 associated required config options.  The
+                                 namespaces will be numbered sequentially.  By
+                                 default, they will be "cls1", "cls2", etc.
+        class_option_name - the name to be used for the class option within
+                            the nested namespace.  By default, it will choose:
+                            "cls1.cls", "cls2.cls", etc.
+        instantiate_classes - a boolean to determine if there should be an
+                              aggregator added to each namespace that
+                              instantiates each class.  If True, then each
+                              Namespace will contain elements for the class, as
+                              well as an aggregator that will instantiate the
+                              class.
+                              """
+
+    #--------------------------------------------------------------------------
+    def class_list_converter(class_list_str):
+        """This function becomes the actual converter used by configman to
+        take a string and convert it into the nested sequence of Namespaces,
+        one for each class in the list.  It does this by creating a proxy
+        class stuffed with its own 'required_config' that's dynamically
+        generated."""
+        if isinstance(class_list_str, basestring):
+            class_list = [x.strip() for x in class_list_str.split(',')]
+            if class_list == ['']:
+                class_list = []
+        else:
+            raise TypeError('must be derivative of a basestring')
+
+        #======================================================================
+        class InnerClassList(RequiredConfig):
+            """This nested class is a proxy list for the classes.  It collects
+            all the config requirements for the listed classes and places them
+            each into their own Namespace.
+            """
+            # we're dynamically creating a class here.  The following block of
+            # code is actually adding class level attributes to this new class
+            required_config = Namespace()  # 1st requirement for configman
+            subordinate_namespace_names = []  # to help the programmer know
+                                              # what Namespaces we added
+            namespace_template = template_for_namespace  # save the template
+                                                         # for future reference
+            class_option_name = name_of_class_option  # save the class's option
+                                                      # name for the future
+            original_class_list_str = class_list_str
+            # for each class in the class list
+            for namespace_index, a_class in enumerate(class_list):
+                # figure out the Namespace name
+                namespace_name = template_for_namespace % namespace_index
+                subordinate_namespace_names.append(namespace_name)
+                # create the new Namespace
+                required_config[namespace_name] = Namespace()
+                # add the option for the class itself
+                required_config[namespace_name].add_option(
+                    name_of_class_option,
+                    #doc=a_class.__doc__  # not helpful if too verbose
+                    default=a_class,
+                    from_string_converter=class_converter
+                )
+                if instantiate_classes:
+                    # add an aggregator to instantiate the class
+                    required_config[namespace_name].add_aggregation(
+                        "%s_instance" % name_of_class_option,
+                        lambda c, lc, a: lc[name_of_class_option](lc)
+                    )
+
+            @classmethod
+            def to_str(cls):
+                """this method takes this inner class object and turns it back
+                into the original string of classnames.  This is used
+                primarily as for the output of the 'help' option"""
+                return cls.original_class_list_str
+
+        return InnerClassList  # result of class_list_converter
+    return class_list_converter  # result of classes_in_namespaces_converter
+converter_service.register_converter(
+    AnyInstanceOf(str),
+    classes_in_namespaces_converter,
+    conversion_objective=list
+)
+
+#------------------------------------------------------------------------------
+def regex_converter(input_str):
+    if not isinstance(input_str, basestring):
+        raise ValueError(input_str)
+    input_str = str_quote_stripper(input_str)
+    return re.compile(input_str)
+converter_service.register_converter(
+    AnyInstanceOf(str),
+    regex_converter,
+    conversion_objective=_compiled_regexp_type
+)
+
+
+#------------------------------------------------------------------------------
+def utf8_converter(input_str):
+    if not isinstance(input_str, basestring):
+        raise ValueError(input_str)
+    return unicode(input_str, "utf-8")
+converter_service.register_converter(
+    AnyInstanceOf(str),
+    utf8_converter,
+    conversion_objective=unicode
+)
+#------------------------------------------------------------------------------
+def do_nothing(value):
+    return value
+converter_service.register_converter(
+    AnyInstanceOf(unicode),
+    do_nothing,
+    conversion_objective=unicode
+)
+
+
+#------------------------------------------------------------------------------
+#def stupid_int_converter(an_int):
+    #return str(an_int * 10)
 
 #converter_service.register_converter(
     #AnyInstanceOf(int),
@@ -389,16 +769,19 @@ def stupid_int_converter(an_int):
     #conversion_objective=str
 #)
 
-def my_bool(a_bool):
-    if a_bool:
-        return 'ja ja ja'
-    return 'nein nein nein'
+#------------------------------------------------------------------------------
+#def my_bool(a_bool):
+    #if a_bool:
+        #return 'ja ja ja'
+    #return 'nein nein nein'
 
-converter_service.register_converter(AnyInstanceOf(bool), my_bool, force=True)
+#converter_service.register_converter(AnyInstanceOf(bool), my_bool, force=True)
 
-print converter_service.convert([1,3,5,7,11])
+#print converter_service.convert([1,3,5,7,11])
 
 
 
-converter_service.convert(True)
+#converter_service.convert(True)
 
+def get_from_string_converter(a_type):
+    return converter_service.get_converter(AnyInstanceOf(str), a_type)
