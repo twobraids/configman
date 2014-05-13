@@ -784,13 +784,15 @@ class ConfigurationManager(object):
             name='print_conf',
             default='',
             doc='write current config to stdout (%s)'
-                % ', '.join(value_sources.file_extension_dispatch.keys())
+                % ', '.join(value_sources.file_extension_dispatch.keys()),
+            from_string_converter=str
         )
         admin.add_option(
             name='dump_conf',
             default='',
             doc='a file system pathname for new config file (types: %s)' %
-            ', '.join(value_sources.file_extension_dispatch.keys())
+            ', '.join(value_sources.file_extension_dispatch.keys()),
+            from_string_converter=str
         )
         admin.add_option(
             name='strict',

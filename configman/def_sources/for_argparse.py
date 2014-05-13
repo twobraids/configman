@@ -40,6 +40,7 @@ try:
     import argparse
     import inspect
     from functools import partial
+    from types import NoneType
     from collections import Sequence
 
     from .. import namespace
@@ -106,33 +107,35 @@ try:
                     try:
                         target_value_type = \
                             converters.get_from_string_converter(
-                                an_action.default.as_bare_value()
+                                type(an_action.default.as_bare_value())
                             )
                     except AttributeError:
                         target_value_type = \
                             converters.get_from_string_converter(
-                                an_action.default
+                                type(an_action.default)
                             )
-            if target_value_type is type(None) or target_value_type is None:
+            if target_value_type is NoneType or target_value_type is None:
                 target_value_type = str
             try:
                 if kwargs['nargs']:
                     from_string_type_converter = partial(
                         converters.list_converter,
-                        item_converter=converters.from_string_converters[
+                        item_converter=converters.get_from_string_converter(
                             target_value_type
-                        ],
+                        ),
                         item_separator=' ',
                     )
-                elif (kwargs['action'] == 'append'
-                      or kwargs['action'] == 'append_const'
+                elif (
+                    kwargs['action'] == 'append'
+                    or kwargs['action'] == 'append_const'
                 ):
                     if isinstance(type(an_action.default), Sequence):
                         from_string_type_converter = partial(
                             converters.list_converter,
-                            item_converter=converters.from_string_converters[
+                            item_converter=
+                            converters.get_from_string_converter(
                                 str
-                            ],
+                            ),
                             item_separator=',',
                         )
                         if an_action.default is not None:
@@ -140,9 +143,10 @@ try:
                     else:
                         from_string_type_converter = partial(
                             converters.list_converter,
-                            item_converter=converters.from_string_converters[
+                            item_converter=
+                            converters.get_from_string_converter(
                                 str
-                            ],
+                            ),
                             item_separator=',',
                             list_to_collection_converter=type(
                                 an_action.default

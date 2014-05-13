@@ -74,7 +74,8 @@ else:
                 '2011-05-04T15:10:00',
                 'the a',
                 short_form='a',
-                from_string_converter=dtu.datetime_from_ISO_string
+                from_string_converter=dtu.datetime_from_ISO_string,
+                to_string_converter=dtu.datetime_to_ISO_string,
             )
             n.c = config_manager.Namespace(doc='c space')
             n.c.add_option(
