@@ -308,6 +308,7 @@ class TestCase(unittest.TestCase):
         new_value = unicode(timedelta_as_string)
         print "**O(*)", opt.from_string_converter, new_value, type(new_value)
         opt.set_value(new_value)
+
         self.assertEqual(opt.value, two_days)
 
         opt.set_value(two_days)

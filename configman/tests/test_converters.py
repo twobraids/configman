@@ -94,15 +94,15 @@ class Beta(RequiredConfig):
 #==============================================================================
 class TestCase(unittest.TestCase):
 
-    ##--------------------------------------------------------------------------
-    #def test_str_dict_keys(self):
-        #function = converters.str_dict_keys
-        #result = function({u'name': u'Lärs', 'age': 99, 10: 11})
-        #self.assertEqual(result, {'name': u'Lärs', 'age': 99, '10': 11})
+    #--------------------------------------------------------------------------
+    def test_str_dict_keys(self):
+        function = converters.str_dict_keys
+        result = function({u'name': u'Lärs', 'age': 99, 10: 11})
+        self.assertEqual(result, {'name': u'Lärs', 'age': 99, '10': 11})
 
-        #for key in result.keys():
-            #self.assertTrue(not isinstance(key, unicode))
-            #self.assertTrue(isinstance(key, str))
+        for key in result.keys():
+            self.assertTrue(not isinstance(key, unicode))
+            self.assertTrue(isinstance(key, str))
 
     #--------------------------------------------------------------------------
     def test_some_unicode_stuff(self):
