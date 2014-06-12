@@ -102,8 +102,10 @@ def str_dict_keys(a_dict):
     for key in a_dict:
         if isinstance(key, unicode):
             new_dict[str(key)] = a_dict[key]
-        else:
+        elif isinstance(key, basestring):
             new_dict[key] = a_dict[key]
+        else:
+            new_dict[str(key)] = a_dict[key]
     return new_dict
 
 #------------------------------------------------------------------------------
