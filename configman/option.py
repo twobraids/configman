@@ -128,7 +128,7 @@ class Option(object):
         """
         try:
             s = self.to_string_converter(self.value)
-        except TypeError:
+        except (TypeError, ValueError):
             s = conv.to_str(self.value)
         #if self.from_string_converter in conv.converters_requiring_quotes:
             #s = "'''%s'''" % s
