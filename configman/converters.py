@@ -53,6 +53,20 @@ import datetime_util
 
 from configman.config_exceptions import CannotConvertError
 
+#******************************************************************************
+#  this file sets up conversion service objects that can be used to convert one
+#  type into another.  Leveraging the library of converter functions, these
+#  converter services register them and then can find an appropriate converter
+#  when given a thing-to-be-converted and a target type to convert.
+#
+#  This sets up a system where value sources may have their own converters
+#  rather than just using a system of defaults.  This is useful when a value
+#  source may need a type expressed in a certain manner different from the
+#  the default.  For example when the value source wants to express a datetime,
+#  the default "YYYY-MM-DDTHH:MM:SS" form is appropriate.  However, a future
+#  for_py module may want to express it as "datetime(YYYY, MM, DD, HH, MM, SS)"
+#******************************************************************************
+
 #------------------------------------------------------------------------------
 # Utilities Section
 #------------------------------------------------------------------------------
@@ -107,11 +121,13 @@ _compiled_regexp_type = type(re.compile(r'x'))
 
 
 #------------------------------------------------------------------------------
-def last_repeat_generator(iterable):
-    for x in iterable:
-        yield x
-    while True:
-        yield x
+#def last_repeat_generator(iterable):
+    #"""iterate through an iterable, but rather than ending, just yield the
+    #last value repeatedly forever"""
+    #for x in iterable:
+        #yield x
+    #while True:
+        #yield x
 
 
 #------------------------------------------------------------------------------
@@ -212,6 +228,10 @@ def _arbitrary_object_to_string(a_thing):
 
 #==============================================================================
 class AnyInstanceOf(object):
+    """given an object, this class will set its a_type member to either the
+    type of the item passed in, or the item itself if the item is already a
+    type"""
+    #--------------------------------------------------------------------------
     def __init__(self, a_thing):
         if isinstance(a_thing, type):
             a_type = a_thing
@@ -222,6 +242,7 @@ class AnyInstanceOf(object):
 
 #==============================================================================
 class ConverterElement(object):
+    #--------------------------------------------------------------------------
     def __init__(
         self,
         subject,
@@ -445,7 +466,7 @@ class ConverterService(object):
         self,
         a_thing,
         objective_type_key='str',
-        converter_function_key=None,  # used to lookup a
+        converter_function_key=None,
     ):
         for converter_element in self.converter_search_generator(
             a_thing, objective_type_key, converter_function_key
@@ -461,7 +482,7 @@ class ConverterService(object):
         self,
         a_thing,
         objective_type_key='str',
-        reverse_converter_function_key=None,  # used to lookup a
+        reverse_converter_function_key=None,
     ):
         for converter_element in self.converter_search_generator(
             a_thing, reverse_converter_function_key, objective_type_key
@@ -484,9 +505,6 @@ class ConverterService(object):
 
 
 #==============================================================================
-#class ConverterLibrary(object):
-    #def __init__(self)
-
 converter_service = ConverterService()
 
 
@@ -497,43 +515,6 @@ def to_str(a_thing):
 #------------------------------------------------------------------------------
 # register built in converters
 #------------------------------------------------------------------------------
-#def make_identity_converter(key):
-    #def identitiy_converter(x):
-        #return key
-    #return identitiy_converter
-
-##-----------------------------------------------------------------------------
-#for key, value in __builtin__.__dict__.iteritems():
-    #if key == 'bytes':
-        #key = 'str'
-    #if key is '__package__' and value is None:
-        #key = ''
-    #if key is 'type':  # wo don't want to confuse converting types to strings
-        #continue
-    #converter_service.register_converter(
-        #value,
-        #make_identity_converter(key),
-        #str
-    #)
-    #converter_service.register_converter(
-        #key,
-        #make_identity_converter(value),
-        #value
-    #)
-
-#------------------------------------------------------------------------------
-#import types
-#for key, value in types.__dict__.iteritems():
-    #converter_service.register_converter(
-        #value,
-        #make_identity_converter(key),
-        #str
-    #)
-    #converter_service.register_converter(
-        #key,
-        #make_identity_converter(value),
-        #value
-    #)
 
 #------------------------------------------------------------------------------
 # add known converters
@@ -566,6 +547,7 @@ def sequence_to_string(a_list, delimiter=", "):
     """a dedicated function that turns a list into a comma delimited string
     of items converted.  This method will flatten nested lists."""
     return delimiter.join(to_str(x) for x in a_list)
+
 converter_service.register_converter(
     AnyInstanceOf(list),
     sequence_to_string,
@@ -593,6 +575,7 @@ converter_service.register_converter(
 #------------------------------------------------------------------------------
 def reqex_to_str(a_compilied_regular_expression):
     return a_compilied_regular_expression.pattern
+
 converter_service.register_converter(
     AnyInstanceOf(_compiled_regexp_type),
     reqex_to_str,
@@ -642,6 +625,7 @@ def timedelta_converter(input_str):
         minutes=minutes,
         seconds=seconds
     )
+
 converter_service.register_converter(
     AnyInstanceOf(str),
     timedelta_converter,
@@ -895,6 +879,7 @@ def regex_converter(input_str):
         raise ValueError(input_str)
     input_str = str_quote_stripper(input_str)
     return re.compile(input_str)
+
 converter_service.register_converter(
     AnyInstanceOf(str),
     regex_converter,
@@ -908,6 +893,7 @@ def utf8_converter(input_str):
         raise ValueError(input_str)
     input_str = str_quote_stripper(input_str)
     return unicode(input_str, "utf-8")
+
 converter_service.register_converter(
     AnyInstanceOf(str),
     utf8_converter,
@@ -921,6 +907,7 @@ def unicode_to_str(input_unicode):
         raise ValueError(input_unicode)
     input_unicode = str_quote_stripper(input_unicode)
     return input_unicode.encode('utf8')
+
 converter_service.register_converter(
     AnyInstanceOf(unicode),
     unicode_to_str,
@@ -939,6 +926,7 @@ def str_quote_stripper(input_str):
     ):
         input_str = input_str.strip(input_str[0])
     return input_str
+
 converter_service.register_converter(
     AnyInstanceOf(unicode),
     str_quote_stripper,
