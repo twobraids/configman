@@ -183,9 +183,10 @@ class Option(object):
         if isinstance(val, unicode):
             val = conv.unicode_to_str(val)
         if isinstance(val, basestring):
+            val = conv.str_quote_stripper(val)
             if self.from_string_converter is None:
                 self.from_string_converter = conv.get_from_string_converter(
-                    type(val)
+                    type(self.default)
                 )
             try:
                 self.value = self.from_string_converter(val)
