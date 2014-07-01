@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
 #
@@ -196,9 +197,9 @@ class TestCase(unittest.TestCase):
 
     #--------------------------------------------------------------------------
     def test_setting_known_from_string_converter_onOption(self):
-        opt = Option('name', default=u'Peter')
-        self.assertEqual(opt.default, u'Peter')
-        self.assertEqual(opt.from_string_converter, unicode)
+        opt = Option('name', default=u'Lärs')
+        self.assertEqual(opt.default, u'Lärs')
+        self.assertEqual(opt.from_string_converter, conv.utf8_converter)
 
         opt = Option('name', default=100)
         self.assertEqual(opt.default, 100)
@@ -234,7 +235,7 @@ class TestCase(unittest.TestCase):
                          dtu.date_from_ISO_string)
 
     #--------------------------------------------------------------------------
-    def test_boolean_converter_inOption(self):
+    def test_boolean_converter_in_option(self):
         opt = Option('name', default=False)
         self.assertEqual(opt.default, False)
         self.assertEqual(opt.from_string_converter,
@@ -280,7 +281,7 @@ class TestCase(unittest.TestCase):
         self.assertEqual(opt.value, True)
 
     #--------------------------------------------------------------------------
-    def test_list_converter_inOption(self):
+    def test_list_converter_in_option(self):
         some_list = ['some', 'values', 'here']
         opt = Option('some name', default=some_list)
         self.assertEqual(opt.default, some_list)
@@ -291,7 +292,7 @@ class TestCase(unittest.TestCase):
         self.assertEqual(opt.value, ['list', 'of', 'things'])
 
     #--------------------------------------------------------------------------
-    def test_timedelta_converter_inOption(self):
+    def test_timedelta_converter_in_option(self):
         one_day = datetime.timedelta(days=1)
         opt = Option('some name', default=one_day)
         self.assertEqual(opt.default, one_day)
@@ -304,7 +305,10 @@ class TestCase(unittest.TestCase):
         opt.set_value(timedelta_as_string)
         self.assertEqual(opt.value, two_days)
 
-        opt.set_value(unicode(timedelta_as_string))
+        new_value = unicode(timedelta_as_string)
+        #print "**O(*)", opt.from_string_converter, new_value, type(new_value)
+        opt.set_value(new_value)
+
         self.assertEqual(opt.value, two_days)
 
         opt.set_value(two_days)
@@ -317,7 +321,7 @@ class TestCase(unittest.TestCase):
                           opt.set_value, '0:x:0:0')
 
     #--------------------------------------------------------------------------
-    def test_regexp_converter_inOption(self):
+    def test_regexp_converter_in_option(self):
         regex_str = '\w+'
         sample_regex = re.compile(regex_str)
         opt = Option('name', default=sample_regex)
@@ -376,13 +380,30 @@ class TestCase(unittest.TestCase):
     #--------------------------------------------------------------------------
     def test_set_value_from_mapping(self):
         o1 = Option('name')
+        print "ooo", o1.from_string_converter
         val = {'default': u'Peter'}
         o1.set_value(val)
-        self.assertEqual(o1.value, 'Peter')
+        self.assertEqual(o1.value, u'Peter')
 
         val = {'justanother': 'dict!'}
         o1.set_value(val)
         self.assertEqual(o1.value, val)
+
+    #--------------------------------------------------------------------------
+    #def test_set_value_with_foreign_converter(self):
+        #o1 = Option('my_int', from_string_converter=int, default=33)
+        #foreign_converter = {
+            #'int': lambda x: int(x) * 10,
+            #'configman.converters.str_quote_stripper':
+                #lambda x: conv.str_quote_stripper(x).strip('4').strip('ä')
+        #}
+        #o1.set_value('88', converters=foreign_converter)
+        #self.assertEqual(o1.value, 880)
+
+        #o2 = Option('my_str', default='hello')
+        #o2.set_value("""'4ä33ä4'""", converters=foreign_converter)
+        #self.assertEqual(o2.value, "33")
+
 
     #--------------------------------------------------------------------------
     def test_set_default(self):

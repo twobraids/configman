@@ -305,11 +305,10 @@ class ConfigurationManager(object):
             print >> output_stream, ''
 
         names_list = self.get_option_names()
-        print >> output_stream, (
-            "usage:\n",
-            self.app_invocation_name,
-            "[OPTIONS]..."
-        ),
+        print >> output_stream,  \
+            "usage:\n",  \
+            self.app_invocation_name,  \
+            "[OPTIONS]...",
         bracket_count = 0
         for key in names_list:
             an_option = self.option_definitions[key]
@@ -342,10 +341,8 @@ class ConfigurationManager(object):
             if doc:
                 line += '%s%s\n' % (pad, doc)
             try:
-                value = option.value
-                type_of_value = type(value)
-                converter_function = conv.to_string_converters[type_of_value]
-                default = converter_function(value)
+                default = str(option)
+
             except KeyError:
                 default = option.value
             if default is not None:
@@ -461,11 +458,7 @@ class ConfigurationManager(object):
             if 'password' in key.lower():
                 logger.info('%s: *********', key)
             else:
-                try:
-                    logger.info('%s: %s', key,
-                                conv.to_string_converters[type(key)](val))
-                except KeyError:
-                    logger.info('%s: %s', key, val)
+                logger.info('%s: %s', key, conv.to_str(val))
 
     #--------------------------------------------------------------------------
     def get_option_names(self):

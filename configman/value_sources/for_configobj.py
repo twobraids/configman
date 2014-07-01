@@ -46,6 +46,7 @@ from source_exceptions import (CantHandleTypeException, ValueException,
                                NotEnoughInformationException)
 from ..namespace import Namespace
 from ..option import Option
+from ..converters import to_str, list_converter, _arbitrary_object_to_string
 
 file_name_extension = 'ini'
 
@@ -174,7 +175,10 @@ class ValueSource(object):
             source.endswith(file_name_extension)
         ):
             try:
-                self.config_obj = ConfigObjWithIncludes(source)
+                self.config_obj = ConfigObjWithIncludes(
+                    source,
+                    list_values=False
+                )
             except Exception, x:
                 raise LoadingIniFileFailsException(
                     "ConfigObj cannot load ini: %s" % str(x)
@@ -228,6 +232,8 @@ class ValueSource(object):
         indent_spacer = " " * (level * indent_size)
         for an_option in options:
             print >>output_stream, "%s# %s" % (indent_spacer, an_option.doc)
+            print "*#*#*#*#", an_option.value, type(an_option.value), an_option.to_string_converter, _arbitrary_object_to_string(an_option.to_string_converter)
+
             option_value = str(an_option)
             if isinstance(option_value, unicode):
                 option_value = option_value.encode('utf8')
@@ -246,15 +252,8 @@ class ValueSource(object):
             else:
                 option_format = '%s#%s=%s\n'
 
-            repr_for_converter = repr(an_option.from_string_converter)
-            if (
-                repr_for_converter.startswith('<function') or
-                repr_for_converter.startswith('<built-in')
-            ):
-                option_value = repr(option_value)
-            elif an_option.from_string_converter is str:
-                if ',' in option_value or '\n' in option_value:
-                    option_value = repr(option_value)
+            #print an_option.to_string_converter
+            #option_value = str(an_option)
 
             print >>output_stream, option_format % (
                 indent_spacer,
@@ -302,3 +301,4 @@ class ValueSource(object):
                     indent_size=indent_size,
                     output_stream=output_stream
                 )
+

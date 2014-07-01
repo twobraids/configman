@@ -50,8 +50,13 @@ import mock
 import configman.config_manager as config_manager
 from configman.option import Option
 from configman.dotdict import DotDict, DotDictWithAcquisition
-from configman import Namespace, RequiredConfig
-from configman.converters import class_converter
+from configman import (
+    Namespace,
+    RequiredConfig,
+    ConfigFileFutureProxy,
+    command_line,
+    class_converter
+)
 import configman.datetime_util as dtu
 from configman.config_exceptions import NotAnOptionError
 from configman.value_sources.source_exceptions import (
@@ -874,6 +879,7 @@ c.string =   from ini
 
     #--------------------------------------------------------------------------
     def test_help_out(self):
+        global command_line
         class MyApp(config_manager.RequiredConfig):
             app_name = 'fred'
             app_version = '1.0'
@@ -929,19 +935,23 @@ c.string =   from ini
 
         old_sys_exit = sys.exit
         sys.exit = my_exit
+        old_command_line = command_line
+        command_line = getopt
         try:
             MyConfigManager(
                 n,
-                [getopt],
+                [command_line],
                 use_admin_controls=True,
                 use_auto_help=True,
                 argv_source=['--password=wilma', '--help']
             )
         finally:
             sys.exit = old_sys_exit
+            command_line = old_command_line
 
     #--------------------------------------------------------------------------
     def test_write_gets_called(self):
+        global command_line
         class MyApp(config_manager.RequiredConfig):
             app_name = 'fred'
             app_version = '1.0'
@@ -972,10 +982,12 @@ c.string =   from ini
             pass
         old_sys_exit = sys.exit
         sys.exit = my_exit
+        old_command_line = command_line
+        command_line = getopt
         try:
             c = MyConfigManager(
                 n,
-                [getopt],
+                [command_line],
                 use_admin_controls=True,
                 use_auto_help=True,
                 argv_source=[
@@ -986,6 +998,7 @@ c.string =   from ini
             self.assertEqual(c.dump_conf_called, True)
         finally:
             sys.exit = old_sys_exit
+            command_line = old_command_line
 
     #--------------------------------------------------------------------------
     def test_get_options(self):
@@ -1082,7 +1095,7 @@ c.string =   from ini
             "app_name: fred",
             "app_version: 1.0",
             "current configuration:",
-            "application: <class 'configman.tests.test_config_manager.MyApp'>",
+            "application: configman.tests.test_config_manager.MyApp",
             "password: *********",
             "sub.name: wilma"
         ]
@@ -1637,6 +1650,7 @@ c.string =   from ini
         try:
             c = config_manager.ConfigurationManager(
                 (n,),
+                values_source_list=[ConfigFileFutureProxy, command_line],
                 argv_source=['--admin.conf=x.ini']
             )
             with c.context() as config:

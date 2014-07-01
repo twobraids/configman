@@ -41,6 +41,13 @@ import collections
 import converters as conv
 from config_exceptions import CannotConvertError, OptionError
 
+#------------------------------------------------------------------------------
+def is_subclass(candidate, superclass):
+    try:
+        return issubclass(candidate, superclass)
+    except TypeError:
+        return False
+
 
 #==============================================================================
 class Option(object):
@@ -65,25 +72,50 @@ class Option(object):
         self.short_form = short_form
         self.default = default
         self.doc = doc
-        if from_string_converter is None:
-            if default is not None:
-                # take a qualified guess from the default value
-                from_string_converter = self._deduce_converter(default)
-        if isinstance(from_string_converter, basestring):
-            from_string_converter = conv.class_converter(from_string_converter)
-        self.from_string_converter = from_string_converter
-        # if this is not set, the type is used in converters.py to attempt
-        # the conversion
-        self.to_string_converter = to_string_converter
+
+        self._set_from_string_converter(default, from_string_converter)
+        self._set_to_string_converter(default, to_string_converter)
+
         if value is None:
             value = default
         self.value = value
+
         self.is_argument = is_argument
         self.exclude_from_print_conf = exclude_from_print_conf
         self.exclude_from_dump_conf = exclude_from_dump_conf
         self.likely_to_be_changed = likely_to_be_changed
         self.not_for_definition = not_for_definition
         self.reference_value_from = reference_value_from
+
+    #--------------------------------------------------------------------------
+    def _set_from_string_converter(self, default, from_string_converter):
+        if isinstance(from_string_converter, basestring):
+            from_string_converter = conv.class_converter(from_string_converter)
+        if from_string_converter is None:
+            if default is not None:
+                from_string_converter = conv.get_from_string_converter(
+                    type(default)
+                )
+        self.from_string_converter = from_string_converter
+        self._from_string_converter_key = conv._arbitrary_object_to_string(
+            from_string_converter
+        )
+
+    #--------------------------------------------------------------------------
+    def _set_to_string_converter(self, default, to_string_converter):
+        if isinstance(to_string_converter, basestring):
+            to_string_converter = conv.class_converter(to_string_converter)
+        if to_string_converter is None and default is not None:
+            to_string_converter = conv.converter_service.get_converter(
+                conv.AnyInstanceOf(type(default)),
+                'str'
+            )
+        if to_string_converter is None:
+            to_string_converter = conv._arbitrary_object_to_string
+        self.to_string_converter = to_string_converter
+        self._to_string_converter_key = conv._arbitrary_object_to_string(
+            to_string_converter
+        )
 
     #--------------------------------------------------------------------------
     def __str__(self):
@@ -93,22 +125,28 @@ class Option(object):
         All it requires is that the passed option instance has a ``value``
         attribute.
         """
-        if self.value is None:
-            return ''
-        if self.to_string_converter:
+        try:
+            print ">>>>>>", self.value, type(self.value)
             s = self.to_string_converter(self.value)
-        else:
-            try:
-                converter = conv.to_string_converters[type(self.value)]
-                s = converter(self.value)
-            except KeyError:
-                if not isinstance(self.value, basestring):
-                    s = unicode(self.value)
-                else:
-                    s = self.value
-        if self.from_string_converter in conv.converters_requiring_quotes:
-            s = "'''%s'''" % s
+        except TypeError:
+            s = conv.to_str(self.value)
+        #if self.from_string_converter in conv.converters_requiring_quotes:
+            #s = "'''%s'''" % s
         return s
+
+    #--------------------------------------------------------------------------
+    #def to_str(self, converter_library):
+        #"""return an instance of Option's value as a string.
+
+        #The option instance doesn't actually have to be from the Option class.
+        #All it requires is that the passed option instance has a ``value``
+        #attribute.
+        #"""
+        #try:
+            #converter = converter_library[self._to_string_converter_key]
+            #return converter(self.value)
+        #except KeyError:
+            #return self.__str__()
 
     #--------------------------------------------------------------------------
     def __eq__(self, other):
@@ -133,31 +171,50 @@ class Option(object):
             return '<Option: %r, default=%r>' % (self.name, self.default)
 
     #--------------------------------------------------------------------------
-    def _deduce_converter(self, default):
-        default_type = type(default)
-        return conv.from_string_converters.get(default_type, default_type)
-
-    #--------------------------------------------------------------------------
     def set_value(self, val=None):
+        """assign a new value to this option.
+            val - the new value.  If None, then assign the option's default
+            converters - use the custom converter from the converter's
+                         mapping, keyed by the option's
+                         '_from_string_converter_key'
+        """
         if val is None:
             val = self.default
+        if isinstance(val, unicode):
+            val = conv.unicode_to_str(val)
         if isinstance(val, basestring):
+            #try:
+                #if converters is not None:
+                    #from_string_converter = converters[
+                        #self._from_string_converter_key
+                    #]
+                #else:
+                    #from_string_converter = self.from_string_converter
+            #except (AttributeError, KeyError):  # don't know if converters is a
+                                                ## module, instance or dict
+                #from_string_converter = self.from_string_converter
+            if self.from_string_converter is None:
+                self.from_string_converter = conv.get_from_string_converter(
+                    type(val)
+                )
             try:
                 self.value = self.from_string_converter(val)
-            except TypeError:
-                self.value = val
-            except ValueError:
-                error_message = "In '%s', '%s' fails to convert '%s'" % (
+            except Exception, x:
+                error_message = "In '%s', '%s' fails to convert '%s' because %s" % \
+                (
                     self.name,
-                    self.from_string_converter,
-                    val
+                    self._from_string_converter_key,
+                    val,
+                    x
                 )
                 raise CannotConvertError(error_message)
         elif isinstance(val, Option):
-            self.value = val.default
+            self.set_value(val.default)
         elif isinstance(val, collections.Mapping) and 'default' in val:
             self.set_value(val["default"])
         else:
+            # we're going to assume that the field is supposed to be whatever
+            # type we're currently assigning to it.
             self.value = val
 
     #--------------------------------------------------------------------------
