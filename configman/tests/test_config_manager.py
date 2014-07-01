@@ -961,7 +961,6 @@ c.string =   from ini
 
             def __init__(inner_self, config):
                 inner_self.config = config
-
         n = config_manager.Namespace()
         n.admin = config_manager.Namespace()
         n.add_option(

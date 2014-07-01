@@ -36,25 +36,18 @@
 #
 # ***** END LICENSE BLOCK *****
 
-import sys
 import re
 import datetime
-import types
-import inspect
 import json
 import __builtin__
 import decimal
 
 from functools import partial
-from collections import OrderedDict, defaultdict, Sequence
-
 from required_config import RequiredConfig
 from namespace import Namespace
 
 from .datetime_util import datetime_from_ISO_string as datetime_converter
 from .datetime_util import date_from_ISO_string as date_converter
-from .config_exceptions import CannotConvertError
-from .dotdict import DotDict, DotDictWithAcquisition
 
 import datetime_util
 
@@ -63,6 +56,7 @@ from configman.config_exceptions import CannotConvertError
 #------------------------------------------------------------------------------
 # Utilities Section
 #------------------------------------------------------------------------------
+
 
 #------------------------------------------------------------------------------
 def str_dict_keys(a_dict):
@@ -119,8 +113,9 @@ def last_repeat_generator(iterable):
     while True:
         yield x
 
+
 #------------------------------------------------------------------------------
-def memoize (max_cache_size=1000, arg_type_index=0):
+def memoize(max_cache_size=1000, arg_type_index=0):
     """Python 2.4 compatible memoize decorator.
     It creates a cache that has a maximum size.  If the cache exceeds the max,
     it is thrown out and a new one made.  With such behavior, it is wise to set
@@ -132,8 +127,8 @@ def memoize (max_cache_size=1000, arg_type_index=0):
     Limitations:
       The cache works only on args, not kwargs
     """
-    def wrapper (f):
-        def fn (*args):
+    def wrapper(f):
+        def fn(*args):
             # Python says True == 1, therefore if we cache based on value alone
             # for the cases of True and 1, then we have ambiguity.  This is a
             # hack to differentiate them based on type for the cache.
@@ -168,6 +163,7 @@ known_mapping_str_to_type = dict(
     if val not in (True, False)
 )
 
+
 #------------------------------------------------------------------------------
 #@memoize(1000)
 def _arbitrary_object_to_string(a_thing):
@@ -182,13 +178,13 @@ def _arbitrary_object_to_string(a_thing):
     # does it have a to_str function?
     try:
         return a_thing.to_str()
-    except (AttributeError, KeyError, TypeError), x:
+    except (AttributeError, KeyError, TypeError):
         # nope, no to_str function
         pass
     # is this a type proxy?
     try:
         return _arbitrary_object_to_string(a_thing.a_type)
-    except (AttributeError, KeyError, TypeError), x:
+    except (AttributeError, KeyError, TypeError):
         # nope, no a_type property
         pass
     # is it a built in?
@@ -275,8 +271,8 @@ class ConverterService(object):
         self.by_instance_of_subject_and_objective = {}  # keyed by tuple(
                                                         # subject_key,
                                                         # objective_type_key
-        self.no_match_library = {}  # keyed by objective_type_key for use when all
-                                    # else fails
+        self.no_match_library = {}  # keyed by objective_type_key for use when
+                                    # all else fails
 
     #--------------------------------------------------------------------------
     def register_converter(
@@ -284,7 +280,7 @@ class ConverterService(object):
         subject,
         converter_function,
         objective_type=str,
-        force = False  # overwrite is ok
+        force=False  # overwrite is ok
     ):
         if isinstance(subject, AnyInstanceOf):
             a_converter_element = ConverterElement(
@@ -316,7 +312,6 @@ class ConverterService(object):
                     a_converter_element.objective_type_key,
                 )] = a_converter_element
 
-
     #--------------------------------------------------------------------------
     def register_no_match_converter(self, objective_type, converter_function):
         a_converter_element = ConverterElement(
@@ -346,12 +341,12 @@ class ConverterService(object):
             # and override it with a new something different.  Local for_*
             # handlers may require their own converters for local types.  An
             # option may have a converter assigned that needs to be overridden
-            result =  self.lookup_without_keyerror(
+            result = self.lookup_without_keyerror(
                 self.by_function_and_objective,
                 (converter_function_key, objective_type_key),
             )
             if result is not None:
-                yield Result
+                yield result
 
         # either we're not looking to override any converter by
         # converter_function_key or we failed in trying to do so.  Go on with
@@ -364,7 +359,7 @@ class ConverterService(object):
         else:
             the_subject_type = type(the_subject)
         subject_type_key = _arbitrary_object_to_string(the_subject_type)
-        result =  self.lookup_without_keyerror(
+        result = self.lookup_without_keyerror(
             self.by_instance_of_subject_and_objective,
             (subject_type_key, objective_type_key)
         )
@@ -460,7 +455,6 @@ class ConverterService(object):
             return converter_element
         return None
 
-
     #--------------------------------------------------------------------------
     #@memoize_instance_method(1000)
     def get_converter_by_reverse(
@@ -470,7 +464,7 @@ class ConverterService(object):
         reverse_converter_function_key=None,  # used to lookup a
     ):
         for converter_element in self.converter_search_generator(
-            a_thing, converter_function_key, objective_type_key
+            a_thing, reverse_converter_function_key, objective_type_key
         ):
             try:
                 if converter_element is None:
@@ -479,7 +473,7 @@ class ConverterService(object):
             except TypeError:
                 # likely "None not callable"
                 pass
-            except Exception, x:
+            except Exception:
                 raise CannotConvertError(
                     "There is no converter for '%s' to '%s'" % (
                         _arbitrary_object_to_string(a_thing),
@@ -494,6 +488,8 @@ class ConverterService(object):
     #def __init__(self)
 
 converter_service = ConverterService()
+
+
 #------------------------------------------------------------------------------
 def to_str(a_thing):
     return converter_service.convert(a_thing, 'str')
@@ -506,7 +502,7 @@ def to_str(a_thing):
         #return key
     #return identitiy_converter
 
-##------------------------------------------------------------------------------
+##-----------------------------------------------------------------------------
 #for key, value in __builtin__.__dict__.iteritems():
     #if key == 'bytes':
         #key = 'str'
@@ -561,6 +557,8 @@ converter_service.register_no_match_converter(
     'str',
     _arbitrary_object_to_string
 )
+
+
 #------------------------------------------------------------------------------
 # specialty converters
 #------------------------------------------------------------------------------
@@ -662,6 +660,7 @@ converter_service.register_converter(
     objective_type=datetime.date
 )
 
+
 #------------------------------------------------------------------------------
 def boolean_converter(input_str):
     """ a conversion function for boolean
@@ -723,6 +722,7 @@ list_space_separated_ints = partial(
     #list_space_separated_ints,
     #objective_type=list
 #)
+
 
 #------------------------------------------------------------------------------
 #@memoize(10000)
@@ -885,6 +885,7 @@ converter_service.register_converter(
     objective_type=list
 )
 
+
 #------------------------------------------------------------------------------
 def regex_converter(input_str):
     if not isinstance(input_str, basestring):
@@ -910,6 +911,7 @@ converter_service.register_converter(
     objective_type=unicode
 )
 
+
 #------------------------------------------------------------------------------
 def unicode_to_str(input_unicode):
     if not isinstance(input_unicode, unicode):
@@ -921,6 +923,7 @@ converter_service.register_converter(
     unicode_to_str,
     objective_type=str
 )
+
 
 #------------------------------------------------------------------------------
 def str_quote_stripper(input_str):
@@ -958,12 +961,13 @@ def get_from_string_converter(objective_type):
     if not isinstance(objective_type, type):
         # an instance has been passed in rather than a type, get the type
         # and continue
-        objective_type=type(objective_type)
+        objective_type = type(objective_type)
     objective_type_key = _arbitrary_object_to_string(objective_type)
     return converter_service.get_converter(
         AnyInstanceOf(str),
         objective_type_key
     )
+
 
 #------------------------------------------------------------------------------
 def get_to_string_converter(subject_type):
@@ -981,47 +985,45 @@ def get_to_string_converter(subject_type):
         'str'
     )
 
+
 #------------------------------------------------------------------------------
 def to_str(a_thing):
     """given an instance of something, convert it into a string"""
     return converter_service.convert(a_thing, 'str')
 
 
+#cv = converter_service.get_converter_element(
+    #AnyInstanceOf(str),
+    #'str'
+#)
+#print cv
+#print cv.subject, cv.subject_key
+#print cv.objective_type, cv.objective_type_key
+#print cv.converter_function, cv.converter_function_key
+#print "****", get_from_string_converter(str)
+##assert(cv is str)
 
-cv = converter_service.get_converter_element(
-    AnyInstanceOf(str),
-    'str'
-)
-print cv
-print cv.subject, cv.subject_key
-print cv.objective_type, cv.objective_type_key
-print cv.converter_function, cv.converter_function_key
-print "****", get_from_string_converter(str)
-#assert(cv is str)
+#cv = converter_service.get_converter_element(
+    #AnyInstanceOf(type),
+    #'str'
+#)
+#print cv
+#print cv.subject, cv.subject_key
+#print cv.objective_type, cv.objective_type_key
+#print cv.converter_function, cv.converter_function_key
+##assert(cv is str)
 
-cv = converter_service.get_converter_element(
-    AnyInstanceOf(type),
-    'str'
-)
-print cv
-print cv.subject, cv.subject_key
-print cv.objective_type, cv.objective_type_key
-print cv.converter_function, cv.converter_function_key
-#assert(cv is str)
+#print "an instance of type, taking type str and converting to str"
+#print "result:", cv.converter_function(str)
+#print "converter_service.convert:", converter_service.convert(str)
+#print "to_str:", to_str(bool)
 
-print "an instance of type, taking type str and converting to str"
-print "result:", cv.converter_function(str)
-print "converter_service.convert:", converter_service.convert(str)
-print "to_str:", to_str(bool)
+#print "result:", cv.converter_function(unicode)
 
-print "result:", cv.converter_function(unicode)
-
-d = datetime.datetime.now()
-print 'datetime'
-print "an instance of type, taking type d and converting to d"
-print "result:", converter_service.get_converter(d)
-print "converter_service.convert:", converter_service.get_converter_element(d).converter_function
-print "to_str:", to_str(d)
-
-
-
+#d = datetime.datetime.now()
+#print 'datetime'
+#print "an instance of type, taking type d and converting to d"
+#print "result:", converter_service.get_converter(d)
+#print "converter_service.convert:", \
+#    converter_service.get_converter_element(d).converter_function
+#print "to_str:", to_str(d)
