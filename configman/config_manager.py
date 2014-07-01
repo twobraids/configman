@@ -52,11 +52,13 @@ import value_sources
 import def_sources
 
 #==============================================================================
-# for convenience define some external symbols here
+# for convenience define some external symbols here - some client modules may
+# import these symbols from here rather than their origin definition location.
+# PyFlakes may erroneously flag some of these as unused
 from option import Option, Aggregation
 from dotdict import DotDict, DotDictWithAcquisition
 from namespace import Namespace
-from required_config import RequiredConfig
+from required_config import RequiredConfig  # used elsewhere - do not remove
 from config_file_future_proxy import ConfigFileFutureProxy
 
 
@@ -305,11 +307,10 @@ class ConfigurationManager(object):
             print >> output_stream, ''
 
         names_list = self.get_option_names()
-        print >> output_stream, (
-            "usage:\n",
-            self.app_invocation_name,
-            "[OPTIONS]..."
-        ),
+        print >> output_stream,  \
+            "usage:\n",  \
+            self.app_invocation_name,  \
+            "[OPTIONS]...",
         bracket_count = 0
         for key in names_list:
             an_option = self.option_definitions[key]
@@ -342,10 +343,8 @@ class ConfigurationManager(object):
             if doc:
                 line += '%s%s\n' % (pad, doc)
             try:
-                value = option.value
-                type_of_value = type(value)
-                converter_function = conv.to_string_converters[type_of_value]
-                default = converter_function(value)
+                default = str(option)
+
             except KeyError:
                 default = option.value
             if default is not None:
@@ -461,11 +460,7 @@ class ConfigurationManager(object):
             if 'password' in key.lower():
                 logger.info('%s: *********', key)
             else:
-                try:
-                    logger.info('%s: %s', key,
-                                conv.to_string_converters[type(key)](val))
-                except KeyError:
-                    logger.info('%s: %s', key, val)
+                logger.info('%s: %s', key, conv.to_str(val))
 
     #--------------------------------------------------------------------------
     def get_option_names(self):
@@ -603,6 +598,11 @@ class ConfigurationManager(object):
                         # via acquisition, so the key given may not have
                         # been an exact match for what was returned.
                         opt.default = val_src_dict[key]
+                        try:
+                            opt.current_converter = \
+                                a_value_source.converter_service
+                        except AttributeError:
+                            pass
                         if key in all_reference_values:
                             # make sure that this value gets propagated to keys
                             # even if the keys have already been overlaid
