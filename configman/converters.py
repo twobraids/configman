@@ -732,7 +732,11 @@ def class_converter(input_str):
     if not input_str:
         return None
     if not isinstance(input_str, basestring):
-        raise ValueError(input_str)
+        # gosh, we didn't get a string, we can't convert anything but strings
+        # we're going to assume that what we got is actually what was wanted
+        # as the output
+        #raise ValueError(input_str)
+        return input_str
     input_str = str_quote_stripper(input_str)
     if '.' not in input_str and input_str in known_mapping_str_to_type:
         return known_mapping_str_to_type[input_str]
