@@ -41,6 +41,7 @@ import collections
 import converters as conv
 from config_exceptions import CannotConvertError, OptionError
 
+
 #------------------------------------------------------------------------------
 def is_subclass(candidate, superclass):
     try:
@@ -126,7 +127,6 @@ class Option(object):
         attribute.
         """
         try:
-            print ">>>>>>", self.value, type(self.value)
             s = self.to_string_converter(self.value)
         except TypeError:
             s = conv.to_str(self.value)
@@ -183,16 +183,6 @@ class Option(object):
         if isinstance(val, unicode):
             val = conv.unicode_to_str(val)
         if isinstance(val, basestring):
-            #try:
-                #if converters is not None:
-                    #from_string_converter = converters[
-                        #self._from_string_converter_key
-                    #]
-                #else:
-                    #from_string_converter = self.from_string_converter
-            #except (AttributeError, KeyError):  # don't know if converters is a
-                                                ## module, instance or dict
-                #from_string_converter = self.from_string_converter
             if self.from_string_converter is None:
                 self.from_string_converter = conv.get_from_string_converter(
                     type(val)
@@ -200,13 +190,14 @@ class Option(object):
             try:
                 self.value = self.from_string_converter(val)
             except Exception, x:
-                error_message = "In '%s', '%s' fails to convert '%s' because %s" % \
-                (
-                    self.name,
-                    self._from_string_converter_key,
-                    val,
-                    x
-                )
+                error_message = \
+                    "In '%s', '%s' fails to convert '%s' because %s" % \
+                    (
+                        self.name,
+                        self._from_string_converter_key,
+                        val,
+                        x
+                    )
                 raise CannotConvertError(error_message)
         elif isinstance(val, Option):
             self.set_value(val.default)

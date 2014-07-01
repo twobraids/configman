@@ -46,7 +46,6 @@ from source_exceptions import (CantHandleTypeException, ValueException,
                                NotEnoughInformationException)
 from ..namespace import Namespace
 from ..option import Option
-from ..converters import to_str, list_converter, _arbitrary_object_to_string
 
 file_name_extension = 'ini'
 
@@ -232,7 +231,6 @@ class ValueSource(object):
         indent_spacer = " " * (level * indent_size)
         for an_option in options:
             print >>output_stream, "%s# %s" % (indent_spacer, an_option.doc)
-            print "*#*#*#*#", an_option.value, type(an_option.value), an_option.to_string_converter, _arbitrary_object_to_string(an_option.to_string_converter)
 
             option_value = str(an_option)
             if isinstance(option_value, unicode):
@@ -301,4 +299,3 @@ class ValueSource(object):
                     indent_size=indent_size,
                     output_stream=output_stream
                 )
-

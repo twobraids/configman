@@ -165,7 +165,7 @@ known_mapping_str_to_type = dict(
 
 
 #------------------------------------------------------------------------------
-#@memoize(1000)
+@memoize(1000)
 def _arbitrary_object_to_string(a_thing):
     """take a python object of some sort, and convert it into a human readable
     string"""
@@ -240,7 +240,7 @@ class ConverterElement(object):
         )
 
     #--------------------------------------------------------------------------
-    #@memoize_instance_method(1000)
+    @memoize_instance_method(1000)
     def __call__(self, a_value):
         try:
             converted_value = self.converter_function(a_value)
@@ -391,7 +391,7 @@ class ConverterService(object):
         # caller will just have to deal with failure.
 
     #--------------------------------------------------------------------------
-    #@memoize_instance_method(1000)
+    @memoize_instance_method(1000)
     def convert(
         self,
         a_thing,
@@ -423,7 +423,7 @@ class ConverterService(object):
         )
 
     #--------------------------------------------------------------------------
-    #@memoize_instance_method(1000)
+    @memoize_instance_method(1000)
     def get_converter(
         self,
         a_thing,
@@ -440,7 +440,7 @@ class ConverterService(object):
         return None
 
     #--------------------------------------------------------------------------
-    #@memoize_instance_method(1000)
+    @memoize_instance_method(1000)
     def get_converter_element(
         self,
         a_thing,
@@ -456,7 +456,7 @@ class ConverterService(object):
         return None
 
     #--------------------------------------------------------------------------
-    #@memoize_instance_method(1000)
+    @memoize_instance_method(1000)
     def get_converter_by_reverse(
         self,
         a_thing,
@@ -697,7 +697,7 @@ converter_service.register_converter(
     objective_type=list
 )
 list_space_separated_strings = partial(list_converter, item_separator=' ')
-# not registered, for_* handlers may wish to register if needed
+# not registered, for_* handlers may wish to register if needed like this:
 #converter_service.register_converter(
     #AnyInstanceOf(str),
     #list_space_separated_strings,
@@ -705,7 +705,7 @@ list_space_separated_strings = partial(list_converter, item_separator=' ')
 #)
 
 list_comma_separated_ints = partial(list_converter, item_converter=int)
-# not registered, for_* handlers may wish to register if needed
+# not registered, for_* handlers may wish to register if needed like this:
 #converter_service.register_converter(
     #AnyInstanceOf(str),
     #list_comma_separated_ints,
@@ -716,7 +716,7 @@ list_space_separated_ints = partial(
     item_converter=int,
     item_separator=',',
 )
-# not registered, for_* handlers may wish to register if needed
+# not registered, for_* handlers may wish to register if needed like this:
 #converter_service.register_converter(
     #AnyInstanceOf(str),
     #list_space_separated_ints,
@@ -725,7 +725,7 @@ list_space_separated_ints = partial(
 
 
 #------------------------------------------------------------------------------
-#@memoize(10000)
+@memoize(10000)
 def class_converter(input_str):
     """ a conversion that will import a module and class name
     """
@@ -993,40 +993,3 @@ def get_to_string_converter(subject_type):
 def to_str(a_thing):
     """given an instance of something, convert it into a string"""
     return converter_service.convert(a_thing, 'str')
-
-
-#cv = converter_service.get_converter_element(
-    #AnyInstanceOf(str),
-    #'str'
-#)
-#print cv
-#print cv.subject, cv.subject_key
-#print cv.objective_type, cv.objective_type_key
-#print cv.converter_function, cv.converter_function_key
-#print "****", get_from_string_converter(str)
-##assert(cv is str)
-
-#cv = converter_service.get_converter_element(
-    #AnyInstanceOf(type),
-    #'str'
-#)
-#print cv
-#print cv.subject, cv.subject_key
-#print cv.objective_type, cv.objective_type_key
-#print cv.converter_function, cv.converter_function_key
-##assert(cv is str)
-
-#print "an instance of type, taking type str and converting to str"
-#print "result:", cv.converter_function(str)
-#print "converter_service.convert:", converter_service.convert(str)
-#print "to_str:", to_str(bool)
-
-#print "result:", cv.converter_function(unicode)
-
-#d = datetime.datetime.now()
-#print 'datetime'
-#print "an instance of type, taking type d and converting to d"
-#print "result:", converter_service.get_converter(d)
-#print "converter_service.convert:", \
-#    converter_service.get_converter_element(d).converter_function
-#print "to_str:", to_str(d)

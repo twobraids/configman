@@ -85,6 +85,7 @@ class T3(RequiredConfig):
     required_config.namespace('ccc')
     required_config.ccc.add_option('x', default=99)
 
+
 #==============================================================================
 class AClass(RequiredConfig):
     required_config = Namespace()
@@ -101,6 +102,8 @@ class AClass(RequiredConfig):
         default='configman.tests.test_config_manager.BClass',
         from_string_converter=class_converter
     )
+
+
 #==============================================================================
 class BClass(RequiredConfig):
     required_config = Namespace()
@@ -111,7 +114,6 @@ class BClass(RequiredConfig):
         default=9988,
         reference_value_from='xxx.yyy'
     )
-
 
 
 #==============================================================================
@@ -629,9 +631,7 @@ c.string =   from ini
         self.assertEqual(c.option_definitions.c.zzz.fff.ooo.a.default, 2)
         self.assertEqual(c.option_definitions.c.zzz.fff.ooo.a.value, 2)
 
-
-
-    #--------------------------------------------------------------------------
+   #--------------------------------------------------------------------------
     def test_mapping_types_1(self):
         n = config_manager.Namespace()
         n.add_option(
@@ -838,7 +838,7 @@ c.string =   from ini
         class Poo:
             pass
 
-        class Combined(config_manager.RequiredConfig, Foo, Poo, Bar):
+        class Combined(RequiredConfig, Foo, Poo, Bar):
             pass
 
         result = Combined.get_required_config()
@@ -852,7 +852,7 @@ c.string =   from ini
 
     #--------------------------------------------------------------------------
     def test_app_name_from_app_obj(self):
-        class MyApp(config_manager.RequiredConfig):
+        class MyApp(RequiredConfig):
             app_name = 'fred'
             app_version = '1.0'
             app_description = "my app"
@@ -880,7 +880,8 @@ c.string =   from ini
     #--------------------------------------------------------------------------
     def test_help_out(self):
         global command_line
-        class MyApp(config_manager.RequiredConfig):
+
+        class MyApp(RequiredConfig):
             app_name = 'fred'
             app_version = '1.0'
             app_description = "my app"
@@ -952,7 +953,8 @@ c.string =   from ini
     #--------------------------------------------------------------------------
     def test_write_gets_called(self):
         global command_line
-        class MyApp(config_manager.RequiredConfig):
+
+        class MyApp(RequiredConfig):
             app_name = 'fred'
             app_version = '1.0'
             app_description = "my app"
@@ -1001,7 +1003,7 @@ c.string =   from ini
 
     #--------------------------------------------------------------------------
     def test_get_options(self):
-        class MyApp(config_manager.RequiredConfig):
+        class MyApp(RequiredConfig):
             app_name = 'fred'
             app_version = '1.0'
             app_description = "my app"
@@ -1050,7 +1052,7 @@ c.string =   from ini
 
     #--------------------------------------------------------------------------
     def test_log_config(self):
-        class MyApp(config_manager.RequiredConfig):
+        class MyApp(RequiredConfig):
             app_name = 'fred'
             app_version = '1.0'
             app_description = "my app"
@@ -1103,7 +1105,7 @@ c.string =   from ini
 
     #--------------------------------------------------------------------------
     def test_extra_commandline_parameters(self):
-        class MyApp(config_manager.RequiredConfig):
+        class MyApp(RequiredConfig):
             app_name = 'fred'
             app_version = '1.0'
             app_description = "my app"
@@ -1146,7 +1148,7 @@ c.string =   from ini
 
     #--------------------------------------------------------------------------
     def test_print_conf_called(self):
-        class MyApp(config_manager.RequiredConfig):
+        class MyApp(RequiredConfig):
             app_name = 'fred'
             app_version = '1.0'
             app_description = "my app"
@@ -1401,7 +1403,7 @@ c.string =   from ini
                 )
             )
 
-        class MyApp(config_manager.RequiredConfig):
+        class MyApp(RequiredConfig):
             app_name = 'fred'
             app_version = '1.0'
             app_description = "my app"
@@ -1464,7 +1466,7 @@ c.string =   from ini
                                     all_config.password,
                                     args[1]))
 
-        class MyApp(config_manager.RequiredConfig):
+        class MyApp(RequiredConfig):
             app_name = 'fred'
             app_version = '1.0'
             app_description = "my app"
@@ -1522,7 +1524,7 @@ c.string =   from ini
             # the aggregator might be broken
             raise SomeException('anything')
 
-        class MyApp(config_manager.RequiredConfig):
+        class MyApp(RequiredConfig):
             app_name = 'fred'
             app_version = '1.0'
             app_description = "my app"
@@ -1609,7 +1611,7 @@ c.string =   from ini
 
     #--------------------------------------------------------------------------
     def _common_app_namespace_setup(self):
-        class MyApp(config_manager.RequiredConfig):
+        class MyApp(RequiredConfig):
             app_name = 'fred'
             app_version = '1.0'
             app_description = "my app"

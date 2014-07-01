@@ -38,9 +38,7 @@
 # ***** END LICENSE BLOCK *****
 
 import unittest
-import tempfile
 import datetime
-import types
 
 from configman import converters
 from configman import RequiredConfig, Namespace, ConfigurationManager
@@ -164,8 +162,6 @@ class TestCase(unittest.TestCase):
             ),
             timedelta(days=4, hours=3, minutes=2, seconds=1)
         )
-
-
 
     #--------------------------------------------------------------------------
     def test_class_converter_nothing(self):
@@ -485,29 +481,3 @@ class TestCase(unittest.TestCase):
         self.assertTrue(converters.get_from_string_converter(dict))
         self.assertTrue(converters.get_from_string_converter(int))
         self.assertTrue(converters.get_from_string_converter(float))
-
-
-    #--------------------------------------------------------------------------
-    #def stupid_int_converter(an_int):
-        #return str(an_int * 10)
-
-    #converter_service.register_converter(
-        #AnyInstanceOf(int),
-        #stupid_int_converter,
-        #conversion_objective=str
-    #)
-
-    #--------------------------------------------------------------------------
-    #def my_bool(a_bool):
-        #if a_bool:
-            #return 'ja ja ja'
-        #return 'nein nein nein'
-
-    #converter_service.register_converter(AnyInstanceOf(bool), my_bool,
-    #force=True)
-
-    #print converter_service.convert([1,3,5,7,11])
-
-
-
-    #converter_service.convert(True)

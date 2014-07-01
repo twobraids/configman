@@ -56,7 +56,6 @@ import def_sources
 from option import Option, Aggregation
 from dotdict import DotDict, DotDictWithAcquisition
 from namespace import Namespace
-from required_config import RequiredConfig
 from config_file_future_proxy import ConfigFileFutureProxy
 
 
