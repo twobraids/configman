@@ -212,7 +212,12 @@ def _arbitrary_object_to_string(a_thing):
     # is it something from a loaded module?
     try:
         if a_thing.__module__ not in ('__builtin__', 'exceptions'):
-            return "%s.%s" % (a_thing.__module__, a_thing.__name__)
+            if a_thing.__module__ == "__main__":
+                import sys
+                module_name = sys.modules['__main__'].__file__[:-3].replace('/', '.')
+            else:
+                module_name = a_thing.__module__
+            return "%s.%s" % (module_name, a_thing.__name__)
     except AttributeError:
         # nope, not one of these
         pass
