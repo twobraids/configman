@@ -481,3 +481,17 @@ class TestCase(unittest.TestCase):
         self.assertTrue(converters.get_from_string_converter(dict))
         self.assertTrue(converters.get_from_string_converter(int))
         self.assertTrue(converters.get_from_string_converter(float))
+
+    #def test_lookup_by_function(self):
+        #converters.converter_service.register_converter(
+            #converters.AnyInstanceOf(int),
+            #lambda i: str(i + 17),
+
+        #)
+        #self.assertEqual(
+            #converters.converter_service.convert(
+                #1,
+                #converter_function_key='str'
+            #),
+            #'1'
+        #)

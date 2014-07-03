@@ -408,14 +408,13 @@ class ConverterService(object):
         # caller will just have to deal with failure.
 
     #--------------------------------------------------------------------------
-    @memoize_instance_method(1000)
+    #@memoize_instance_method(1000)
     def convert(
         self,
         a_thing,
         objective_type_key=None,
         converter_function_key=None,
     ):
-        print "trying to convert", a_thing, "to", objective_type_key, converter_function_key
         for converter_element in self.converter_search_generator(
             a_thing, objective_type_key, converter_function_key
         ):
