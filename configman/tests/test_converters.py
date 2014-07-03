@@ -485,19 +485,26 @@ class TestCase(unittest.TestCase):
     def test_lookup_by_function(self):
         c = converters.ConverterService()
         c.register_converter(
+            9,  # use the following function for the value 9 only
+            lambda i: str(-i),
+            converter_function_key='str',
+        )
+        c.register_converter(
             converters.AnyInstanceOf(int),
             lambda i: str(i + 17),
-            objective_type=str,
-            override_function_key='str',
-        )
-        print c.by_subject_and_objective
-        self.assertTrue(
-            len(c.by_subject_and_objective) == 1
+            converter_function_key='str',
         )
         self.assertEqual(
             c.convert(
                 1,
-                objective_type_key='str'
+                converter_function_key='str'
             ),
             '18'
+        )
+        self.assertEqual(
+            c.convert(
+                9,
+                converter_function_key='str'
+            ),
+            '-9'
         )

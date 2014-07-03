@@ -252,8 +252,8 @@ class ConverterElement(object):
         self,
         subject,
         converter_function,
+        converter_function_key=None,
         objective_type=str,
-        override_function_key=None,
     ):
         self.subject = subject
         self.subject_key = _arbitrary_object_to_string(subject)
@@ -262,13 +262,13 @@ class ConverterElement(object):
         self.objective_type_key = _arbitrary_object_to_string(objective_type)
 
         self.converter_function = converter_function
-        if override_function_key:
-            self.converter_function_key = override_function_key
+        if converter_function_key:
+            self.converter_function_key = converter_function_key
         else:
             self.converter_function_key = _arbitrary_object_to_string(
                 converter_function
             )
-            
+
     #--------------------------------------------------------------------------
     @memoize_instance_method(1000)
     def __call__(self, a_value):
@@ -290,9 +290,14 @@ class ConverterService(object):
                                             # subject_key,
                                             # objective_type_key)
         self.by_instance_of_subject_and_objective = {}  # keyed by tuple(
-                                                        # subject_key,
+                                                        # subject_type_key,
                                                         # objective_type_key
-        self.by_function = {}  # keyed by converter_function_key
+        self.by_subject_and_function = {}  # keyed by tuple(
+                                           #   subject_key,
+                                           #   function_key)
+        self.by_instance_of_subject_and_function = {}  # keyed by tuple(
+                                                       # subject_type_key,
+                                                       # function_key)
         self.no_match_library = {}  # keyed by objective_type_key for use when
                                     # all else fails
 
@@ -302,39 +307,47 @@ class ConverterService(object):
         subject,
         converter_function,
         objective_type=None,
-        override_function_key=None,
-        force=False  # overwrite is ok
+        converter_function_key=None,
     ):
+        print 'registering:', subject, converter_function, objective_type, converter_function_key
         if isinstance(subject, AnyInstanceOf):
             a_converter_element = ConverterElement(
                 subject.a_type,
                 converter_function,
-                objective_type,
-                override_function_key,
+                objective_type=objective_type,
+                converter_function_key=converter_function_key,
             )
-            key = (
-                a_converter_element.subject_key,
-                a_converter_element.objective_type_key,
-            )
-            if key not in self.by_instance_of_subject_and_objective or force:
+            if objective_type:
+                key = (
+                    a_converter_element.subject_key,
+                    a_converter_element.objective_type_key,
+                )
                 self.by_instance_of_subject_and_objective[key] = \
                     a_converter_element
+            key = (
+                a_converter_element.subject_key,
+                a_converter_element.converter_function_key,
+            )
+            self.by_instance_of_subject_and_function[key] = \
+                a_converter_element
         else:
             a_converter_element = ConverterElement(
                 subject,
                 converter_function,
-                objective_type,
-                override_function_key
+                objective_type=objective_type,
+                converter_function_key=converter_function_key,
             )
+            if objective_type:
+                key = (
+                    a_converter_element.subject_key,
+                    a_converter_element.objective_type_key,
+                )
+                self.by_subject_and_objective[key] = a_converter_element
             key = (
                 a_converter_element.subject_key,
-                a_converter_element.objective_type_key,
+                a_converter_element.converter_function_key,
             )
-            if key not in self.by_subject_and_objective or force:
-                self.by_subject_and_objective[key] = a_converter_element
-                self.by_function[
-                    a_converter_element.converter_function_key
-                ] = a_converter_element
+            self.by_subject_and_function[key] = a_converter_element
 
     #--------------------------------------------------------------------------
     def register_no_match_converter(self, objective_type, converter_function):
@@ -360,44 +373,58 @@ class ConverterService(object):
         objective_type_key,
         converter_function_key,
     ):
+        print 'searching', the_subject, objective_type_key, converter_function_key
+        subject_key = _arbitrary_object_to_string(the_subject)
+        the_subject_type = type(the_subject)
+        subject_type_key = _arbitrary_object_to_string(the_subject_type)
         if converter_function_key is not None:
             # here's where we get the abilty to find and existing converter
             # and override it with a new something different.  Local for_*
             # handlers may require their own converters for local types.  An
             # option may have a converter assigned that needs to be overridden
             result = self.lookup_without_keyerror(
-                self.by_function,
-                converter_function_key,
+                self.by_subject_and_function,
+                (subject_key, converter_function_key),
             )
+            print self.by_subject_and_function.keys()
+            print '#1', result
             if result is not None:
                 yield result
+
+            result = self.lookup_without_keyerror(
+                self.by_instance_of_subject_and_function,
+                (subject_type_key, converter_function_key),
+            )
+            print "trying", subject_type_key, converter_function_key
+            print self.by_instance_of_subject_and_function.keys()
+            print '#2', result
+            if result is not None:
+                yield result
+
+        if objective_type_key is None:
+            objective_type_key = 'str'
+
+        # if execution has gotten here, then the previous search was
+        # unsuccessful or unacceptable.  Let's look for a direct converter
+        # for the subject itself, instead of the subject's type.
+        result = self.lookup_without_keyerror(
+            self.by_subject_and_objective,
+            (subject_key, objective_type_key)
+        )
+        print self.by_subject_and_objective.keys()
+        print '#3', result
+        if result is not None:
+            yield result
 
         # either we're not looking to override any converter by
         # converter_function_key or we failed in trying to do so.  Go on with
         # search for an appropriate converter.
         # is there a converter for an instance of the type of the subject?
-        if objective_type_key is None:
-            objective_type_key = 'str'
-        if isinstance(the_subject, AnyInstanceOf):
-            the_subject_type = the_subject.a_type
-        else:
-            the_subject_type = type(the_subject)
-        subject_type_key = _arbitrary_object_to_string(the_subject_type)
         result = self.lookup_without_keyerror(
             self.by_instance_of_subject_and_objective,
             (subject_type_key, objective_type_key)
         )
-        if result is not None:
-            yield result
-
-        # if execution has gotten here, then the previous search was
-        # unsuccessful or unacceptable.  Let's look for a direct converter
-        # for the subject itself, instead of the subject's type.
-        subject_key = _arbitrary_object_to_string(the_subject)
-        result = self.lookup_without_keyerror(
-            self.by_subject_and_objective,
-            (subject_key, objective_type_key)
-        )
+        print '#4', result
         if result is not None:
             yield result
 
@@ -407,6 +434,7 @@ class ConverterService(object):
             self.no_match_library,
             objective_type_key
         )
+        print '#5', result
         if result is not None:
             yield result
 
@@ -426,7 +454,7 @@ class ConverterService(object):
             a_thing, objective_type_key, converter_function_key
         ):
             try:
-                print 'trying:', a_thing
+                print 'trying:', converter_element
                 converted_thing = converter_element(a_thing)
                 return converted_thing
             except TypeError:
@@ -453,7 +481,7 @@ class ConverterService(object):
         self,
         a_thing,
         objective_type_key=None,
-        converter_function_key=None,  # used to lookup a
+        converter_function_key=None,
     ):
         result = self.get_converter_element(
             a_thing,
