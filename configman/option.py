@@ -123,8 +123,6 @@ class Option(object):
             s = self.to_string_converter(self.value)
         except (TypeError, ValueError):
             s = conv.to_str(self.value)
-        #if self.from_string_converter in conv.converters_requiring_quotes:
-            #s = "'''%s'''" % s
         return s
 
     #--------------------------------------------------------------------------

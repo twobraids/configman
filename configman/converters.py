@@ -270,11 +270,6 @@ class ConverterElement(object):
     def __call__(self, a_value):
         try:
             converted_value = self.converter_function(a_value)
-            #if self.objective_type is str:
-                #return value_as_string
-            #else:
-                #final = self.objective_type(value_as_string)
-                #return final
             return converted_value
         except (TypeError, ValueError), x:
             CannotConvertError(
