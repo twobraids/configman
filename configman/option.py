@@ -106,17 +106,11 @@ class Option(object):
     def _set_to_string_converter(self, default, to_string_converter):
         if isinstance(to_string_converter, basestring):
             to_string_converter = conv.class_converter(to_string_converter)
-        if to_string_converter is None and default is not None:
-            to_string_converter = conv.converter_service.get_converter(
-                conv.AnyInstanceOf(type(default)),
-                'str'
-            )
         if to_string_converter is None:
-            to_string_converter = conv._arbitrary_object_to_string
+            to_string_converter = conv.to_str
         self.to_string_converter = to_string_converter
-        self._to_string_converter_key = conv._arbitrary_object_to_string(
-            to_string_converter
-        )
+        self._to_string_converter_key = conv.to_str(to_string_converter)
+        print self.name, self._to_string_converter_key
 
     #--------------------------------------------------------------------------
     def __str__(self):
