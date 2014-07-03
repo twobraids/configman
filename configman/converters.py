@@ -252,7 +252,8 @@ class ConverterElement(object):
         self,
         subject,
         converter_function,
-        objective_type=str
+        objective_type=str,
+        override_function_key=None,
     ):
         self.subject = subject
         self.subject_key = _arbitrary_object_to_string(subject)
@@ -261,10 +262,13 @@ class ConverterElement(object):
         self.objective_type_key = _arbitrary_object_to_string(objective_type)
 
         self.converter_function = converter_function
-        self.converter_function_key = _arbitrary_object_to_string(
-            converter_function
-        )
-
+        if override_function_key:
+            self.converter_function_key = override_function_key
+        else:
+            self.converter_function_key = _arbitrary_object_to_string(
+                converter_function
+            )
+            
     #--------------------------------------------------------------------------
     @memoize_instance_method(1000)
     def __call__(self, a_value):
@@ -298,13 +302,15 @@ class ConverterService(object):
         subject,
         converter_function,
         objective_type=None,
+        override_function_key=None,
         force=False  # overwrite is ok
     ):
         if isinstance(subject, AnyInstanceOf):
             a_converter_element = ConverterElement(
                 subject.a_type,
                 converter_function,
-                objective_type
+                objective_type,
+                override_function_key,
             )
             key = (
                 a_converter_element.subject_key,
@@ -317,7 +323,8 @@ class ConverterService(object):
             a_converter_element = ConverterElement(
                 subject,
                 converter_function,
-                objective_type
+                objective_type,
+                override_function_key
             )
             key = (
                 a_converter_element.subject_key,
@@ -419,6 +426,7 @@ class ConverterService(object):
             a_thing, objective_type_key, converter_function_key
         ):
             try:
+                print 'trying:', a_thing
                 converted_thing = converter_element(a_thing)
                 return converted_thing
             except TypeError:
