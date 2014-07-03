@@ -110,7 +110,6 @@ class Option(object):
             to_string_converter = conv.to_str
         self.to_string_converter = to_string_converter
         self._to_string_converter_key = conv.to_str(to_string_converter)
-        print self.name, self._to_string_converter_key
 
     #--------------------------------------------------------------------------
     def __str__(self):
@@ -121,7 +120,6 @@ class Option(object):
         attribute.
         """
         try:
-            print "***", self.name, self.to_string_converter
             s = self.to_string_converter(self.value)
         except (TypeError, ValueError):
             s = conv.to_str(self.value)
