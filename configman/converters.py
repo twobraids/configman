@@ -285,13 +285,10 @@ class ConverterService(object):
         self.by_subject_and_objective = {}  # keyed by tuple(
                                             # subject_key,
                                             # objective_type_key)
-        # does this one need the 'subject' too?
-        self.by_function_and_objective = {}  # keyed by tuple(
-                                             #converter_function_key,
-                                             # objective_type_key)
         self.by_instance_of_subject_and_objective = {}  # keyed by tuple(
                                                         # subject_key,
                                                         # objective_type_key
+        self.by_function = {}  # keyed by converter_function_key
         self.no_match_library = {}  # keyed by objective_type_key for use when
                                     # all else fails
 
@@ -300,7 +297,7 @@ class ConverterService(object):
         self,
         subject,
         converter_function,
-        objective_type=str,
+        objective_type=None,
         force=False  # overwrite is ok
     ):
         if isinstance(subject, AnyInstanceOf):
@@ -328,10 +325,9 @@ class ConverterService(object):
             )
             if key not in self.by_subject_and_objective or force:
                 self.by_subject_and_objective[key] = a_converter_element
-                self.by_function_and_objective[(
-                    a_converter_element.converter_function_key,
-                    a_converter_element.objective_type_key,
-                )] = a_converter_element
+                self.by_function[
+                    a_converter_element.converter_function_key
+                ] = a_converter_element
 
     #--------------------------------------------------------------------------
     def register_no_match_converter(self, objective_type, converter_function):
@@ -363,8 +359,8 @@ class ConverterService(object):
             # handlers may require their own converters for local types.  An
             # option may have a converter assigned that needs to be overridden
             result = self.lookup_without_keyerror(
-                self.by_function_and_objective,
-                (converter_function_key, objective_type_key),
+                self.by_function,
+                converter_function_key,
             )
             if result is not None:
                 yield result
@@ -373,10 +369,10 @@ class ConverterService(object):
         # converter_function_key or we failed in trying to do so.  Go on with
         # search for an appropriate converter.
         # is there a converter for an instance of the type of the subject?
+        if objective_type_key is None:
+            objective_type_key = 'str'
         if isinstance(the_subject, AnyInstanceOf):
             the_subject_type = the_subject.a_type
-        #elif isinstance(the_subject, type):
-            #the_subject_type = type(the_subject)
         else:
             the_subject_type = type(the_subject)
         subject_type_key = _arbitrary_object_to_string(the_subject_type)
@@ -388,7 +384,7 @@ class ConverterService(object):
             yield result
 
         # if execution has gotten here, then the previous search was
-        # unsuccessful of unacceptable.  Let's look for a direct converter
+        # unsuccessful or unacceptable.  Let's look for a direct converter
         # for the subject itself, instead of the subject's type.
         subject_key = _arbitrary_object_to_string(the_subject)
         result = self.lookup_without_keyerror(
@@ -416,9 +412,10 @@ class ConverterService(object):
     def convert(
         self,
         a_thing,
-        objective_type_key='str',
-        converter_function_key=None,  # used to lookup a
+        objective_type_key=None,
+        converter_function_key=None,
     ):
+        print "trying to convert", a_thing, "to", objective_type_key, converter_function_key
         for converter_element in self.converter_search_generator(
             a_thing, objective_type_key, converter_function_key
         ):
@@ -427,7 +424,7 @@ class ConverterService(object):
                 return converted_thing
             except TypeError:
                 # likely "None not callable"
-                pass
+                continue
             except Exception, x:
                 raise CannotConvertError(
                     "Error in conversion for '%s' to '%s': %s" % (
@@ -448,7 +445,7 @@ class ConverterService(object):
     def get_converter(
         self,
         a_thing,
-        objective_type_key='str',
+        objective_type_key=None,
         converter_function_key=None,  # used to lookup a
     ):
         result = self.get_converter_element(
@@ -465,7 +462,7 @@ class ConverterService(object):
     def get_converter_element(
         self,
         a_thing,
-        objective_type_key='str',
+        objective_type_key=None,
         converter_function_key=None,
     ):
         for converter_element in self.converter_search_generator(
@@ -477,31 +474,31 @@ class ConverterService(object):
         return None
 
     #--------------------------------------------------------------------------
-    @memoize_instance_method(1000)
-    def get_converter_by_reverse(
-        self,
-        a_thing,
-        objective_type_key='str',
-        reverse_converter_function_key=None,
-    ):
-        for converter_element in self.converter_search_generator(
-            a_thing, reverse_converter_function_key, objective_type_key
-        ):
-            try:
-                if converter_element is None:
-                    continue
-                return converter_element.converter_function
-            except TypeError:
-                # likely "None not callable"
-                pass
-            except Exception:
-                raise CannotConvertError(
-                    "There is no converter for '%s' to '%s'" % (
-                        _arbitrary_object_to_string(a_thing),
-                        objective_type_key
-                    )
-                )
-        return None
+    #@memoize_instance_method(1000)
+    #def get_converter_by_reverse(
+        #self,
+        #a_thing,
+        #objective_type_key='str',
+        #reverse_converter_function_key=None,
+    #):
+        #for converter_element in self.converter_search_generator(
+            #a_thing, reverse_converter_function_key, objective_type_key
+        #):
+            #try:
+                #if converter_element is None:
+                    #continue
+                #return converter_element.converter_function
+            #except TypeError:
+                ## likely "None not callable"
+                #pass
+            #except Exception:
+                #raise CannotConvertError(
+                    #"There is no converter for '%s' to '%s'" % (
+                        #_arbitrary_object_to_string(a_thing),
+                        #objective_type_key
+                    #)
+                #)
+        #return None
 
 
 #==============================================================================
