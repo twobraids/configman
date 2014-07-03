@@ -97,6 +97,8 @@ class Option(object):
                 from_string_converter = conv.get_from_string_converter(
                     type(default)
                 )
+            else:
+                from_string_converter = conv.str_quote_stripper
         self.from_string_converter = from_string_converter
         self._from_string_converter_key = conv._arbitrary_object_to_string(
             from_string_converter

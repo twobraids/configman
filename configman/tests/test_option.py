@@ -57,21 +57,21 @@ class TestCase(unittest.TestCase):
         self.assertEqual(o.name, 'name')
         self.assertEqual(o.default, None)
         self.assertEqual(o.doc, None)
-        self.assertEqual(o.from_string_converter, None)
+        self.assertEqual(o.from_string_converter, conv.str_quote_stripper)
         self.assertEqual(o.value, None)
 
         o = Option('lucy')
         self.assertEqual(o.name, 'lucy')
         self.assertEqual(o.default, None)
         self.assertEqual(o.doc, None)
-        self.assertEqual(o.from_string_converter, None)
+        self.assertEqual(o.from_string_converter, conv.str_quote_stripper)
         self.assertEqual(o.value, None)
 
         o = Option(u'spa\xa0e')
         self.assertEqual(o.name, u'spa\xa0e')
         self.assertEqual(o.default, None)
         self.assertEqual(o.doc, None)
-        self.assertEqual(o.from_string_converter, None)
+        self.assertEqual(o.from_string_converter, conv.str_quote_stripper)
         self.assertEqual(o.value, None)
 
         data = {
