@@ -121,6 +121,7 @@ class Option(object):
         attribute.
         """
         try:
+            print "***", self.name, self.to_string_converter
             s = self.to_string_converter(self.value)
         except (TypeError, ValueError):
             s = conv.to_str(self.value)
