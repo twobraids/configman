@@ -1309,14 +1309,17 @@ c.string =   from ini
     #--------------------------------------------------------------------------
     def test_print_conf_some_options_excluded(self):
         n = config_manager.Namespace()
-        n.add_option('gender',
-                     default='Male',
-                     doc='What kind of genitalia?')
-        n.add_option('salary',
-                     default=10000,
-                     doc='How much do you earn?',
-                     exclude_from_print_conf=True
-                     )
+        n.add_option(
+            'hair_color',
+            default='blue',
+            doc='what hair color?'
+        )
+        n.add_option(
+            'salary',
+            default=10000,
+            doc='How much do you earn?',
+            exclude_from_print_conf=True
+        )
 
         old_stdout = sys.stdout
         temp_output = StringIO()
@@ -1335,21 +1338,23 @@ c.string =   from ini
             sys.stdout = old_stdout
 
         printed = temp_output.getvalue()
-        self.assertTrue('gender' in printed)
+        self.assertTrue('hair_color' in printed)
         self.assertTrue('salary' not in printed)
 
     #--------------------------------------------------------------------------
     def test_dump_conf_some_options_excluded(self):
         n = config_manager.Namespace()
-        n.add_option('gender',
-                     default='Male',
-                     doc='What kind of genitalia?',
-                     exclude_from_print_conf=True)
-        n.add_option('salary',
-                     default=10000,
-                     doc='How much do you earn?',
-                     exclude_from_dump_conf=True
-                     )
+        n.add_option(
+            'hair_color',
+            default='blue',
+            doc='what hair color?'
+        )
+        n.add_option(
+            'salary',
+            default=10000,
+            doc='How much do you earn?',
+            exclude_from_dump_conf=True
+        )
 
         try:
             config_manager.ConfigurationManager(
@@ -1363,7 +1368,7 @@ c.string =   from ini
             )
 
             printed = open('foo.conf').read()
-            self.assertTrue('gender' in printed)
+            self.assertTrue('hair_color' in printed)
             self.assertTrue('salary' not in printed)
 
         finally:

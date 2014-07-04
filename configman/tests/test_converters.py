@@ -392,6 +392,8 @@ class TestCase(unittest.TestCase):
             )
         )
 
+        print "CCCC", type(n.kls_list), n.kls_list, n.kls_list.from_string_converter
+
         cm = ConfigurationManager(
             n,
             [{
@@ -404,6 +406,8 @@ class TestCase(unittest.TestCase):
             }]
         )
         config = cm.get_config()
+
+        print config.kls_list
 
         self.assertEqual(len(config.kls_list.subordinate_namespace_names), 4)
         for x in config.kls_list.subordinate_namespace_names:

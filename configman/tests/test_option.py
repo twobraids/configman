@@ -487,5 +487,5 @@ class TestCase(unittest.TestCase):
             converter_function_key='int'
         )
         o.current_converter = c
-        o.set_value(667)
+        o.set_value('667')
         self.assertEqual(o.value, 6670)
