@@ -405,8 +405,6 @@ class TestCase(unittest.TestCase):
         )
         config = cm.get_config()
 
-        print config.kls_list
-
         self.assertEqual(len(config.kls_list.subordinate_namespace_names), 4)
         for x in config.kls_list.subordinate_namespace_names:
             self.assertTrue(x in config)
