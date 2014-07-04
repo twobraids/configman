@@ -42,7 +42,7 @@ import json
 import __builtin__
 import decimal
 
-from functools import partial
+from functools import partial, wraps
 from required_config import RequiredConfig
 from namespace import Namespace
 
@@ -52,6 +52,9 @@ from .datetime_util import date_from_ISO_string as date_converter
 import datetime_util
 
 from configman.config_exceptions import CannotConvertError
+from configman.dontcare import (
+    DontCare,
+)
 
 #******************************************************************************
 #  this file sets up conversion service objects that can be used to convert one
@@ -120,7 +123,6 @@ def str_dict_keys(a_dict):
 _compiled_regexp_type = type(re.compile(r'x'))
 
 
-
 #------------------------------------------------------------------------------
 def memoize(max_cache_size=1000, arg_type_index=0):
     """Python 2.4 compatible memoize decorator.
@@ -132,6 +134,7 @@ def memoize(max_cache_size=1000, arg_type_index=0):
       max_cache_size - the size to which a cache can grow
     """
     def wrapper(f):
+        @wraps(f)
         def fn(*args, **kwargs):
             # Python says True == 1, therefore if we cache based on value alone
             # for the cases of True and 1, then we have ambiguity.  This is a
@@ -237,30 +240,30 @@ class AnyInstanceOf(object):
 #==============================================================================
 class ConverterElement(object):
     """This class encapsulates a converter for a ConverterService.
-       
+
         Members:
             subject - the item that can be converted by this ConverterElement
-                * It can be an instance of a class, in which case the 
+                * It can be an instance of a class, in which case the
                   converter will convert only an instance that is equal to
                   this item.
                 * It can be a type, whereas it will convert just that type,
                   not instances of that type.
-                * It can be an instance of AnyInstanceOf whereas it will 
-                  convert any instance of the type encapsulated by the 
+                * It can be an instance of AnyInstanceOf whereas it will
+                  convert any instance of the type encapsulated by the
                   AnyInstanceOf
             subject_key - a hashable string representing the subject.  If the
                 subject is a type, class, or module, this is a fully
                 qualified dotted name suitable for a python import statement
             converter_function - a function that accepts a single parameter
                 and returns a "conversion" of that parameter
-            converter_function_key - a hashable string representing the 
+            converter_function_key - a hashable string representing the
                 converter_function.  It is a fully qualified dotted string
                 suitable for a python import statement
             objective_type - (optional) the target type for the conversion
-            objective_type_key - a hashable string representing the 
+            objective_type_key - a hashable string representing the
                 objective_type.  It is a fully qualified dotted string
                 suitable for a python import statement
-            
+
     """
     #--------------------------------------------------------------------------
     def __init__(
@@ -302,17 +305,17 @@ class ConverterElement(object):
 #==============================================================================
 class ConverterService(object):
     """this class represents an indexed collection of ConverterElements.  It
-    uses five indices into its collection of converters so that that it 
-    maximized the ability to find an approriate converter for a given 
-    situation.  
-    
+    uses five indices into its collection of converters so that that it
+    maximized the ability to find an approriate converter for a given
+    situation.
+
     Options in configman are given just a reference to 'from_string' and
     'to_string' converter functions.  Sometimes, different value sources
     require incompatible formats.  Each value source may have it's own
     converter service so that it may translate values to and from local
     formats."""
     #--------------------------------------------------------------------------
-    def __init__(self):
+    def __init__(self, fallback_converter_service=None):
         self.by_subject_and_objective = {}  # keyed by tuple(
                                             # subject_key,
                                             # objective_type_key)
@@ -327,6 +330,7 @@ class ConverterService(object):
                                                        # function_key)
         self.no_match_library = {}  # keyed by objective_type_key for use when
                                     # all else fails
+        self.fallback_converter_service = fallback_converter_service
 
     #--------------------------------------------------------------------------
     def register_converter(
@@ -477,25 +481,23 @@ class ConverterService(object):
         objective_type_key=None,
         converter_function_key=None,
     ):
-        for converter_element in self._converter_search_generator(
-            a_thing, objective_type_key, converter_function_key
-        ):
+        converter = self.get_converter(
+            a_thing,
+            objective_type_key=objective_type_key,
+            converter_function_key=converter_function_key
+        )
+        if converter:
             try:
-                converted_thing = converter_element(a_thing)
+                converted_thing = converter(a_thing)
                 return converted_thing
-            except TypeError:
-                # likely "None not callable"
-                continue
             except Exception, x:
-                # something went wrong, move on to the next converter candidate
-                continue
-                #raise CannotConvertError(
-                    #"Error in conversion for '%s' to '%s': %s" % (
-                        #_arbitrary_object_to_string(a_thing),
-                        #objective_type_key,
-                        #x
-                    #)
-                #)
+                raise CannotConvertError(
+                    "Error in conversion for '%s' to '%s': %s" % (
+                        _arbitrary_object_to_string(a_thing),
+                        objective_type_key,
+                        x
+                    )
+                )
         raise CannotConvertError(
             "There is no converter for '%s' to '%s'" % (
                 _arbitrary_object_to_string(a_thing),
@@ -530,6 +532,10 @@ class ConverterService(object):
         objective_type_key=None,
         converter_function_key=None,
     ):
+        try:
+            a_thing = a_thing.as_bare_value()
+        except AttributeError:
+            pass
         """given a subject and objective_type and/or converter_function_key
         get a converter element."""
         for converter_element in self._converter_search_generator(
@@ -538,6 +544,23 @@ class ConverterService(object):
             if converter_element is None:
                 continue
             return converter_element
+        if not isinstance(a_thing, AnyInstanceOf):
+            any_instance_of_thing = AnyInstanceOf(a_thing)
+            for converter_element in self._converter_search_generator(
+                any_instance_of_thing,
+                objective_type_key,
+                converter_function_key
+            ):
+                if converter_element is None:
+                    continue
+                return converter_element
+
+        if self.fallback_converter_service:
+            return self.fallback_converter_service.get_converter_element(
+                a_thing,
+                objective_type_key=objective_type_key,
+                converter_function_key=converter_function_key
+            )
         return None
 
 
@@ -745,7 +768,7 @@ list_space_separated_ints = partial(
 
 
 #------------------------------------------------------------------------------
-@memoize(10000)
+#@memoize(10000)
 def class_converter(input_str):
     """ a conversion that will import a module and class name
     """
@@ -781,8 +804,9 @@ def class_converter(input_str):
 converter_service.register_converter(
     AnyInstanceOf(str),
     class_converter,
-    objective_type=object
+    objective_type=type
 )
+
 
 
 #------------------------------------------------------------------------------
@@ -947,6 +971,27 @@ converter_service.register_converter(
     unicode_to_str,
     objective_type=str
 )
+
+
+#------------------------------------------------------------------------------
+def dontcare_to_str(a_dontcare_value, a_converter_service=converter_service):
+    return a_converter_service.convert(
+        a_dontcare_value.as_bare_value(),
+        objective_type_key='str'
+    )
+converter_service.register_converter(
+    AnyInstanceOf(DontCare),
+    dontcare_to_str,
+    str
+)
+
+
+#------------------------------------------------------------------------------
+def silent_str_quote_stripper(input_str):
+    try:
+        return str_quote_stripper(input_str)
+    except ValueError:
+        return input_str
 
 
 #------------------------------------------------------------------------------

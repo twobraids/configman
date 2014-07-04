@@ -42,11 +42,37 @@ import datetime
 import unittest
 import re
 
+from configman import RequiredConfig, Namespace
+
 import configman.converters as conv
 import configman.datetime_util as dtu
 from configman.option import Option
 from configman.config_exceptions import CannotConvertError, OptionError
 
+
+#==============================================================================
+class Alpha(RequiredConfig):
+    required_config = Namespace()
+    required_config.add_option('a', doc='a', default=17)
+
+    #--------------------------------------------------------------------------
+    def __init__(self, config):
+        self.config = config
+        self.a = config.a
+
+#==============================================================================
+class Beta(RequiredConfig):
+    required_config = Namespace()
+    required_config.add_option(
+        'b',
+        doc='b',
+        default=23
+    )
+
+    #--------------------------------------------------------------------------
+    def __init__(self, config):
+        self.config = config
+        self.b = config.b
 
 #==============================================================================
 class TestCase(unittest.TestCase):
@@ -387,21 +413,7 @@ class TestCase(unittest.TestCase):
         self.assertEqual(o1.value, val)
 
     #--------------------------------------------------------------------------
-    #def test_set_value_with_foreign_converter(self):
-        #o1 = Option('my_int', from_string_converter=int, default=33)
-        #foreign_converter = {
-            #'int': lambda x: int(x) * 10,
-            #'configman.converters.str_quote_stripper':
-                #lambda x: conv.str_quote_stripper(x).strip('4').strip('ä')
-        #}
-        #o1.set_value('88', converters=foreign_converter)
-        #self.assertEqual(o1.value, 880)
 
-        #o2 = Option('my_str', default='hello')
-        #o2.set_value("""'4ä33ä4'""", converters=foreign_converter)
-        #self.assertEqual(o2.value, "33")
-
-    #--------------------------------------------------------------------------
     def test_set_default(self):
         o1 = Option(
             'name',
@@ -487,3 +499,4 @@ class TestCase(unittest.TestCase):
         o.current_converter = c
         o.set_value('667')
         self.assertEqual(o.value, 6670)
+

@@ -68,6 +68,8 @@ class Option(object):
         likely_to_be_changed=False,
         not_for_definition=False,
         reference_value_from=None,
+        number_of_values=None,
+        foreign_data=None
     ):
         self.name = name
         self.short_form = short_form
@@ -81,6 +83,7 @@ class Option(object):
         if value is None:
             value = default
         self.value = value
+        self.value_source = 'default'
 
         self.is_argument = is_argument
         self.exclude_from_print_conf = exclude_from_print_conf
@@ -88,6 +91,20 @@ class Option(object):
         self.likely_to_be_changed = likely_to_be_changed
         self.not_for_definition = not_for_definition
         self.reference_value_from = reference_value_from
+        if (number_of_values is None
+            and not isinstance(default, basestring)
+            and not is_subclass(from_string_converter, basestring)
+            and (
+                isinstance(default, collections.Sequence) or
+                is_subclass(from_string_converter, collections.Sequence)
+            )
+        ):
+            number_of_values = '*'
+        self.number_of_values = number_of_values
+        if foreign_data:
+            self.foreign_data = {foreign_data[0]: foreign_data[1]}
+        else:
+            self.foreign_data = {}
 
     #--------------------------------------------------------------------------
     def _set_from_string_converter(self, default, from_string_converter):
@@ -246,7 +263,8 @@ class Option(object):
             is_argument=self.is_argument,
             likely_to_be_changed=self.likely_to_be_changed,
             not_for_definition=self.not_for_definition,
-            reference_value_from=self.reference_value_from
+            reference_value_from=self.reference_value_from,
+            number_of_values=self.number_of_values
         )
         return o
 

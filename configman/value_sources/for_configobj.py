@@ -51,6 +51,7 @@ from ..converters import (
     list_converter,
     AnyInstanceOf,
     sequence_to_string,
+    to_str
 )
 
 file_name_extension = 'ini'
@@ -150,7 +151,7 @@ class LoadingIniFileFailsException(ValueException):
 
 #==============================================================================
 class ValueSource(object):
-    
+
     converter_service = ConverterService()
     converter_service.register_converter(
         AnyInstanceOf(str),
@@ -248,7 +249,7 @@ class ValueSource(object):
         for an_option in options:
             print >>output_stream, "%s# %s" % (indent_spacer, an_option.doc)
 
-            option_value = str(an_option)
+            option_value = an_option.to_string_converter(an_option.value)
             if isinstance(option_value, unicode):
                 option_value = option_value.encode('utf8')
 
@@ -265,9 +266,6 @@ class ValueSource(object):
                 option_format = '%s%s=%s\n'
             else:
                 option_format = '%s#%s=%s\n'
-
-            #print an_option.to_string_converter
-            #option_value = str(an_option)
 
             print >>output_stream, option_format % (
                 indent_spacer,

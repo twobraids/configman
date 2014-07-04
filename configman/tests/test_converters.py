@@ -449,6 +449,7 @@ class TestCase(unittest.TestCase):
         self.assertEqual(to_str((2, False, int, max)), '2, False, int, max')
         self.assertEqual(to_str(None), '')
 
+    #--------------------------------------------------------------------------
     def test_str_quote_stripper(self):
         a = """'"single and double quoted"'"""
         self.assertEqual(
@@ -474,6 +475,7 @@ class TestCase(unittest.TestCase):
             "trailing apostrophy'"
         )
 
+    #--------------------------------------------------------------------------
     def test_make_sure_some_basic_converters_exist(self):
         self.assertTrue(converters.get_from_string_converter(str))
         self.assertTrue(converters.get_from_string_converter(unicode))
@@ -482,6 +484,7 @@ class TestCase(unittest.TestCase):
         self.assertTrue(converters.get_from_string_converter(int))
         self.assertTrue(converters.get_from_string_converter(float))
 
+    #--------------------------------------------------------------------------
     def test_lookup_by_function(self):
         c = converters.ConverterService()
         c.register_converter(
