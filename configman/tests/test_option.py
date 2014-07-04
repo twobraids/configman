@@ -294,6 +294,8 @@ class TestCase(unittest.TestCase):
     def test_timedelta_converter_in_option(self):
         one_day = datetime.timedelta(days=1)
         opt = Option('some name', default=one_day)
+        print "tttt", opt.from_string_converter
+        print "oooo", opt.to_string_converter
         self.assertEqual(opt.default, one_day)
         self.assertEqual(opt.from_string_converter,
                          conv.timedelta_converter)

@@ -94,9 +94,11 @@ class Option(object):
             from_string_converter = conv.class_converter(from_string_converter)
         if from_string_converter is None:
             if default is not None:
+                print "def", default, type(default)
                 from_string_converter = conv.get_from_string_converter(
                     type(default)
                 )
+                print "jjj", from_string_converter
             else:
                 from_string_converter = conv.str_quote_stripper
         self.from_string_converter = from_string_converter

@@ -309,7 +309,6 @@ class ConverterService(object):
         objective_type=None,
         converter_function_key=None,
     ):
-        print 'registering:', subject, converter_function, objective_type, converter_function_key
         if isinstance(subject, AnyInstanceOf):
             a_converter_element = ConverterElement(
                 subject.a_type,
@@ -373,48 +372,47 @@ class ConverterService(object):
         objective_type_key,
         converter_function_key,
     ):
-        print 'searching', the_subject, objective_type_key, converter_function_key
+        is_any_instance_type = isinstance(the_subject, AnyInstanceOf)
         subject_key = _arbitrary_object_to_string(the_subject)
-        the_subject_type = type(the_subject)
+        if is_any_instance_type:
+            the_subject_type = the_subject.a_type
+        else:
+            the_subject_type = type(the_subject)
         subject_type_key = _arbitrary_object_to_string(the_subject_type)
         if converter_function_key is not None:
             # here's where we get the abilty to find and existing converter
             # and override it with a new something different.  Local for_*
             # handlers may require their own converters for local types.  An
             # option may have a converter assigned that needs to be overridden
-            result = self.lookup_without_keyerror(
-                self.by_subject_and_function,
-                (subject_key, converter_function_key),
-            )
-            print self.by_subject_and_function.keys()
-            print '#1', result
-            if result is not None:
-                yield result
+
+            if not is_any_instance_type:
+                result = self.lookup_without_keyerror(
+                    self.by_subject_and_function,
+                    (subject_key, converter_function_key),
+                )
+                if result is not None:
+                    yield result
 
             result = self.lookup_without_keyerror(
                 self.by_instance_of_subject_and_function,
                 (subject_type_key, converter_function_key),
             )
-            print "trying", subject_type_key, converter_function_key
-            print self.by_instance_of_subject_and_function.keys()
-            print '#2', result
             if result is not None:
                 yield result
 
         if objective_type_key is None:
             objective_type_key = 'str'
 
-        # if execution has gotten here, then the previous search was
-        # unsuccessful or unacceptable.  Let's look for a direct converter
-        # for the subject itself, instead of the subject's type.
-        result = self.lookup_without_keyerror(
-            self.by_subject_and_objective,
-            (subject_key, objective_type_key)
-        )
-        print self.by_subject_and_objective.keys()
-        print '#3', result
-        if result is not None:
-            yield result
+        if not is_any_instance_type:
+            # if execution has gotten here, then the previous search was
+            # unsuccessful or unacceptable.  Let's look for a direct converter
+            # for the subject itself, instead of the subject's type.
+            result = self.lookup_without_keyerror(
+                self.by_subject_and_objective,
+                (subject_key, objective_type_key)
+            )
+            if result is not None:
+                yield result
 
         # either we're not looking to override any converter by
         # converter_function_key or we failed in trying to do so.  Go on with
@@ -424,7 +422,6 @@ class ConverterService(object):
             self.by_instance_of_subject_and_objective,
             (subject_type_key, objective_type_key)
         )
-        print '#4', result
         if result is not None:
             yield result
 
@@ -434,7 +431,6 @@ class ConverterService(object):
             self.no_match_library,
             objective_type_key
         )
-        print '#5', result
         if result is not None:
             yield result
 
@@ -454,7 +450,6 @@ class ConverterService(object):
             a_thing, objective_type_key, converter_function_key
         ):
             try:
-                print 'trying:', converter_element
                 converted_thing = converter_element(a_thing)
                 return converted_thing
             except TypeError:
@@ -635,14 +630,11 @@ converter_service.register_converter(
 #------------------------------------------------------------------------------
 def timedelta_converter(input_str):
     """a conversion function for time deltas"""
-    # print '1 timedelta_converter with', input_str, type(input_str)
     if not isinstance(input_str, basestring):
         raise ValueError(input_str)
-    # print '2 timedelta_converter with', input_str, type(input_str)
     input_str = str_quote_stripper(input_str)
     days, hours, minutes, seconds = 0, 0, 0, 0
     details = input_str.split(':')
-    # print '3 timedelta_converter with', input_str, type(input_str)
     if len(details) >= 4:
         days = int(details[-4])
     if len(details) >= 3:
@@ -898,12 +890,7 @@ def classes_in_namespaces_converter(
 
         return InnerClassList  # result of class_list_converter
     return class_list_converter  # result of classes_in_namespaces_converter
-converter_service.register_converter(
-    AnyInstanceOf(str),
-    classes_in_namespaces_converter,
-    objective_type=list
-)
-
+# not registering as it as a very specialized converter
 
 #------------------------------------------------------------------------------
 def regex_converter(input_str):
