@@ -214,7 +214,8 @@ def _arbitrary_object_to_string(a_thing):
         if a_thing.__module__ not in ('__builtin__', 'exceptions'):
             if a_thing.__module__ == "__main__":
                 import sys
-                module_name = sys.modules['__main__'].__file__[:-3].replace('/', '.')
+                module_name = \
+                    sys.modules['__main__'].__file__[:-3].replace('/', '.')
             else:
                 module_name = a_thing.__module__
             return "%s.%s" % (module_name, a_thing.__name__)
@@ -891,6 +892,7 @@ def classes_in_namespaces_converter(
         return InnerClassList  # result of class_list_converter
     return class_list_converter  # result of classes_in_namespaces_converter
 # not registering as it as a very specialized converter
+
 
 #------------------------------------------------------------------------------
 def regex_converter(input_str):

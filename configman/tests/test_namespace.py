@@ -43,7 +43,6 @@ import functools
 from configman import (
     RequiredConfig,
     Namespace,
-    ConfigurationManager
 )
 import configman.config_manager as config_manager
 import configman.datetime_util as dtu

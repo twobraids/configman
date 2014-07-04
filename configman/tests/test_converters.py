@@ -392,8 +392,6 @@ class TestCase(unittest.TestCase):
             )
         )
 
-        print "CCCC", type(n.kls_list), n.kls_list, n.kls_list.from_string_converter
-
         cm = ConfigurationManager(
             n,
             [{

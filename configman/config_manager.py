@@ -54,11 +54,11 @@ import def_sources
 #==============================================================================
 # for convenience define some external symbols here - some client modules may
 # import these symbols from here rather than their origin definition location.
-# PyFlakes may erroneousl flag some of these as unused
+# PyFlakes may erroneously flag some of these as unused
 from option import Option, Aggregation
 from dotdict import DotDict, DotDictWithAcquisition
 from namespace import Namespace
-from required_config import RequiredConfig
+from required_config import RequiredConfig  # used elsewhere - do not remove
 from config_file_future_proxy import ConfigFileFutureProxy
 
 
