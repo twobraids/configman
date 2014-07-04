@@ -472,3 +472,20 @@ class TestCase(unittest.TestCase):
         )
         o2 = o.copy()
         self.assertEqual(o, o2)
+
+    #--------------------------------------------------------------------------
+    def test_converter(self):
+        o = Option(
+            name='dwight',
+            default=17,
+            from_string_converter=int,
+        )
+        c = conv.ConverterService()
+        c.register_converter(
+            conv.AnyInstanceOf(str),
+            lambda s: int(s) * 10,
+            converter_function_key='int'
+        )
+        o.current_converter = c
+        o.set_value(667)
+        self.assertEqual(o.value, 6670)

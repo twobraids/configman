@@ -144,11 +144,11 @@ def memoize(max_cache_size=1000, arg_type_index=0):
       The cache works only on args, not kwargs
     """
     def wrapper(f):
-        def fn(*args):
+        def fn(*args, **kwargs):
             # Python says True == 1, therefore if we cache based on value alone
             # for the cases of True and 1, then we have ambiguity.  This is a
             # hack to differentiate them based on type for the cache.
-            key = (args, type(args[arg_type_index]))
+            key = (args, tuple(kwargs.items()), type(args[arg_type_index]))
             try:
                 result = fn.cache[key]
                 return fn.cache[key]
@@ -156,12 +156,12 @@ def memoize(max_cache_size=1000, arg_type_index=0):
                 if fn.count >= max_cache_size:
                     fn.cache = {}
                     fn.count = 0
-                result = f(*args)
+                result = f(*args, **kwargs)
                 fn.cache[key] = result
                 fn.count += 1
                 return result
             except TypeError:
-                return f(*args)
+                return f(*args, **kwargs)
         fn.cache = {}
         fn.count = 0
         return fn
@@ -439,7 +439,7 @@ class ConverterService(object):
         # caller will just have to deal with failure.
 
     #--------------------------------------------------------------------------
-    #@memoize_instance_method(1000)
+    @memoize_instance_method(1000)
     def convert(
         self,
         a_thing,

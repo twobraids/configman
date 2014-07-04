@@ -598,6 +598,11 @@ class ConfigurationManager(object):
                         # via acquisition, so the key given may not have
                         # been an exact match for what was returned.
                         opt.default = val_src_dict[key]
+                        try:
+                            opt.current_converter = \
+                                a_value_source.converter_service
+                        except AttributeError:
+                            pass
                         if key in all_reference_values:
                             # make sure that this value gets propagated to keys
                             # even if the keys have already been overlaid

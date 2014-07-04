@@ -76,6 +76,7 @@ class Option(object):
 
         self._set_from_string_converter(default, from_string_converter)
         self._set_to_string_converter(default, to_string_converter)
+        self.current_converter = conv.converter_service
 
         if value is None:
             value = default
@@ -94,11 +95,9 @@ class Option(object):
             from_string_converter = conv.class_converter(from_string_converter)
         if from_string_converter is None:
             if default is not None:
-                print "def", default, type(default)
                 from_string_converter = conv.get_from_string_converter(
                     type(default)
                 )
-                print "jjj", from_string_converter
             else:
                 from_string_converter = conv.str_quote_stripper
         self.from_string_converter = from_string_converter
@@ -169,36 +168,27 @@ class Option(object):
     def set_value(self, val=None):
         """assign a new value to this option.
             val - the new value.  If None, then assign the option's default
-            converters - use the custom converter from the converter's
-                         mapping, keyed by the option's
-                         '_from_string_converter_key'
         """
         if val is None:
             val = self.default
-        if isinstance(val, unicode):
-            val = conv.unicode_to_str(val)
+            
         if isinstance(val, basestring):
-            val = conv.str_quote_stripper(val)
-            if self.from_string_converter is None:
-                self.from_string_converter = conv.get_from_string_converter(
-                    type(self.default)
-                )
+            local_converter_candidate = self.current_converter.get_converter(
+                conv.AnyInstanceOf(str),
+                converter_function_key=self._from_string_converter_key
+            )
+            if local_converter_candidate:
+                from_string_converter = local_converter_candidate
+            else:
+                from_string_converter = self.from_string_converter
             try:
-                self.value = self.from_string_converter(val)
+                self.value = from_string_converter(val)
             except Exception, x:
-                error_message = \
-                    "In '%s', '%s' fails to convert '%s' because %s" % \
-                    (
-                        self.name,
-                        self._from_string_converter_key,
-                        val,
-                        x
-                    )
-                raise CannotConvertError(error_message)
+                raise CannotConvertError(str(x))
         elif isinstance(val, Option):
             self.set_value(val.default)
         elif isinstance(val, collections.Mapping) and 'default' in val:
-            self.set_value(val["default"])
+            self.set_value(val['default'])
         else:
             # we're going to assume that the field is supposed to be whatever
             # type we're currently assigning to it.

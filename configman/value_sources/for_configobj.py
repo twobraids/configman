@@ -46,6 +46,12 @@ from source_exceptions import (CantHandleTypeException, ValueException,
                                NotEnoughInformationException)
 from ..namespace import Namespace
 from ..option import Option
+from ..converters import (
+    ConverterService,
+    list_converter,
+    AnyInstanceOf,
+    sequence_to_string,
+)
 
 file_name_extension = 'ini'
 
@@ -144,6 +150,16 @@ class LoadingIniFileFailsException(ValueException):
 
 #==============================================================================
 class ValueSource(object):
+    
+    converter_service = ConverterService()
+    converter_service.register_converter(
+        AnyInstanceOf(str),
+        list_converter
+    )
+    converter_service.register_converter(
+        AnyInstanceOf(list),
+        sequence_to_string
+    )
 
     #--------------------------------------------------------------------------
     def __init__(
