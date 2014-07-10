@@ -179,20 +179,26 @@ class DotDict(collections.MutableMapping):
     def __getitem__(self, key):
         """define the square bracket operator to refer to the object's __dict__
         for fetching values.  It accepts keys in the form X.Y.Z"""
-        key_split = key.split('.')
-        current = self
-        for k in key_split:
-            current = getattr(current, k)
-        return current
+        try:
+            key_split = key.split('.')
+            current = self
+            for k in key_split:
+                current = getattr(current, k)
+            return current
+        except TypeError:
+            return getattr(self, str(key))
 
     #--------------------------------------------------------------------------
     def __setitem__(self, key, value):
         """define the square bracket operator to refer to the object's __dict__
         for setting values."""
-        if '.' in key:
-            self.assign(key, value)
-        else:
-            setattr(self, key, value)
+        try:
+            if '.' in key:
+                self.assign(key, value)
+            else:
+                setattr(self, key, value)
+        except TypeError:
+            setattr(self, str(key), value)
 
     #--------------------------------------------------------------------------
     def __delitem__(self, key):
