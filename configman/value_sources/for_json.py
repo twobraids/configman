@@ -101,10 +101,25 @@ class ValueSource(object):
 
     #--------------------------------------------------------------------------
     @staticmethod
-    def write(source_dict, output_stream=sys.stdout):
-        json_dict = {}
-        for key in source_dict.keys_breadth_first():
-            json_dict[key] = conv.to_str(source_dict[key].value)
-        json.dump(json_dict, output_stream)
+    def recursive_default_dict():
+        return collections.defaultdict(ValueSource.recursive_default_dict)
 
+    #--------------------------------------------------------------------------
+    @staticmethod
+    def write(source_dict, output_stream=sys.stdout):
+        json_dict = ValueSource.recursive_default_dict()
+        for qkey in source_dict.keys_breadth_first():
+            val = source_dict[qkey]
+            if isinstance(val, Namespace):
+                continue
+            d = json_dict
+            key_parts = qkey.split('.')
+            for x in key_parts[:-1]:
+                d = d[x]
+            if isinstance(val, Option):
+                if isinstance(val.value, (int, float, str)):
+                    d[key_parts[-1]] = val.value
+                else:
+                    d[key_parts[-1]] = conv.to_str(val.value)
+        json.dump(json_dict, output_stream)
 

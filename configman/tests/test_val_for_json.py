@@ -47,6 +47,7 @@ import configman.config_manager as config_manager
 import configman.datetime_util as dtu
 from ..value_sources import for_json
 from configman.value_sources.for_json import ValueSource
+from configman.dotdict import iteritems_breadth_first
 
 
 #------------------------------------------------------------------------------
@@ -112,3 +113,40 @@ class TestCase(unittest.TestCase):
         }
         for key, value in expect_to_find.items():
             self.assertEqual(jrec['aaa'], value)
+
+    #--------------------------------------------------------------------------
+    def test_write_json_two(self):
+        d = {
+                "database": {
+                    "hostname": "localhost",
+                    "port": 5432,
+                    "name": "my_db",
+                    "user": "lars",
+                    "password": 'secrets',
+                }
+        }
+
+        c = config_manager.ConfigurationManager(
+            d,
+            [],
+            use_admin_controls=False,
+            use_auto_help=False,
+            argv_source=[]
+        )
+
+        out = StringIO()
+        c.write_conf(for_json, opener=stringIO_context_wrapper(out))
+        received = out.getvalue()
+        out.close()
+        jrec = json.loads(received)
+
+        for j_key, d_key in zip(
+            sorted(iteritems_breadth_first(jrec), key=lambda x: x[0]),
+            sorted(iteritems_breadth_first(d), key=lambda x: x[0])
+        ):
+            self.assertEqual(j_key, d_key)
+
+
+
+
+
