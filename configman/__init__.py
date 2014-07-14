@@ -56,9 +56,19 @@ from .converters import class_converter, regex_converter, timedelta_converter
 
 # constants used to refer to Value Source concepts generically
 from config_file_future_proxy import ConfigFileFutureProxy
+from os import environ as environment
 import getopt as command_line
 
 from os import environ
 from .dotdict import configman_keys
 environment = configman_keys(environ)
 environment.always_ignore_mismatches = True
+
+
+#------------------------------------------------------------------------------
+def configuration(*args, **kwargs):
+    """this function just instantiates a ConfigurationManager and returns
+    the configuration dictionary.  It accepts all the same parameters as the
+    constructor for the ConfigurationManager class."""
+    cm = ConfigurationManager(*args, **kwargs)
+    return cm.get_config()
