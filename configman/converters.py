@@ -1148,7 +1148,7 @@ def dont_care(value):
     """
     value_type = type(value)
     try:
-        if value_type is types.TypeType:
+        if value_type in (types.TypeType, types.ModuleType):
             X = DontCare
         else:
             result = dont_care_classes[value_type](value)
