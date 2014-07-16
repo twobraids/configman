@@ -59,6 +59,13 @@ from config_file_future_proxy import ConfigFileFutureProxy
 from os import environ as environment
 import getopt as command_line
 
+try:
+    import argparse as command_line
+    from configman.argparse_ import ArgumentParser
+except ImportError:
+    import getopt as command_line
+
+
 from os import environ
 from .dotdict import configman_keys
 environment = configman_keys(environ)

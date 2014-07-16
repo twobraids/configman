@@ -147,6 +147,7 @@ class ConfigurationManager(object):
             options_banned_from_help = ['application']
         self.config_pathname = config_pathname
         self.config_optional = config_optional
+        self.use_auto_help = use_auto_help
 
         self.app_name = app_name
         self.app_version = app_version
@@ -173,6 +174,9 @@ class ConfigurationManager(object):
                     cm.environment,
                     cm.command_line
                 )
+        if self.use_auto_help and cm.command_line in values_source_list:
+            cmd_handler = value_sources.type_handler_dispatch[cm.command_line]
+            cmd_handler[0].ValueSource._setup_auto_help(self)
 
         admin_tasks_done = False
         self.admin_controls_list = [
@@ -184,8 +188,6 @@ class ConfigurationManager(object):
         ]
         self.options_banned_from_help = options_banned_from_help
 
-        if use_auto_help:
-            self._setup_auto_help()
         if use_admin_controls:
             admin_options = self._setup_admin_options(values_source_list)
             self.definition_source_list.append(admin_options)
@@ -247,9 +249,15 @@ class ConfigurationManager(object):
             # 'app_name' from the parameters passed in, if they exist.
             pass
 
-        if use_auto_help and self._get_option('help').value:
-            self.output_summary()
-            admin_tasks_done = True
+        try:
+            if use_auto_help and self._get_option('help').value:
+                self.output_summary()
+                admin_tasks_done = True
+        except exc.NotAnOptionError:
+            # we can only assume that the command line value source has its
+            # own method of doing help that didn't need the addition of a
+            # 'help' definition.  there is nothing to do here
+            pass
 
         if use_admin_controls and self._get_option('admin.print_conf').value:
             self.print_conf()
@@ -781,11 +789,6 @@ class ConfigurationManager(object):
         return config
 
     #--------------------------------------------------------------------------
-    def _setup_auto_help(self):
-        help_option = Option(name='help', doc='print this', default=False)
-        self.definition_source_list.append({'help': help_option})
-
-    #--------------------------------------------------------------------------
     def _get_config_pathname(self):
         if os.path.isdir(self.config_pathname):
             # we've got a path with no file name at the end
@@ -815,7 +818,8 @@ class ConfigurationManager(object):
         admin.add_option(
             name='dump_conf',
             default='',
-            doc='a pathname to which to write the current config',
+            doc='a file system pathname for new config file (types: %s)' %
+            ', '.join(value_sources.file_extension_dispatch.keys())
         )
         admin.add_option(
             name='strict',
@@ -832,6 +836,17 @@ class ConfigurationManager(object):
                 default=default_config_pathname,
                 doc='the pathname of the config file (path/filename)',
             )
+
+        # find command_line_value source and embue it with the ability to
+        # do command line options
+        command_line_value_source = None
+        for a_value_source in values_source_list:
+            try:
+                if a_value_source.command_line_value_source:
+                    a_value_source.setup_admin_options(admin)
+            except (AttributeError, KeyError), x:
+                # this isn't a commandline source, skip on
+                pass
         return base_namespace
 
     #--------------------------------------------------------------------------

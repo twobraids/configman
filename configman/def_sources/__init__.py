@@ -46,6 +46,7 @@ import for_modules
 #import for_list
 import for_json
 #import for_class
+import for_argparse
 
 definition_dispatch = {
   collections.Mapping: for_mappings.setup_definitions,
@@ -55,6 +56,8 @@ definition_dispatch = {
   unicode: for_json.setup_definitions,
   #type: for_class.setup_definitions,
 }
+
+definition_dispatch.update(for_argparse.type_to_setup_association)
 
 
 class UnknownDefinitionTypeException(Exception):

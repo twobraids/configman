@@ -47,6 +47,7 @@ import getopt
 
 import mock
 
+import configman
 import configman.config_manager as config_manager
 from configman.option import Option
 from configman.dotdict import DotDict, DotDictWithAcquisition
@@ -879,8 +880,6 @@ c.string =   from ini
 
     #--------------------------------------------------------------------------
     def test_help_out(self):
-        global command_line
-
         class MyApp(RequiredConfig):
             app_name = 'fred'
             app_version = '1.0'
@@ -936,23 +935,22 @@ c.string =   from ini
 
         old_sys_exit = sys.exit
         sys.exit = my_exit
-        old_command_line = command_line
-        command_line = getopt
+        old_command_line = configman.command_line
+        configman.command_line = getopt
         try:
             MyConfigManager(
                 n,
-                [command_line],
+                values_source_list=[configman.command_line],
                 use_admin_controls=True,
                 use_auto_help=True,
                 argv_source=['--password=wilma', '--help']
             )
         finally:
             sys.exit = old_sys_exit
-            command_line = old_command_line
+            configman.command_line = old_command_line
 
     #--------------------------------------------------------------------------
     def test_write_gets_called(self):
-        global command_line
 
         class MyApp(RequiredConfig):
             app_name = 'fred'
@@ -983,12 +981,12 @@ c.string =   from ini
             pass
         old_sys_exit = sys.exit
         sys.exit = my_exit
-        old_command_line = command_line
-        command_line = getopt
+        old_command_line = configman.command_line
+        configman.command_line = getopt
         try:
             c = MyConfigManager(
                 n,
-                [command_line],
+                [configman.command_line],
                 use_admin_controls=True,
                 use_auto_help=True,
                 argv_source=[
@@ -999,7 +997,7 @@ c.string =   from ini
             self.assertEqual(c.dump_conf_called, True)
         finally:
             sys.exit = old_sys_exit
-            command_line = old_command_line
+            configman.command_line = old_command_line
 
     #--------------------------------------------------------------------------
     def test_get_options(self):
@@ -1656,7 +1654,10 @@ c.string =   from ini
         try:
             c = config_manager.ConfigurationManager(
                 (n,),
-                values_source_list=[ConfigFileFutureProxy, command_line],
+                values_source_list=[
+                    ConfigFileFutureProxy,
+                    configman.command_line
+                ],
                 argv_source=['--admin.conf=x.ini']
             )
             with c.context() as config:
@@ -1873,7 +1874,12 @@ c.string =   from ini
             self.assertTrue(
                 isinstance(cm.option_definitions[an_opt], Option)
             )
-        self.assertEqual(len(opts), 9)  # there must be exactly 9 options
+        if configman.command_line is getopt:
+            self.assertEqual(len(opts), 9)  # there must be exactly 9 options
+        else:
+            self.assertEqual(len(opts), 8)  # there must be exactly 8 options
+            # argparse exists which didn't need to setup a 'help' option as it
+            # has its own built in method of doing help
 
     #--------------------------------------------------------------------------
     @mock.patch('configman.config_manager.warnings')

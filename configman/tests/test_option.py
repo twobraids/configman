@@ -42,11 +42,37 @@ import datetime
 import unittest
 import re
 
+from configman import RequiredConfig, Namespace
+
 import configman.converters as conv
 import configman.datetime_util as dtu
 from configman.option import Option
 from configman.config_exceptions import CannotConvertError, OptionError
 
+
+#==============================================================================
+class Alpha(RequiredConfig):
+    required_config = Namespace()
+    required_config.add_option('a', doc='a', default=17)
+
+    #--------------------------------------------------------------------------
+    def __init__(self, config):
+        self.config = config
+        self.a = config.a
+
+#==============================================================================
+class Beta(RequiredConfig):
+    required_config = Namespace()
+    required_config.add_option(
+        'b',
+        doc='b',
+        default=23
+    )
+
+    #--------------------------------------------------------------------------
+    def __init__(self, config):
+        self.config = config
+        self.b = config.b
 
 #==============================================================================
 class TestCase(unittest.TestCase):
