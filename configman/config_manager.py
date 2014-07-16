@@ -664,7 +664,8 @@ class ConfigurationManager(object):
                         # try to fetch new requirements from this value
                         new_req = an_option.value.get_required_config()
                     except AttributeError:
-                        new_req = an_option.value.required_config
+                        new_req = Namespace()
+                        new_req.update(an_option.value.required_config)
                     # make sure what we got as new_req is actually a
                     # Mapping of some sort
                     if not isinstance(new_req, collections.Mapping):
