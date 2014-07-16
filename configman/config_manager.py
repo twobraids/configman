@@ -665,7 +665,10 @@ class ConfigurationManager(object):
                         new_req = an_option.value.get_required_config()
                     except AttributeError:
                         new_req = Namespace()
-                        new_req.update(an_option.value.required_config)
+                        for rc_key, rc_value in iteritems_breadth_first(
+                            an_option.value.required_config
+                        ):
+                            new_req[rc_key] = rc_value
                     # make sure what we got as new_req is actually a
                     # Mapping of some sort
                     if not isinstance(new_req, collections.Mapping):
