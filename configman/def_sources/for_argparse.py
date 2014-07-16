@@ -47,7 +47,7 @@ try:
     from .. import namespace
     from .. import converters
 
-    from configman.dontcare import dont_care
+    from configman.converters import dont_care
 
     # horrors
     def find_action_name_by_value(registry, target):

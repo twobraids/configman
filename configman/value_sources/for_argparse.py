@@ -50,10 +50,9 @@ import argparse
 
 import collections
 
-from configman.dontcare import dont_care
 from configman.option import Option
 from configman.dotdict import DotDict, iteritems_breadth_first
-from configman.converters import boolean_converter, to_str
+from configman.converters import boolean_converter, to_str, dont_care
 
 from configman.argparse_ import (
     ControlledErrorReportingArgumentParser,
