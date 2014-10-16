@@ -312,8 +312,8 @@ class ConfigurationManager(object):
 
         names_list = self.get_option_names()
         print >> output_stream, (
-            "usage:\n%s [OPTIONS]..." % self.app_invocation_name
-        )
+            "usage:\n%s [OPTIONS]... " % self.app_invocation_name
+        ),
         bracket_count = 0
         for key in names_list:
             an_option = self.option_definitions[key]
