@@ -57,6 +57,7 @@ import def_sources
 # PyFlakes may erroneously flag some of these as unused
 from option import Option, Aggregation
 from dotdict import DotDict, DotDictWithAcquisition, iteritems_breadth_first
+from orderedset import OrderedSet
 from namespace import Namespace
 from required_config import RequiredConfig  # used elsewhere - do not remove
 from config_file_future_proxy import ConfigFileFutureProxy
@@ -189,6 +190,7 @@ class ConfigurationManager(object):
             'admin.print_conf',
             'admin.strict',
             'admin.expose_secrets',
+            'admin.interactive'
         ]
         self.options_banned_from_help = options_banned_from_help
 
@@ -257,6 +259,10 @@ class ConfigurationManager(object):
 
         if use_auto_help and self._get_option('help').value:
             self.output_summary()
+            admin_tasks_done = True
+
+        if use_admin_controls and self._get_option('admin.interactive').value:
+            self.interactive_walk('application')
             admin_tasks_done = True
 
         if use_admin_controls and self._get_option('admin.print_conf').value:
@@ -827,6 +833,11 @@ class ConfigurationManager(object):
             default=False,
             doc='should options marked secret get written out or hidden?'
         )
+        admin.add_option(
+            name='interactive',
+            default=False,
+            doc='step through and interactively get config information'
+        )
         # only offer the config file admin options if they've been requested in
         # the values source list
         if ConfigFileFutureProxy in values_source_list:
@@ -887,3 +898,87 @@ class ConfigurationManager(object):
             (key, self.option_definitions[key])
             for key in self.option_definitions.keys_breadth_first()
         ]
+
+    #--------------------------------------------------------------------------
+    def interactive_walk(
+        self,
+        root_key,
+        prompting_stream=sys.stdout,
+        input_stream=sys.stdin
+    ):
+        required_config = Namespace()
+        common_resources = {}
+        common_resources_already_asked = set()
+        completed_keys = OrderedSet()
+
+        root_option = self.option_definitions[root_key]
+        print "root_option", root_option
+        required_config[root_key] = root_option.copy()
+        print dict(required_config)
+
+        done = False
+        interactive_value_source = DotDict()
+        while not done:
+            undo = False
+            config = self.get_config()
+            config.admin.interactive = False
+            config.always_ignore_mismatches = True
+            cm = ConfigurationManager(
+                definition_source=required_config,
+                values_source_list=[
+                    config,
+                    interactive_value_source
+                ],
+            )
+
+            required_config = Namespace()
+            for a_key in cm.option_definitions.keys_breadth_first(
+                include_dicts=True
+            ):
+                if a_key.startswith('admin') or a_key == 'help':
+                    continue
+                an_option = self.option_definitions[a_key]
+                line = ""
+                #if an_option.reference_value_from:
+                    # is this rvf in the use rvf list?
+                    #    this rvf in use list?
+                    #    no:
+                    #       ask about use of this rvf
+                    #       no:
+                    #           dont use this rvf,
+                    #           register not used rvf
+                    #           continue to get value for this option
+                    #       yes:
+                    #           do use this rvf
+                    #           register use of rvf
+                    #           skip on
+                    #    yes:
+                    #        skip on
+                print >>prompting_stream, "%s: %s" % (a_key, an_option.doc)
+                while not line:
+                    line = input_stream.readline().strip()
+                    if line == "?":
+                        if an_option.extended_doc:
+                            print >>prompting_stream, "%s: %s" % (
+                                a_key,
+                                an_option.extended_doc
+                            )
+                            line = ''
+                        else:
+                            print >>prompting_stream, "no further documentation available"
+                            line = ''
+                    elif line.lower() == 'undo':
+                        undo = True
+                    else:
+                        interactive_value_source[a_key] = line
+                        completed_keys.add(a_key)
+                        required_config[a_key] = cm.option_definitions[a_key]
+
+
+            if undo:
+                # if raises KeyError, let the exception escape this routine
+                completed_keys.pop()
+
+
+
+
