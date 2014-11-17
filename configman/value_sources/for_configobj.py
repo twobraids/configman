@@ -252,6 +252,9 @@ class ValueSource(object):
             else:
                 option_format = '%s#%s=%s\n'
 
+            if isinstance(option_value, basestring) and ',' in option_value:
+                option_value = '"%s"' % option_value
+
             print >>output_stream, option_format % (
                 indent_spacer,
                 an_option.name,
