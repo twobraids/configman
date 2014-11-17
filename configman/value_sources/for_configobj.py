@@ -247,7 +247,7 @@ class ValueSource(object):
                     )
                 )
 
-            if an_option.likely_to_be_changed:
+            if an_option.likely_to_be_changed or option_value != an_option.original_default:
                 option_format = '%s%s=%s\n'
             else:
                 option_format = '%s#%s=%s\n'

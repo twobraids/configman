@@ -61,10 +61,15 @@ class Option(object):
         not_for_definition=False,
         reference_value_from=None,
         secret=False,
+        orginal_default=None,
     ):
         self.name = name
         self.short_form = short_form
         self.default = default
+        if original_default is None:
+            self.original_default = default
+        else:
+            self.original_default = original_default
         if isinstance(doc, basestring):
             doc = doc.strip()
         self.doc = doc
@@ -209,6 +214,7 @@ class Option(object):
             not_for_definition=self.not_for_definition,
             reference_value_from=self.reference_value_from,
             secret=self.secret,
+            original_default=self.original_default
         )
         return o
 
