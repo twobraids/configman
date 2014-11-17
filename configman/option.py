@@ -61,7 +61,7 @@ class Option(object):
         not_for_definition=False,
         reference_value_from=None,
         secret=False,
-        orginal_default=None,
+        original_default=None,
     ):
         self.name = name
         self.short_form = short_form
