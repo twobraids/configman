@@ -9,6 +9,7 @@ from configman.converters import (
     str_to_instance_of_type_converters,
     str_to_list,
     arbitrary_object_to_string,
+    boolean_converter,
 )
 
 # horrors
@@ -67,9 +68,9 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
 
     #--------------------------------------------------------------------------
     def add_argument(self, option):
-        if "argparse" in a_configman_option.foreign_data:
-            args = a_configman_option.foreign_data.argparse.args
-            kwargs = a_configman_option.foreign_data.argparse.kwargs
+        if option.foreign_data is not None and "argparse" in option.foreign_data:
+            args = option.foreign_data.argparse.args
+            kwargs = option.foreign_data.argparse.kwargs
             action = super(
                 ControlledErrorReportingArgumentParser,
                 self
@@ -79,29 +80,29 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
             )
             return action
 
-        opt_name = a_configman_option.name
+        opt_name = option.name
 
-        if a_configman_option.is_argument:  # is positional argument
+        if option.is_argument:  # is positional argument
             option_name = opt_name
         else:
             option_name = '--%s' % opt_name
 
-        if a_configman_option.short_form:
-            option_short_form = '-%s' % a_configman_option.short_form
+        if option.short_form:
+            option_short_form = '-%s' % option.short_form
             args = (option_name, option_short_form)
         else:
             args = (option_name,)
 
         kwargs = DotDict()
-        if a_configman_option.from_string_converter in (bool, boolean_converter):
+        if option.from_string_converter in (bool, boolean_converter):
             kwargs.action = 'store_true'
         else:
             kwargs.action = 'store'
             #kwargs.type = to_str
 
-        kwargs.default = a_configman_option.default
-        kwargs.help = a_configman_option.doc
-        if not a_configman_option.is_argument:
+        kwargs.default = option.default
+        kwargs.help = option.doc
+        if not option.is_argument:
             kwargs.dest = opt_name
         action = \
             super(ControlledErrorReportingArgumentParser, self).add_argument(
@@ -111,27 +112,29 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
         return action
 
     #--------------------------------------------------------------------------
-    def parse_args(self, args=None, namespace=None):
+    def parse_args(self, args=None, namespace=None, object_hook=None):
         proposed_config = \
             super(ControlledErrorReportingArgumentParser, self).parse_args(
                 args,
                 namespace
             )
-        return self._edit_config(proposed_config)
+        return self._edit_config(proposed_config, object_hook)
 
     #--------------------------------------------------------------------------
-    def parse_known_args(self, args=None, namespace=None):
+    def parse_known_args(self, args=None, namespace=None, object_hook=None):
         an_argparse_namespace, extra_arguments = \
             super(ControlledErrorReportingArgumentParser, self) \
             .parse_known_args(args, namespace)
         return (
-            self._edit_config(an_argparse_namespace),
+            self._edit_config(an_argparse_namespace, object_hook),
             extra_arguments
         )
 
     #--------------------------------------------------------------------------
-    def _edit_config(self, proposed_config):
-        config = DotDict()
+    def _edit_config(self, proposed_config, object_hook=None):
+        if object_hook is None:
+            object_hook = DotDict
+        config = object_hook()
         for key, value in iteritems_breadth_first(proposed_config.__dict__):
             if value is ArgparsePlaceholder:
                 continue

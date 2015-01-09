@@ -108,14 +108,15 @@ class ValueSource(object):
     @staticmethod
     def _option_to_command_line_str(an_option, key):
         if an_option.is_argument:
-            if (an_option.number_of_values is not None
+            print an_option.foreign_data.keys()
+            if (an_option.foreign_data.nvar is not None
                 and isinstance(an_option.value, collections.Sequence)
             ):
                 return [to_str(x) for x in an_option.value]
             if an_option.value is None:
                 return []
             return str(an_option.value)
-        if an_option.number_of_values == 0:
+        if an_option.foreign_data.nvar== 0:
             return None
         if an_option.from_string_converter in (bool, boolean_converter):
             if an_option.value:
@@ -191,7 +192,7 @@ class ValueSource(object):
             #return True
 
     #--------------------------------------------------------------------------
-    def get_values(self, config_manager, ignore_mismatches):
+    def get_values(self, config_manager, ignore_mismatches, object_hook=None):
         if ignore_mismatches:
             print "creating a new parser"
             if self.parent_parsers:
@@ -200,7 +201,7 @@ class ValueSource(object):
                 print "with no parents"
 
             parser = self._create_new_argparse_instance(
-                self.parser_class,
+                self.argparse_class,
                 config_manager,
                 False,  # create auto help
                 self.parent_parsers,
@@ -213,13 +214,13 @@ class ValueSource(object):
                 argparse_namespace, self.extra_args = namespace_and_extra_args
             except TypeError:
                 argparse_namespace = argparse.Namespace()
-            self.parent_parsers = [self.parser]
+            #self.parent_parsers = [parser]
         else:
             fake_args = self.create_fake_args(config_manager)
             if '--help' in self.argv_source or "-h" in self.argv_source:
                 fake_args.append("--help")
             parser = self._create_new_argparse_instance(
-                self.parser_class,
+                self.argparse_class,
                 config_manager,
                 True,
                 self.parent_parsers,
