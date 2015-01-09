@@ -42,12 +42,11 @@ import datetime
 import types
 import json
 
-from required_config import RequiredConfig
-from namespace import Namespace
-
-from .datetime_util import datetime_from_ISO_string as datetime_converter
-from .datetime_util import date_from_ISO_string as date_converter
-from .config_exceptions import CannotConvertError
+from configman.datetime_util import (
+    datetime_from_ISO_string as datetime_converter
+)
+from configman.datetime_util import date_from_ISO_string as date_converter
+from configman.config_exceptions import CannotConvertError
 
 import datetime_util
 
@@ -243,6 +242,11 @@ def str_to_classes_in_namespaces(
                               well as an aggregator that will instantiate the
                               class.
                               """
+
+    # these are only used within this method.  No need to pollute the module
+    # scope with them
+    from configman.namespace import Namespace
+    from configman.required_config import RequiredConfig
 
     #--------------------------------------------------------------------------
     def class_list_converter(class_list_str):

@@ -40,7 +40,7 @@ import collections
 import inspect
 import os
 
-from source_exceptions import (
+from configman.value_sources.source_exceptions import (
     NoHandlerForType,
     ModuleHandlesNothingException,
     AllHandlersFailedException,
@@ -50,18 +50,18 @@ from source_exceptions import (
 from configman.orderedset import OrderedSet
 from configman.converters import str_to_python_object
 
-from ..config_file_future_proxy import ConfigFileFutureProxy
-from ..config_exceptions import CannotConvertError
+from configman.config_file_future_proxy import ConfigFileFutureProxy
+from configman.config_exceptions import CannotConvertError
 
 # replace with dynamic discovery and loading
-import for_argparse
-#import for_xml
-import for_getopt
-import for_json
-import for_conf
-import for_mapping
-import for_configobj
-import for_modules
+from configman.value_sources import for_argparse
+#from configman.value_sources import or_xml
+from configman.value_sources import for_getopt
+from configman.value_sources import for_json
+from configman.value_sources import for_conf
+from configman.value_sources import for_mapping
+from configman.value_sources import for_configobj
+from configman.value_sources import for_modules
 
 # please replace with dynamic discovery
 for_handlers = [
