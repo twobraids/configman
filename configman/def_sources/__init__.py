@@ -41,11 +41,9 @@ import collections
 # TODO: This is a temporary dispatch mechanism.  This whole system
 # is to be changed to automatic discovery of the for_* modules
 
-import for_mappings
-import for_modules
-#import for_list
-import for_json
-#import for_class
+from configman.def_sources import for_mappings
+from configman.def_sources import for_modules
+from configman.def_sources import for_json
 
 definition_dispatch = {
   collections.Mapping: for_mappings.setup_definitions,

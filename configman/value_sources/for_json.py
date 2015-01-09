@@ -40,7 +40,9 @@ import json
 import collections
 import sys
 
-from configman import converters as conv
+from configman.converters import (
+    to_string_converters,
+)
 from configman.namespace import Namespace
 from configman.option import Option, Aggregation
 
@@ -126,14 +128,14 @@ class ValueSource(object):
             if isinstance(val, Option):
                 for okey, oval in val.__dict__.iteritems():
                     try:
-                        d[okey] = conv.to_string_converters[type(oval)](oval)
+                        d[okey] = to_string_converters[type(oval)](oval)
                     except KeyError:
                         d[okey] = str(oval)
                 d['default'] = d['value']
             elif isinstance(val, Aggregation):
                 d['name'] = val.name
                 fn = val.function
-                d['function'] = conv.to_string_converters[type(fn)](fn)
+                d['function'] = to_string_converters[type(fn)](fn)
         json.dump(json_dict, output_stream)
 
 

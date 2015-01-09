@@ -54,8 +54,7 @@ from configman import dotdict
 from configman import option
 from configman import namespace
 from configman.config_exceptions import NotAnOptionError
-from configman import converters as conv
-
+from configman.converters import boolean_converter
 from configman.dotdict import DotDict
 from configman.memoize import memoize
 
@@ -145,7 +144,7 @@ class ValueSource(object):
                         '%s is not a valid short form option' % opt_name[1:]
                     )
             option_ = config_manager._get_option(name)
-            if option_.from_string_converter == conv.boolean_converter:
+            if option_.from_string_converter == boolean_converter:
                 command_line_values[name] = not option_.default
             else:
                 command_line_values[name] = opt_val

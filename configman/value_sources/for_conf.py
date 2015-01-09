@@ -48,9 +48,9 @@ import functools
 import sys
 
 from configman import namespace
-from configman import option as opt
-from configman import converters
-
+from configman.option import (
+    Option,
+)
 from configman.value_sources.source_exceptions import (
     ValueException,
     CantHandleTypeException
@@ -135,7 +135,7 @@ class ValueSource(object):
         options = [
             value
             for value in source_dict.values()
-            if isinstance(value, opt.Option)
+            if isinstance(value, Option)
         ]
         options.sort(cmp=lambda x, y: cmp(x.name, y.name))
         namespaces = [
