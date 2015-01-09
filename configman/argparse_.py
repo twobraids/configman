@@ -1,10 +1,13 @@
 import argparse
 from os import environ
+from functools import partial
 
-#from configman.converters import dont_care
+from configman import (
+    Namespace,
+)
 from configman.config_file_future_proxy import ConfigFileFutureProxy
 from configman.dotdict import DotDict, iteritems_breadth_first
-from configman.convertes import (
+from configman.converters import (
     str_to_instance_of_type_converters,
     str_to_list,
     arbitrary_object_to_string,
@@ -65,7 +68,7 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
             super(ControlledErrorReportingArgumentParser, self).error(message)
 
     #--------------------------------------------------------------------------
-    def add_argument(self, option=a_configman_option):
+    def add_argument(self, option):
         if "argparse" in a_configman_option.foreign_data:
             args = a_configman_option.foreign_data.argparse.args
             kwargs = a_configman_option.foreign_data.argparse.kwargs
@@ -146,17 +149,18 @@ class ArgumentParser(argparse.ArgumentParser):
         kwargs['add_help'] = False
         super(ArgumentParser, self).__init__(*args, **kwargs)
         self.value_source_list = [environ, ConfigFileFutureProxy, argparse]
+        self.required_config = Namespace()
 
     #--------------------------------------------------------------------------
     def add_argument(self, *args, **kwargs):
-        default = args.get('default', ArgparsePlaceholder)
+        default = kwargs.get('default', ArgparsePlaceholder)
         if default != argparse.SUPPRESS:
             if not default is ArgparsePlaceholder:
-                args['default'] = ArgparsePlaceholder
+                kwargs['default'] = ArgparsePlaceholder
 
         # forward all parameters to the underlying base class
         an_action = \
-            super(ControlledErrorReportingArgumentParser, self).add_argument(
+            super(ArgumentParser, self).add_argument(
                 *args,
                 **kwargs
             )
@@ -240,14 +244,14 @@ class ArgumentParser(argparse.ArgumentParser):
             from_string_converter=target_from_string_converter,
             to_string_converter=arbitrary_object_to_string,
             short_form=short_form,
-            is_argument=not kwargs['option_strings'],
+            is_argument='option_strings' not in kwargs,
             not_for_definition=default != argparse.SUPPRESS,
             foreign_data=DotDict({
                 'argparse.args': args,
                 'argparse.kwargs': kwargs,
             })
         )
-        return action
+        return an_action
 
     #--------------------------------------------------------------------------
     def parse_args(self, args=None, namespace=None):

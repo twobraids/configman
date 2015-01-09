@@ -63,11 +63,11 @@ from .dotdict import configman_keys
 environment = configman_keys(environ)
 environment.always_ignore_mismatches = True
 
-try:
-    import argparse as command_line
-    from configman.argparse_ import ArgumentParser
-except ImportError:
-    import getopt as command_line
+#try:
+    #import argparse as command_line
+    #from configman.argparse_ import ArgumentParser
+#except ImportError:
+    #import getopt as command_line
 
 
 #------------------------------------------------------------------------------
