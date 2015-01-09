@@ -50,8 +50,8 @@ from source_exceptions import (
 from configman.orderedset import OrderedSet
 from configman.converters import str_to_python_object
 
-from ..config_file_future_proxy import ConfigFileFutureProxy
-from ..config_exceptions import CannotConvertError
+from configman.config_file_future_proxy import ConfigFileFutureProxy
+from configman.config_exceptions import CannotConvertError
 
 # replace with dynamic discovery and loading
 #import for_argparse

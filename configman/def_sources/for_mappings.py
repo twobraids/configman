@@ -38,9 +38,9 @@
 
 import collections
 
-from .. import converters
-from .. import namespace
-from .. import option
+from configman import converters
+from configman import namespace
+from configman import option
 
 
 #------------------------------------------------------------------------------

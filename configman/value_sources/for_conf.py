@@ -47,11 +47,14 @@ to open it.
 import functools
 import sys
 
-from .. import namespace
-from .. import option as opt
-from .. import converters
+from configman import namespace
+from configman import option as opt
+from configman import converters
 
-from source_exceptions import ValueException, CantHandleTypeException
+from configman.value_sources.source_exceptions import (
+    ValueException,
+    CantHandleTypeException
+)
 from configman.dotdict import DotDict
 from configman.memoize import memoize
 

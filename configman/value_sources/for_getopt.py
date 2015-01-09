@@ -50,16 +50,19 @@ represents the argv source."""
 import getopt
 import collections
 
-from .. import dotdict
-from .. import option
-from .. import namespace
-from ..config_exceptions import NotAnOptionError
-from .. import converters as conv
+from configman import dotdict
+from configman import option
+from configman import namespace
+from configman.config_exceptions import NotAnOptionError
+from configman import converters as conv
 
 from configman.dotdict import DotDict
 from configman.memoize import memoize
 
-from source_exceptions import ValueException, CantHandleTypeException
+from configman.value_sources.source_exceptions import (
+    ValueException,
+    CantHandleTypeException
+)
 
 
 #==============================================================================

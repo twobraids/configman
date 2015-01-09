@@ -1,4 +1,4 @@
-from .namespace import Namespace
+from configman.namespace import Namespace
 
 
 #==============================================================================

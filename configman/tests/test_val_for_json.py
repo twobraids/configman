@@ -45,7 +45,7 @@ from cStringIO import StringIO
 
 import configman.config_manager as config_manager
 import configman.datetime_util as dtu
-from ..value_sources import for_json
+from configman.value_sources import for_json
 from configman.value_sources.for_json import ValueSource
 from configman.dotdict import DotDict, DotDictWithAcquisition
 

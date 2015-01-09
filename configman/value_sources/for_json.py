@@ -40,12 +40,15 @@ import json
 import collections
 import sys
 
-from .. import converters as conv
-from ..namespace import Namespace
-from ..option import Option, Aggregation
+from configman import converters as conv
+from configman.namespace import Namespace
+from configman.option import Option, Aggregation
 
-from source_exceptions import (ValueException, NotEnoughInformationException,
-                               CantHandleTypeException)
+from configman.value_sources.source_exceptions import (
+    ValueException,
+    NotEnoughInformationException,
+    CantHandleTypeException
+)
 
 from configman.dotdict import DotDict
 from configman.memoize import memoize

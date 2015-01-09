@@ -47,12 +47,15 @@ with open(os.path.join(os.path.dirname(__file__), 'version.txt')) as f:
 #    from configman import Namespace, ConfigurationManager
 #
 
-from .config_manager import ConfigurationManager
-from .required_config import RequiredConfig
-from .namespace import Namespace
+from configman.config_manager import ConfigurationManager
+from configman.required_config import RequiredConfig
+from configman.namespace import Namespace
 
-from .converters import class_converter, regex_converter, timedelta_converter
-
+from configman.converters import (
+    class_converter,
+    regex_converter,
+    timedelta_converter
+)
 
 # constants used to refer to Value Source concepts generically
 from config_file_future_proxy import ConfigFileFutureProxy
