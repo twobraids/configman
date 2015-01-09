@@ -591,9 +591,9 @@ class ConfigurationManager(object):
 
             values_from_all_sources = [
                 a_value_source.get_values(
-                    self,
-                    True,
-                    self.value_source_object_hook
+                    self,  # pass in the config_manager itself
+                    True,  # ignore mismatches
+                    self.value_source_object_hook  # build with this class
                 )
                 for a_value_source in self.values_source_list
             ]
