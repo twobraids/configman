@@ -61,6 +61,7 @@ class Option(object):
         not_for_definition=False,
         reference_value_from=None,
         secret=False,
+        foreign_data=None,
     ):
         self.name = name
         self.short_form = short_form
@@ -88,6 +89,7 @@ class Option(object):
         self.not_for_definition = not_for_definition
         self.reference_value_from = reference_value_from
         self.secret = secret
+        self.foreign_data=foreign_data
 
     #--------------------------------------------------------------------------
     def __str__(self):
@@ -209,6 +211,7 @@ class Option(object):
             not_for_definition=self.not_for_definition,
             reference_value_from=self.reference_value_from,
             secret=self.secret,
+            foreign_data=self.foreign_data,
         )
         return o
 
