@@ -589,6 +589,15 @@ class ConfigurationManager(object):
                     all_reference_values[a_ref_value_key] = []
             all_keys = list(set_of_reference_value_from_links) + keys
 
+            values_from_all_sources = [
+                a_value_source.get_values(
+                    self,
+                    True,
+                    self.value_source_object_hook
+                )
+                for a_value_source in self.values_source_list
+            ]
+
             # overlay process:
             # fetch all the default values from the value sources before
             # applying the from string conversions
@@ -614,25 +623,20 @@ class ConfigurationManager(object):
                         key
                     )
 
-                for a_value_source in self.values_source_list:
+                an_option = self.option_definitions[key]
+                if key in all_reference_values:
+                    # make sure that this value gets propagated to keys
+                    # even if the keys have already been overlaid
+                    known_keys -= set(all_reference_values[key])
+
+                for val_src_dict in values_from_all_sources:
                     try:
-                        # get all the option values from this value source
-                        val_src_dict = a_value_source.get_values(
-                            self,
-                            True,
-                            self.value_source_object_hook
-                        )
                         # get the Option for this key
-                        opt = self.option_definitions[key]
                         # overlay the default with the new value from
                         # the value source.  This assignment may come
                         # via acquisition, so the key given may not have
                         # been an exact match for what was returned.
-                        opt.default = val_src_dict[key]
-                        if key in all_reference_values:
-                            # make sure that this value gets propagated to keys
-                            # even if the keys have already been overlaid
-                            known_keys -= set(all_reference_values[key])
+                        an_option.default = val_src_dict[key]
                     except KeyError, x:
                         pass  # okay, that source doesn't have this value
 
