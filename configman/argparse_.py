@@ -7,6 +7,7 @@ from configman.dotdict import DotDict, iteritems_breadth_first
 from configman.convertes import (
     str_to_instance_of_type_converters,
     str_to_list,
+    arbitrary_object_to_string,
 )
 
 # horrors
@@ -26,6 +27,18 @@ def get_args_and_values(an_action):
         for an_attr in args if an_attr not in ('self', 'required')
     )
     return kwargs
+
+
+#==============================================================================
+class ArgparsePlaceholder(object):
+    """instances of this class are used for placeholders in argparse options.
+    We need placeholders because argparse does not give indidication to the
+    calling program what arguments came from defaults and what arguments were
+    actually typed by the user.
+
+    If argparse returns one of these objects as an argument value, we'll know
+    that the user didn't actually type a value for this argument."""
+    pass
 
 
 #==============================================================================
@@ -52,103 +65,48 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
             super(ControlledErrorReportingArgumentParser, self).error(message)
 
     #--------------------------------------------------------------------------
-    def add_argument(self, *args, **kwargs):
-        an_action = \
+    def add_argument(self, option=a_configman_option):
+        if "argparse" in a_configman_option.foreign_data:
+            args = a_configman_option.foreign_data.argparse.args
+            kwargs = a_configman_option.foreign_data.argparse.kwargs
+            action = super(
+                ControlledErrorReportingArgumentParser,
+                self
+            ).add_argument(
+                *args,
+                **kwargs
+            )
+            return action
+
+        opt_name = a_configman_option.name
+
+        if a_configman_option.is_argument:  # is positional argument
+            option_name = opt_name
+        else:
+            option_name = '--%s' % opt_name
+
+        if a_configman_option.short_form:
+            option_short_form = '-%s' % a_configman_option.short_form
+            args = (option_name, option_short_form)
+        else:
+            args = (option_name,)
+
+        kwargs = DotDict()
+        if a_configman_option.from_string_converter in (bool, boolean_converter):
+            kwargs.action = 'store_true'
+        else:
+            kwargs.action = 'store'
+            #kwargs.type = to_str
+
+        kwargs.default = a_configman_option.default
+        kwargs.help = a_configman_option.doc
+        if not a_configman_option.is_argument:
+            kwargs.dest = opt_name
+        action = \
             super(ControlledErrorReportingArgumentParser, self).add_argument(
                 *args,
                 **kwargs
             )
-        action_type_name = find_action_name_by_value(
-                self._optionals._registries,
-                an_action
-            )
-        target_from_string_converter = an_action.type
-        if target_from_string_converter is None:
-            if action_type_name == 'store_const':
-                target_from_string_converter = \
-                    str_to_instance_of_type_converters.get(
-                        an_action.const,
-                        str
-                    )
-            else:
-                target_from_string_converter = \
-                    str_to_instance_of_type_converters.get(
-                        type(an_action.default),
-                        str
-                    )
-        if target_from_string_converter is type(None):
-            target_from_string_converter = str
-
-        nargs = kwargs.get('nargs', None)
-        if nargs:
-            target_from_string_converter = partial(
-                str_to_list,
-                item_converter=target_from_string_converter,
-                item_separator=' ',
-            )
-        elif (
-            kwargs.get('action', None) == 'append'
-            or kwargs.get('action', None) == 'append_const'
-        ):
-            if isinstance(an_action.default, Sequence):
-                target_from_string_converter = partial(
-                    str_to_list,
-                    item_converter=target_from_string_converter,
-                    item_separator=',',
-                )
-            else:
-                target_from_string_converter = partial(
-                    str_to_list,
-                    item_converter=target_from_string_converter,
-                    item_separator=',',
-                    list_to_collection_converter=type(
-                        an_action.default
-                    )
-                )
-
-        # find short form
-        short_form = None
-        for an_option_string in kwargs.get('option_strings', []):
-            try:
-                if (
-                    an_option_string[0] == an_option_string[1]
-                    and an_option_string[0] in source.prefix_chars
-                    and an_option_string[1] in source.prefix_chars
-                ):
-                    continue  # clearly a double prefix switch
-                if (
-                    an_option_string[0] in source.prefix_chars
-                    and len(an_option_string) == 2
-                ):
-                    short_form = an_option_string[1]
-            except IndexError:
-                pass
-                # skip this one, it has to be a single letter argument,
-                # not a switch
-
-
-
-
-        option_kwargs = DotDict()
-        option_kwargs.not_for_definition = an_action.default != argparse.SUPPRESS
-
-        destination.add_option(
-            name=an_action.dest,
-            default=default,
-            short_form=short_form,
-            from_string_converter=from_string_type_converter,
-            to_string_converter=converters.to_str,
-            doc=an_action.help,
-            number_of_values=an_action.nargs,
-            is_argument=not kwargs['option_strings'],
-            foreign_data=DotDict({
-                'argparse.args': args,
-                'argparse.kwargs': kwargs,
-            })
-        )
-        self.required_config.add_option(
-
-        )
         return action
 
     #--------------------------------------------------------------------------
@@ -165,7 +123,6 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
         an_argparse_namespace, extra_arguments = \
             super(ControlledErrorReportingArgumentParser, self) \
             .parse_known_args(args, namespace)
-        print an_argparse_namespace
         return (
             self._edit_config(an_argparse_namespace),
             extra_arguments
@@ -173,16 +130,12 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
 
     #--------------------------------------------------------------------------
     def _edit_config(self, proposed_config):
-        print "original", self.original_values, self.original_values.keys()
         config = DotDict()
         for key, value in iteritems_breadth_first(proposed_config.__dict__):
-            try:
-                if self.original_values[key] != value:
-                    config[key] = value
-            except KeyError, x:
-                print 'KeyError: %s - not likely a problem, but I want to see how often it happens' % x
+            if value is ArgparsePlaceholder:
+                continue
+            config[key] = value
         return config
-
 
 
 #==============================================================================
@@ -195,7 +148,123 @@ class ArgumentParser(argparse.ArgumentParser):
         self.value_source_list = [environ, ConfigFileFutureProxy, argparse]
 
     #--------------------------------------------------------------------------
+    def add_argument(self, *args, **kwargs):
+        default = args.get('default', ArgparsePlaceholder)
+        if default != argparse.SUPPRESS:
+            if not default is ArgparsePlaceholder:
+                args['default'] = ArgparsePlaceholder
+
+        # forward all parameters to the underlying base class
+        an_action = \
+            super(ControlledErrorReportingArgumentParser, self).add_argument(
+                *args,
+                **kwargs
+            )
+
+        # get a human readable string that identifies the type of the argparse
+        # action class that was created
+        action_type_name = find_action_name_by_value(
+                self._optionals._registries,
+                an_action
+            )
+
+        # go through the features of the action to come up with equivalent
+        # values for a configman option.  There will no be a perfect match,
+        # however the original input gets saved in the configman Option's
+        # foreign data field
+        target_from_string_converter = an_action.type
+        if target_from_string_converter is None:
+            if action_type_name == 'store_const':
+                target_from_string_converter = \
+                    str_to_instance_of_type_converters.get(
+                        an_action.const,
+                        str
+                    )
+            else:
+                target_from_string_converter = \
+                    str_to_instance_of_type_converters.get(
+                        type(default),
+                        str
+                    )
+        if target_from_string_converter is type(None):
+            target_from_string_converter = str
+
+        nargs = kwargs.get('nargs', None)
+        if nargs:
+            target_from_string_converter = partial(
+                str_to_list,
+                item_converter=target_from_string_converter,
+                item_separator=' ',
+            )
+        elif (
+            kwargs.get('action', None) == 'append'
+            or kwargs.get('action', None) == 'append_const'
+        ):
+            if isinstance(default, Sequence):
+                target_from_string_converter = partial(
+                    str_to_list,
+                    item_converter=target_from_string_converter,
+                    item_separator=',',
+                )
+            else:
+                target_from_string_converter = partial(
+                    str_to_list,
+                    item_converter=target_from_string_converter,
+                    item_separator=',',
+                    list_to_collection_converter=type(default)
+                )
+
+        # find short form
+        short_form = None
+        for an_option_string in kwargs.get('option_strings', []):
+            try:
+                if (
+                    an_option_string[0] == an_option_string[1]
+                    and an_option_string[0] in source.prefix_chars
+                ):
+                    continue  # clearly a double prefix switch
+                if (
+                    an_option_string[0] in source.prefix_chars
+                    and len(an_option_string) == 2
+                ):
+                    short_form = an_option_string[1]
+            except IndexError:
+                pass
+                # skip this one, it has to be a single letter argument,
+                # not a switch
+
+        self.required_config.add_option(
+            name=an_action.dest,
+            default=default,
+            doc=an_action.help,
+            from_string_converter=target_from_string_converter,
+            to_string_converter=arbitrary_object_to_string,
+            short_form=short_form,
+            is_argument=not kwargs['option_strings'],
+            not_for_definition=default != argparse.SUPPRESS,
+            foreign_data=DotDict({
+                'argparse.args': args,
+                'argparse.kwargs': kwargs,
+            })
+        )
+        return action
+
+    #--------------------------------------------------------------------------
     def parse_args(self, args=None, namespace=None):
+        from configman.config_manager import ConfigurationManager
+        configuration_manager = ConfigurationManager(
+            definition_source=[self.required_config],
+            values_source_list=self.value_source_list,
+            argv_source=args,
+            app_name=self.prog,
+            app_version=self.version,
+            app_description=self.description,
+        )
+        conf =  configuration_manager.get_config()
+        return conf
+
+    #--------------------------------------------------------------------------
+    def parse_known_args(self, args=None, namespace=None):
         from configman.config_manager import ConfigurationManager
         configuration_manager = ConfigurationManager(
             definition_source=[self],
@@ -207,4 +276,5 @@ class ArgumentParser(argparse.ArgumentParser):
         )
         conf =  configuration_manager.get_config()
         return conf
+
 

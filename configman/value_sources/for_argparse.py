@@ -85,23 +85,8 @@ class ValueSource(object):
     def __init__(self, source, conf_manager):
         self.source = source
         self.parent_parsers = []
+        self.argparse_class = ControlledErrorReportingArgumentParser
         self.argv_source = tuple(conf_manager.argv_source)
-        if (
-            source is argparse
-            or issubclass_with_no_type_error(source, argparse.ArgumentParser)
-        ):
-            self.parser = None
-            self.parser_class = ControlledErrorReportingArgumentParser
-            self.known_args = set()
-        elif isinstance(source, ArgumentParser):
-            self.parser = None
-            self.parent_parsers = [source]
-            self.parser_class = ControlledErrorReportingArgumentParser
-            self.known_args = set(action.dest for action in source._actions)
-            source.parse_through_configman = False  # say no to recursion here
-            self._brand_parser(source)
-        else:
-            raise CantHandleTypeException()
 
     # frequently, command line data sources must be treated differently.  For
     # example, even when the overall option for configman is to allow
@@ -110,17 +95,6 @@ class ValueSource(object):
     # sure that a bad command line switch will result in an error without
     # regard to the overall --admin.strict setting.
     command_line_value_source = True
-
-    #--------------------------------------------------------------------------
-    def _brand_parser(self, parser):
-        """we create several parser instances.  It has proven handy to mark
-        them"""
-        try:
-            parser._brand = self._brand
-        except AttributeError:
-            self._brand = 0
-            parser._brand = self._brand
-        self._brand += 1
 
     #--------------------------------------------------------------------------
     @staticmethod
@@ -219,23 +193,19 @@ class ValueSource(object):
     #--------------------------------------------------------------------------
     def get_values(self, config_manager, ignore_mismatches):
         if ignore_mismatches:
-            if self.parser is None:
-                print "creating a new parser"
-                if self.parent_parsers:
-                    print "with parents:", self.parent_parsers
-                else:
-                    print "with no parents"
-
-                self.parser = self._create_new_argparse_instance(
-                    self.parser_class,
-                    config_manager,
-                    False,
-                    self.parent_parsers,
-                )
-                print "+++", self.parser._actions
+            print "creating a new parser"
+            if self.parent_parsers:
+                print "with parents:", self.parent_parsers
             else:
-                print "we entered get_values with a parser", self.parser
-            namespace_and_extra_args = self.parser.parse_known_args(
+                print "with no parents"
+
+            parser = self._create_new_argparse_instance(
+                self.parser_class,
+                config_manager,
+                False,  # create auto help
+                self.parent_parsers,
+            )
+            namespace_and_extra_args = parser.parse_known_args(
                 args=self.argv_source
             )
 
@@ -244,18 +214,17 @@ class ValueSource(object):
             except TypeError:
                 argparse_namespace = argparse.Namespace()
             self.parent_parsers = [self.parser]
-            self.parser = None
         else:
             fake_args = self.create_fake_args(config_manager)
             if '--help' in self.argv_source or "-h" in self.argv_source:
                 fake_args.append("--help")
-            self.parser = self._create_new_argparse_instance(
+            parser = self._create_new_argparse_instance(
                 self.parser_class,
                 config_manager,
                 True,
                 self.parent_parsers,
             )
-            argparse_namespace = self.parser.parse_args(
+            argparse_namespace = parser.parse_args(
                 args=fake_args,
             )
         return argparse_namespace
@@ -284,45 +253,15 @@ class ValueSource(object):
             add_help=create_auto_help,
             parents=parents,
         )
-        self._brand_parser(a_parser)
         self._setup_argparse(a_parser, config_manager)
         return a_parser
 
     #--------------------------------------------------------------------------
     def _setup_argparse(self, parser, config_manager):
-        current_args = self._get_known_args(config_manager)
-        new_args = current_args - self.known_args
         for opt_name in config_manager.option_definitions.keys_breadth_first():
-            if opt_name not in new_args:
-                continue
-            an_opt = config_manager.option_definitions[opt_name]
-            if isinstance(an_opt, Option):
-                if an_opt.is_argument:  # is positional argument
-                    option_name = opt_name
-                else:
-                    option_name = '--%s' % opt_name
-
-                if an_opt.short_form:
-                    option_short_form = '-%s' % an_opt.short_form
-                    args = (option_name, option_short_form)
-                else:
-                    args = (option_name,)
-
-                kwargs = DotDict()
-                if an_opt.from_string_converter in (bool, boolean_converter):
-                    kwargs.action = 'store_true'
-                else:
-                    kwargs.action = 'store'
-                    #kwargs.type = to_str
-
-                kwargs.default = an_opt.default
-                kwargs.help = an_opt.doc
-                if not an_opt.is_argument:
-                    kwargs.dest = opt_name
-                if an_opt.number_of_values:
-                    kwargs.nargs = an_opt.number_of_values
-                parser.add_argument(*args, **kwargs)
-        self.known_args = current_args.union(new_args)
+            an_option = config_manager.option_definitions[opt_name]
+            if isinstance(an_option, Option):
+                parser.add_argument(an_option)
 
     #--------------------------------------------------------------------------
     @staticmethod
