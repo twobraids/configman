@@ -2,9 +2,7 @@ import argparse
 from os import environ
 from functools import partial
 
-from configman import (
-    Namespace,
-)
+from configman.namespace import Namespace
 from configman.config_file_future_proxy import ConfigFileFutureProxy
 from configman.dotdict import DotDict, iteritems_breadth_first
 from configman.converters import (
