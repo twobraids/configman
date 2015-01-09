@@ -108,15 +108,16 @@ class ValueSource(object):
     @staticmethod
     def _option_to_command_line_str(an_option, key):
         if an_option.is_argument:
-            print an_option.foreign_data.keys()
-            if (an_option.foreign_data.nvar is not None
+            nargs = an_option.foreign_data.argparse.kwargs.get('nargs', None)
+            if (
+                nargs is not None
                 and isinstance(an_option.value, collections.Sequence)
             ):
                 return [to_str(x) for x in an_option.value]
             if an_option.value is None:
                 return []
             return str(an_option.value)
-        if an_option.foreign_data.nvar== 0:
+        if an_option.foreign_data.argparse.kwargs.nargs== 0:
             return None
         if an_option.from_string_converter in (bool, boolean_converter):
             if an_option.value:
@@ -194,12 +195,6 @@ class ValueSource(object):
     #--------------------------------------------------------------------------
     def get_values(self, config_manager, ignore_mismatches, object_hook=None):
         if ignore_mismatches:
-            print "creating a new parser"
-            if self.parent_parsers:
-                print "with parents:", self.parent_parsers
-            else:
-                print "with no parents"
-
             parser = self._create_new_argparse_instance(
                 self.argparse_class,
                 config_manager,

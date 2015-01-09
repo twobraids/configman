@@ -47,6 +47,7 @@ class ArgparsePlaceholder(object):
 class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
     #--------------------------------------------------------------------------
     def __init__(self, *args, **kwargs):
+        kwargs['add_help'] = False
         super(ControlledErrorReportingArgumentParser, self).__init__(
             *args, **kwargs
         )
@@ -122,9 +123,13 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
 
     #--------------------------------------------------------------------------
     def parse_known_args(self, args=None, namespace=None, object_hook=None):
-        an_argparse_namespace, extra_arguments = \
-            super(ControlledErrorReportingArgumentParser, self) \
+        result = super(ControlledErrorReportingArgumentParser, self) \
             .parse_known_args(args, namespace)
+        try:
+            an_argparse_namespace, extra_arguments = result
+        except TypeError:
+            an_argparse_namespace = argparse.Namespace()
+            extra_arguments = result
         return (
             self._edit_config(an_argparse_namespace, object_hook),
             extra_arguments
