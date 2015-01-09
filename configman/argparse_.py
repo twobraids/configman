@@ -4,6 +4,10 @@ from os import environ
 #from configman.converters import dont_care
 from configman.config_file_future_proxy import ConfigFileFutureProxy
 from configman.dotdict import DotDict, iteritems_breadth_first
+from configman.convertes import (
+    str_to_instance_of_type_converters,
+    str_to_list,
+)
 
 # horrors
 def find_action_name_by_value(registry, target):
@@ -54,60 +58,57 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
                 *args,
                 **kwargs
             )
-        not_for_definition = an_action.default != argparse.SUPPRESS
+        action_type_name = find_action_name_by_value(
+                self._optionals._registries,
+                an_action
+            )
+        target_from_string_converter = an_action.type
+        if target_from_string_converter is None:
+            if action_type_name == 'store_const':
+                target_from_string_converter = \
+                    str_to_instance_of_type_converters.get(
+                        an_action.const,
+                        str
+                    )
+            else:
+                target_from_string_converter = \
+                    str_to_instance_of_type_converters.get(
+                        type(an_action.default),
+                        str
+                    )
+        if target_from_string_converter is type(None):
+            target_from_string_converter = str
 
-        # figure out what would be an appropriate from_string_converter
-        kwargs['action'] = find_action_name_by_value(
-            source._optionals._registries,
-            an_action
-        )
-        target_value_type = an_action.type
-        if target_value_type is None:
-            if kwargs['action'] == 'store_const':
-                target_value_type = converters.get_from_string_converter(
-                    an_action.const
+        nargs = kwargs.get('nargs', None)
+        if nargs:
+            target_from_string_converter = partial(
+                str_to_list,
+                item_converter=target_from_string_converter,
+                item_separator=' ',
+            )
+        elif (
+            kwargs.get('action', None) == 'append'
+            or kwargs.get('action', None) == 'append_const'
+        ):
+            if isinstance(an_action.default, Sequence):
+                target_from_string_converter = partial(
+                    str_to_list,
+                    item_converter=target_from_string_converter,
+                    item_separator=',',
                 )
             else:
-                target_value_type = type(an_action.default)
-        if target_value_type is type(None) or target_value_type is None:
-            target_value_type = str
-        try:
-            if kwargs['nargs']:
-                from_string_type_converter = partial(
-                    converters.list_converter,
-                    target_value_type,
-                    item_separator=' ',
+                target_from_string_converter = partial(
+                    str_to_list,
+                    item_converter=target_from_string_converter,
+                    item_separator=',',
+                    list_to_collection_converter=type(
+                        an_action.default
+                    )
                 )
-            elif (kwargs['action'] == 'append'
-                  or kwargs['action'] == 'append_const'
-            ):
-                if isinstance(type(an_action.default), Sequence):
-                    from_string_type_converter = partial(
-                        converters.list_converter,
-                        item_converter=
-                            converters.get_from_string_converter(str),
-                        item_separator=',',
-                    )
-                    if an_action.default is not None:
-                        default = an_action.default
-                else:
-                    from_string_type_converter = partial(
-                        converters.list_converter,
-                        item_converter=
-                            converters.get_from_string_converter(str),
-                        item_separator=',',
-                        list_to_collection_converter=type(
-                            an_action.default
-                        )
-                    )
-            else:
-                from_string_type_converter = target_value_type
-        except KeyError:
-            from_string_type_converter = target_value_type
 
         # find short form
         short_form = None
-        for an_option_string in kwargs['option_strings']:
+        for an_option_string in kwargs.get('option_strings', []):
             try:
                 if (
                     an_option_string[0] == an_option_string[1]
@@ -125,7 +126,11 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
                 # skip this one, it has to be a single letter argument,
                 # not a switch
 
-        default = an_action.default
+
+
+
+        option_kwargs = DotDict()
+        option_kwargs.not_for_definition = an_action.default != argparse.SUPPRESS
 
         destination.add_option(
             name=an_action.dest,
@@ -136,6 +141,10 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
             doc=an_action.help,
             number_of_values=an_action.nargs,
             is_argument=not kwargs['option_strings'],
+            foreign_data=DotDict({
+                'argparse.args': args,
+                'argparse.kwargs': kwargs,
+            })
         )
         self.required_config.add_option(
 

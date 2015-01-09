@@ -101,6 +101,7 @@ try:
                         )
             if target_value_type is type(None) or target_value_type is None:
                 target_value_type = str
+
             try:
                 if kwargs['nargs']:
                     from_string_type_converter = partial(
