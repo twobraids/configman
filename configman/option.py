@@ -131,7 +131,7 @@ class Option(object):
         if self.default is None:
             return '<Option: %r>' % self.name
         else:
-            return '<Option: %r, default=%r>' % (self.name, self.default)
+            return '<Option: %r, default=%r, value=%r, is_argument=%r>' % (self.name, self.default, self.value, self.is_argument)
 
     #--------------------------------------------------------------------------
     def _deduce_converter(self, default):

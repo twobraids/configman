@@ -136,8 +136,8 @@ class ValueSource(object):
         # of required arguments is not in place at run time.  It may be that
         # some config file or environment will bring them in later.   argparse
         # needs to cope using this placebo argv
-        for key in config_manager.option_definitions.keys_breadth_first():
-            an_option = config_manager.option_definitions[key]
+        #for key in config_manager.option_definitions.keys_breadth_first():
+            #an_option = config_manager.option_definitions[key]
         args = [
             self._option_to_command_line_str(
                 config_manager.option_definitions[key],
@@ -149,6 +149,7 @@ class ValueSource(object):
                 Option
             ) and config_manager.option_definitions[key].is_argument
         ]
+        print 'create_fake_args args', args
         flattened_arg_list = []
         for x in args:
             if isinstance(x, list):
@@ -220,6 +221,7 @@ class ValueSource(object):
                 True,
                 self.parent_parsers,
             )
+            print fake_args
             argparse_namespace = parser.parse_args(
                 args=fake_args,
             )
@@ -257,7 +259,7 @@ class ValueSource(object):
         for opt_name in config_manager.option_definitions.keys_breadth_first():
             an_option = config_manager.option_definitions[opt_name]
             if isinstance(an_option, Option):
-                parser.add_argument(an_option)
+                parser.add_argument_from_option(opt_name, an_option)
 
     #--------------------------------------------------------------------------
     @staticmethod

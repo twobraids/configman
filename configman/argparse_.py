@@ -47,7 +47,6 @@ class ArgparsePlaceholder(object):
 class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
     #--------------------------------------------------------------------------
     def __init__(self, *args, **kwargs):
-        kwargs['add_help'] = False
         super(ControlledErrorReportingArgumentParser, self).__init__(
             *args, **kwargs
         )
@@ -68,7 +67,8 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
             super(ControlledErrorReportingArgumentParser, self).error(message)
 
     #--------------------------------------------------------------------------
-    def add_argument(self, option):
+    def add_argument_from_option(self, qualified_name, option):
+        print 'adding argument', qualified_name, option.__repr__()
         if option.foreign_data is not None and "argparse" in option.foreign_data:
             args = option.foreign_data.argparse.args
             kwargs = option.foreign_data.argparse.kwargs
@@ -81,7 +81,7 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
             )
             return action
 
-        opt_name = option.name
+        opt_name = qualified_name
 
         if option.is_argument:  # is positional argument
             option_name = opt_name
@@ -105,6 +105,7 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
         kwargs.help = option.doc
         if not option.is_argument:
             kwargs.dest = opt_name
+        print "argparse version", args, kwargs
         action = \
             super(ControlledErrorReportingArgumentParser, self).add_argument(
                 *args,
@@ -144,6 +145,7 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
             if value is ArgparsePlaceholder:
                 continue
             config[key] = value
+            print "tttt", key, value
         return config
 
 
@@ -161,8 +163,7 @@ class ArgumentParser(argparse.ArgumentParser):
     def add_argument(self, *args, **kwargs):
         default = kwargs.get('default', ArgparsePlaceholder)
         if default != argparse.SUPPRESS:
-            if not default is ArgparsePlaceholder:
-                kwargs['default'] = ArgparsePlaceholder
+            kwargs['default'] = ArgparsePlaceholder
 
         # forward all parameters to the underlying base class
         an_action = \
@@ -187,7 +188,7 @@ class ArgumentParser(argparse.ArgumentParser):
             if action_type_name == 'store_const':
                 target_from_string_converter = \
                     str_to_instance_of_type_converters.get(
-                        an_action.const,
+                        type(an_action.const),
                         str
                     )
             else:
@@ -250,7 +251,7 @@ class ArgumentParser(argparse.ArgumentParser):
             from_string_converter=target_from_string_converter,
             to_string_converter=arbitrary_object_to_string,
             short_form=short_form,
-            is_argument='option_strings' not in kwargs,
+            is_argument=not bool(an_action.option_strings),
             not_for_definition=default != argparse.SUPPRESS,
             foreign_data=DotDict({
                 'argparse.args': args,
@@ -269,6 +270,7 @@ class ArgumentParser(argparse.ArgumentParser):
             app_name=self.prog,
             app_version=self.version,
             app_description=self.description,
+            use_auto_help=False,
         )
         conf =  configuration_manager.get_config()
         return conf
@@ -283,6 +285,7 @@ class ArgumentParser(argparse.ArgumentParser):
             app_name=self.prog,
             app_version=self.version,
             app_description=self.description,
+            use_auto_help=False,
         )
         conf =  configuration_manager.get_config()
         return conf

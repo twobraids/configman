@@ -368,6 +368,7 @@ str_to_instance_of_type_converters = {
     datetime.timedelta: timedelta_converter,
     type: class_converter,
     types.FunctionType: class_converter,
+    types.BuiltinMethodType: class_converter,
     compiled_regexp_type: regex_converter,
 }
 
