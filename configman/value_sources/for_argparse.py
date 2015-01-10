@@ -57,7 +57,6 @@ from configman.converters import boolean_converter, to_str
 from configman.argparse_ import (
     ControlledErrorReportingArgumentParser,
     ArgumentParser,
-    ArgparsePlaceholder
 )
 
 from source_exceptions import CantHandleTypeException
@@ -151,8 +150,10 @@ class ValueSource(object):
                     Option
                 )
                 and config_manager.option_definitions[key].is_argument
-                and config_manager.option_definitions[key].value !=
-                    ArgparsePlaceholder
+                #and isinstance(
+                    #config_manager.option_definitions[key].value,
+                    #ArgparsePlaceholder
+                #)
             )
         ]
 
