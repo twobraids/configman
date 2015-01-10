@@ -1,6 +1,7 @@
 import argparse
 from os import environ
 from functools import partial
+from collections import Sequence
 
 from configman.namespace import Namespace
 from configman.config_file_future_proxy import ConfigFileFutureProxy
@@ -59,6 +60,7 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
             "not allowed" in message
             or "ignored" in message
             or "expected" in message
+            or "invalid" in message
             or self.add_help
         ):
             # when we have "help" then we must also have proper error
@@ -161,8 +163,11 @@ class ArgumentParser(argparse.ArgumentParser):
 
     #--------------------------------------------------------------------------
     def add_argument(self, *args, **kwargs):
-        default = kwargs.get('default', ArgparsePlaceholder)
-        if default != argparse.SUPPRESS:
+        default = kwargs.get('default', None)
+        if (
+            'append' not in kwargs.get('action', '')
+            and default != argparse.SUPPRESS
+        ):
             kwargs['default'] = ArgparsePlaceholder
 
         # forward all parameters to the underlying base class
@@ -191,6 +196,14 @@ class ArgumentParser(argparse.ArgumentParser):
                         type(an_action.const),
                         str
                     )
+            elif action_type_name == 'append_const':
+                target_from_string_converter = \
+                    str_to_instance_of_type_converters.get(
+                        type(an_action.const),
+                        str
+                    )
+            elif default is None:
+                target_from_string_converter = str
             else:
                 target_from_string_converter = \
                     str_to_instance_of_type_converters.get(
@@ -244,15 +257,24 @@ class ArgumentParser(argparse.ArgumentParser):
                 # skip this one, it has to be a single letter argument,
                 # not a switch
 
+        if an_action.dest in self.required_config:
+            name = "%s$" % an_action.dest
+            while name in self.required_config:
+                name = "%s$" % name
+            not_for_definition = True
+        else:
+            name = an_action.dest
+            not_for_definition = default != argparse.SUPPRESS
+
         self.required_config.add_option(
-            name=an_action.dest,
+            name=name,
             default=default,
             doc=an_action.help,
             from_string_converter=target_from_string_converter,
             to_string_converter=arbitrary_object_to_string,
             short_form=short_form,
             is_argument=not bool(an_action.option_strings),
-            not_for_definition=default != argparse.SUPPRESS,
+            not_for_definition=not_for_definition,
             foreign_data=DotDict({
                 'argparse.args': args,
                 'argparse.kwargs': kwargs,

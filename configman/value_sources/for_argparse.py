@@ -56,7 +56,8 @@ from configman.converters import boolean_converter, to_str
 
 from configman.argparse_ import (
     ControlledErrorReportingArgumentParser,
-    ArgumentParser
+    ArgumentParser,
+    ArgparsePlaceholder
 )
 
 from source_exceptions import CantHandleTypeException
@@ -144,11 +145,18 @@ class ValueSource(object):
                 key
             )
             for key in config_manager.option_definitions.keys_breadth_first()
-            if isinstance(
-                config_manager.option_definitions[key],
-                Option
-            ) and config_manager.option_definitions[key].is_argument
+            if (
+                isinstance(
+                    config_manager.option_definitions[key],
+                    Option
+                )
+                and config_manager.option_definitions[key].is_argument
+                and config_manager.option_definitions[key].value !=
+                    ArgparsePlaceholder
+            )
         ]
+
+
         print 'create_fake_args args', args
         flattened_arg_list = []
         for x in args:
@@ -163,7 +171,7 @@ class ValueSource(object):
         ]
         try:
             return final_arg_list + self.extra_args
-        except AttributeError:
+        except (AttributeError, TypeError):
             return final_arg_list
 
     #--------------------------------------------------------------------------
@@ -221,20 +229,11 @@ class ValueSource(object):
                 True,
                 self.parent_parsers,
             )
-            print fake_args
+            print 'and now the fake args:', fake_args
             argparse_namespace = parser.parse_args(
                 args=fake_args,
             )
         return argparse_namespace
-
-        #d = DotDict()
-        #for key, value in argparse_namespace.__dict__.iteritems():
-            #if self._we_care_about_this_value(value):
-                #d[key] = value
-                ##d[key] = self._val_as_str(value)  # TODO: we ought to let
-                                                  ## argpars create it's own
-                                                  ## real values
-        #return d
 
     #--------------------------------------------------------------------------
     def _create_new_argparse_instance(
