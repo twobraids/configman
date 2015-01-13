@@ -56,8 +56,12 @@ from configman.converters import (
     regex_converter,
     timedelta_converter
 )
+
 from configman.environment import environment
-from configman.command_line import command_line
+# this next line brings in command_line and, if argparse is available,
+# a definition of the configman version of ArgumentParser
+from configman.commandline import *
+
 
 
 #------------------------------------------------------------------------------

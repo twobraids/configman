@@ -49,30 +49,46 @@ import warnings
 # for convenience define some external symbols here - some client modules may
 # import these symbols from here rather than their origin definition location.
 # PyFlakes may erroneously flag some of these as unused
-from configman.command_line import command_line
-from configman.converters import to_string_converters
-from configman.config_exceptions import NotAnOptionError
-from configman.config_file_future_proxy import ConfigFileFutureProxy
-from configman.def_sources import setup_definitions
+from configman.commandline import (
+    command_line
+)
+from configman.converters import (
+    to_string_converters,
+)
+from configman.config_exceptions import (
+    NotAnOptionError,
+)
+from configman.config_file_future_proxy import (
+    ConfigFileFutureProxy
+)
+from configman.def_sources import (
+    setup_definitions,
+)
 from configman.dotdict import (
     DotDict,
     DotDictWithAcquisition,
     iteritems_breadth_first
 )
-from configman.environment import environment
-from configman.namespace import Namespace
+from configman.environment import (
+    environment
+)
+from configman.namespace import (
+    Namespace
+)
 from configman.option import (
     Option,
     Aggregation
 )
-# The following is not used directly in this file, but made available as
-# a type to be imported from this module
-from configman.required_config import RequiredConfig
+from configman.required_config import (
+    RequiredConfig  # not used directly in this file, but made available as
+                    # a type to be imported from this module
+)
 from configman.value_sources import (
     config_filename_from_commandline,
     wrap_with_value_source_api,
     dispatch_request_to_write,
     file_extension_dispatch,
+    type_handler_dispatch,
 )
 
 
@@ -167,6 +183,8 @@ class ConfigurationManager(object):
         self.config_pathname = config_pathname
         self.config_optional = config_optional
 
+        self.use_auto_help = use_auto_help
+
         self.value_source_object_hook = value_source_object_hook
 
         self.app_name = app_name
@@ -194,6 +212,10 @@ class ConfigurationManager(object):
                     environment,
                     command_line
                 )
+
+        if self.use_auto_help and command_line in values_source_list:
+            cmd_handler = type_handler_dispatch[command_line]
+            cmd_handler[0].ValueSource._setup_auto_help(self)
 
         admin_tasks_done = False
         self.admin_controls_list = [
@@ -268,9 +290,23 @@ class ConfigurationManager(object):
             # 'app_name' from the parameters passed in, if they exist.
             pass
 
-        if use_auto_help and self._get_option('help').value:
-            self.output_summary()
-            admin_tasks_done = True
+        try:
+            if use_auto_help and self._get_option('help').value:
+                self.output_summary()
+                admin_tasks_done = True
+        except NotAnOptionError:
+            # the current command-line implementation already has a help
+            # mechanism of its own that doesn't required the use of a
+            # option in configman.  This error is ignorable
+            pass
+
+        keys_blocked_by_suffix = [
+            key
+            for key in self.option_definitions.keys_breadth_first()
+            if key.endswith('$')
+        ]
+        if keys_blocked_by_suffix:
+            self.admin_controls_list.extend(keys_blocked_by_suffix)
 
         if use_admin_controls and self._get_option('admin.print_conf').value:
             self.print_conf()
@@ -600,10 +636,18 @@ class ConfigurationManager(object):
                     all_reference_values[a_ref_value_key] = []
             all_keys = list(set_of_reference_value_from_links) + keys
 
+            values_from_all_sources = [
+                a_value_source.get_values(
+                    self,  # pass in the config_manager itself
+                    True,  # ignore mismatches
+                    self.value_source_object_hook  # build with this class
+                )
+                for a_value_source in self.values_source_list
+            ]
+
             # overlay process:
             # fetch all the default values from the value sources before
             # applying the from string conversions
-            #
 
             for key in (k for k in all_keys if k not in known_keys):
                 #if not isinstance(an_option, Option):
@@ -625,22 +669,19 @@ class ConfigurationManager(object):
                         key
                     )
 
-                for a_value_source in self.values_source_list:
+                an_option = self.option_definitions[key]
+                if key in all_reference_values:
+                    # make sure that this value gets propagated to keys
+                    # even if the keys have already been overlaid
+                    known_keys -= set(all_reference_values[key])
+
+                for val_src_dict in values_from_all_sources:
                     try:
-                        # get all the option values from this value source
-                        val_src_dict = a_value_source.get_values(
-                            self,
-                            True,
-                            self.value_source_object_hook
-                        )
-                        # get the Option for this key
-                        opt = self.option_definitions[key]
                         # overlay the default with the new value from
                         # the value source.  This assignment may come
                         # via acquisition, so the key given may not have
                         # been an exact match for what was returned.
-                        opt.has_changed = opt.default != val_src_dict[key]
-                        opt.default = val_src_dict[key]
+                        an_option.default = val_src_dict[key]
                         if key in all_reference_values:
                             # make sure that this value gets propagated to keys
                             # even if the keys have already been overlaid
@@ -665,8 +706,11 @@ class ConfigurationManager(object):
                     try:
                         # try to fetch new requirements from this value
                         new_req = an_option.value.get_required_config()
-                    except AttributeError:
-                        new_req = an_option.value.required_config
+                    except (AttributeError, KeyError):
+                        if hasattr(an_option.value, 'required_config'):
+                            new_req = an_option.value.required_config
+                        else:
+                            new_req = None
                     # make sure what we got as new_req is actually a
                     # Mapping of some sort
                     if not isinstance(new_req, collections.Mapping):
@@ -739,6 +783,7 @@ class ConfigurationManager(object):
                 k for k in
                 DotDict(value_source_mapping).keys_breadth_first()
             ])
+
             # make a set of the keys that didn't match any of the known
             # keys in the requirements
             unmatched_keys = value_source_keys_set.difference(known_keys)
