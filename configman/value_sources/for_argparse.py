@@ -285,6 +285,9 @@ class ValueSource(object):
         # of required arguments is not in place at run time.  It may be that
         # some config file or environment will bring them in later.   argparse
         # needs to cope using this placebo argv
+        for key in config_manager.option_definitions.keys_breadth_first():
+            opt = config_manager.option_definitions[key]
+            print "kkkk", key, opt.is_argument, opt.value, opt.default
         args = [
             self._option_to_command_line_str(
                 config_manager.option_definitions[key],
@@ -312,10 +315,10 @@ class ValueSource(object):
             if x is not None and x.strip() != ''
         ]
         try:
-            #print "CCCCC", final_arg_list + self.extra_args
+            print "CCCCC", final_arg_list + self.extra_args
             return final_arg_list + self.extra_args
         except (AttributeError, TypeError):
-            #print "DDDDD", final_arg_list
+            print "DDDDD", final_arg_list
             return final_arg_list
 
     #--------------------------------------------------------------------------

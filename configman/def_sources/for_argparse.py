@@ -186,7 +186,6 @@ class ArgumentParser(argparse.ArgumentParser):
             **kwargs
         )
         argparse_option_strings = an_action.option_strings
-        configman_is_argument = not bool(argparse_option_strings)
 
         # get a human readable string that identifies the type of the argparse
         # action class that was created
@@ -196,17 +195,26 @@ class ArgumentParser(argparse.ArgumentParser):
                     an_action
                 )
 
+        configman_is_argument = False
+
         # each of argparse's Action types must be handled separately.
+        print 'OOOO', argparse_action_name, argparse_option_strings, argparse_dest
         #--------------------------------------------------------------------
         # STORE
         if argparse_action_name == 'store':
             if argparse_dest is None:
                 configman_name = args[0]
+                removed_prefix = False
                 for x in range(2):
                     if configman_name[0] in self.prefix_chars:
                         configman_name = configman_name[1:]
+                        removed_prefix = True
+                configman_is_argument = not removed_prefix
+                print configman_name, configman_is_argument
             else:
                 configman_name = argparse_dest
+                configman_is_argument = not argparse_option_strings
+                print configman_name, configman_is_argument
             configman_default = argparse_default
             configman_doc = argparse_help
             if argparse_nargs and argparse_type:
