@@ -43,11 +43,6 @@ try:
 except ImportError:
     raise SkipTest
 
-from configman.argparse_ import (
-    ControlledErrorReportingArgumentParser,
-    ArgumentParser
-)
-
 from mock import Mock
 from os import environ
 
@@ -56,15 +51,15 @@ from functools import partial
 from configman import Namespace
 from configman.converters import (
     list_converter,
-    sequence_to_string,
+    list_to_str,
     to_str,
-    dont_care
 )
 
 from configman.config_file_future_proxy import ConfigFileFutureProxy
 from configman.dotdict import DotDict
 from configman.value_sources.source_exceptions import CantHandleTypeException
 
+from configman.def_sources.for_argparse import ArgumentParser
 from configman.value_sources.for_argparse import (
     issubclass_with_no_type_error,
     ValueSource,
@@ -111,7 +106,7 @@ class TestCaseForValSourceArgparse(TestCase):
                 item_converter=int
             ),
             to_string_converter=partial(
-                sequence_to_string,
+                list_to_str,
                 delimiter=' '
             ),
         )
@@ -246,17 +241,17 @@ class TestCaseForValSourceArgparse(TestCase):
     def test_val_as_str(self):
         vs = self.setup_value_source()
         self.assertEqual(vs._val_as_str(1), '1')
-        self.assertEqual(vs._val_as_str(dont_care(1)), '1')
-        self.assertEqual(vs._val_as_str(dont_care(None)), '')
+        #self.assertEqual(vs._val_as_str(dont_care(1)), '1')
+        #self.assertEqual(vs._val_as_str(dont_care(None)), '')
 
-    def test_we_care_about_this_value(self):
-        vs = self.setup_value_source()
-        dci = dont_care(1)
-        self.assertFalse(vs._we_care_about_this_value(dci))
-        dci = dont_care([])
-        self.assertFalse(vs._we_care_about_this_value(dci))
-        dci.append('89')
-        self.assertTrue(vs._we_care_about_this_value(dci))
+    #def test_we_care_about_this_value(self):
+        #vs = self.setup_value_source()
+        #dci = dont_care(1)
+        #self.assertFalse(vs._we_care_about_this_value(dci))
+        #dci = dont_care([])
+        #self.assertFalse(vs._we_care_about_this_value(dci))
+        #dci.append('89')
+        #self.assertTrue(vs._we_care_about_this_value(dci))
 
     def test_get_values_1(self):
         class MyArgumentValueSource(ValueSource):
@@ -393,20 +388,20 @@ class TestCaseForValSourceArgparse(TestCase):
 
         self.assertTrue('--alpha' not in actions['alpha'].option_strings)
         self.assertEqual(actions['alpha'].default, 3)
-        self.assertTrue(actions['alpha'].default.dont_care())
+        #self.assertTrue(actions['alpha'].default.dont_care())
 
         self.assertTrue('--beta' in actions['beta'].option_strings)
         self.assertTrue('-b' in actions['beta'].option_strings)
-        self.assertTrue(actions['beta'].default.dont_care())
+        #self.assertTrue(actions['beta'].default.dont_care())
 
         self.assertTrue('--gamma' in actions['gamma'].option_strings)
-        self.assertTrue(actions['gamma'].default.dont_care())
+        #self.assertTrue(actions['gamma'].default.dont_care())
 
         self.assertTrue('--delta' in actions['delta'].option_strings)
-        self.assertTrue(actions['delta'].default.dont_care())
+        #self.assertTrue(actions['delta'].default.dont_care())
 
         self.assertTrue('--kappa' not in actions['kappa'].option_strings)
-        self.assertTrue(actions['kappa'].default.dont_care())
+        #self.assertTrue(actions['kappa'].default.dont_care())
 
 
 

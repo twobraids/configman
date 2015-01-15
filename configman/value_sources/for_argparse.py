@@ -287,7 +287,11 @@ class ValueSource(object):
         # needs to cope using this placebo argv
         for key in config_manager.option_definitions.keys_breadth_first():
             opt = config_manager.option_definitions[key]
-            print "kkkk", key, opt.is_argument, opt.value, opt.default
+            if isinstance(
+                config_manager.option_definitions[key],
+                Option
+            ):
+                print "kkkk", key, opt.is_argument, opt.value, opt.default
         args = [
             self._option_to_command_line_str(
                 config_manager.option_definitions[key],
