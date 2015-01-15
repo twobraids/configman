@@ -70,6 +70,7 @@ from configman.value_sources.for_argparse import (
 #==============================================================================
 class TestCaseForValSourceArgparse(TestCase):
 
+    #--------------------------------------------------------------------------
     def setup_value_source(self, type_of_value_source=ValueSource):
         conf_manager = Mock()
         conf_manager.argv_source = []
@@ -82,6 +83,7 @@ class TestCaseForValSourceArgparse(TestCase):
         vs = type_of_value_source(arg, conf_manager)
         return vs
 
+    #--------------------------------------------------------------------------
     def setup_configman_namespace(self):
         n = Namespace()
         n.add_option(
@@ -133,6 +135,7 @@ class TestCaseForValSourceArgparse(TestCase):
         return n
 
 
+    #--------------------------------------------------------------------------
     def test_issubclass_with_no_type_error(self):
 
         class A(object):
@@ -148,6 +151,7 @@ class TestCaseForValSourceArgparse(TestCase):
         self.assertFalse(issubclass_with_no_type_error(B, A))
         self.assertFalse(issubclass_with_no_type_error(None, A))
 
+    #--------------------------------------------------------------------------
     def test_value_source_init_with_module(self):
         conf_manager = Mock()
         conf_manager.argv_source = []
@@ -160,6 +164,7 @@ class TestCaseForValSourceArgparse(TestCase):
         self.assertFalse(vs.known_args)
         self.assertFalse(vs.parent_parsers)
 
+    #--------------------------------------------------------------------------
     def test_value_source_init_with_a_parser_1(self):
         conf_manager = Mock()
         conf_manager.argv_source = []
@@ -173,6 +178,7 @@ class TestCaseForValSourceArgparse(TestCase):
             conf_manager
         )
 
+    #--------------------------------------------------------------------------
     def test_value_source_init_with_a_parser_2(self):
         vs = self.setup_value_source()
 
@@ -185,6 +191,7 @@ class TestCaseForValSourceArgparse(TestCase):
         self.assertFalse(vs.parent_parsers[0].parse_through_configman)
         self.assertEqual(vs.parent_parsers[0]._brand, 0)
 
+    #--------------------------------------------------------------------------
     def test_get_known_args(self):
         config_manager = Mock()
         config_manager.option_definitions = self.setup_configman_namespace()
@@ -194,6 +201,7 @@ class TestCaseForValSourceArgparse(TestCase):
             set(['alpha', 'beta', 'gamma', 'delta', 'kappa'])
         )
 
+    #--------------------------------------------------------------------------
     def test_option_to_command_line_str_1(self):
         n = self.setup_configman_namespace()
         vs = self.setup_value_source()
@@ -211,6 +219,7 @@ class TestCaseForValSourceArgparse(TestCase):
             except KeyError, key:
                 self.assertTrue('delta' in str(key))
 
+    #--------------------------------------------------------------------------
     def test_option_to_command_line_str_2(self):
         n = self.setup_configman_namespace()
         n.gamma.default = None
@@ -230,6 +239,7 @@ class TestCaseForValSourceArgparse(TestCase):
             except KeyError, key:
                 self.assertTrue('delta' in str(key))
 
+    #--------------------------------------------------------------------------
     def test_create_fake_args(self):
         vs = self.setup_value_source()
         n = self.setup_configman_namespace()
@@ -238,12 +248,14 @@ class TestCaseForValSourceArgparse(TestCase):
         final = vs.create_fake_args(conf_manager)
         self.assertEqual(final, ['3', '7', '8'])
 
+    #--------------------------------------------------------------------------
     def test_val_as_str(self):
         vs = self.setup_value_source()
         self.assertEqual(vs._val_as_str(1), '1')
         #self.assertEqual(vs._val_as_str(dont_care(1)), '1')
         #self.assertEqual(vs._val_as_str(dont_care(None)), '')
 
+    #--------------------------------------------------------------------------
     #def test_we_care_about_this_value(self):
         #vs = self.setup_value_source()
         #dci = dont_care(1)
@@ -253,6 +265,7 @@ class TestCaseForValSourceArgparse(TestCase):
         #dci.append('89')
         #self.assertTrue(vs._we_care_about_this_value(dci))
 
+    #--------------------------------------------------------------------------
     def test_get_values_1(self):
         class MyArgumentValueSource(ValueSource):
             def _create_new_argparse_instance(
@@ -289,6 +302,7 @@ class TestCaseForValSourceArgparse(TestCase):
         self.assertEqual(dict(result), {'a': 1, 'b': 2})
         #self.assertEqual(dict(result), {'a': '1', 'b': '2'})
 
+    #--------------------------------------------------------------------------
     def test_get_values_2(self):
         class MyArgumentValueSource(ValueSource):
             def _create_new_argparse_instance(
@@ -323,7 +337,8 @@ class TestCaseForValSourceArgparse(TestCase):
                                                            # return values
         #self.assertEqual(dict(result), {'a': '1', 'b': '2'})
 
-    def test_create_new_argparse_instance(self):
+     #--------------------------------------------------------------------------
+   def test_create_new_argparse_instance(self):
         class MyArgumentValueSource(ValueSource):
             def __init__(self, *args, **kwargs):
                 super(MyArgumentValueSource, self).__init__(*args, **kwargs)
@@ -370,6 +385,7 @@ class TestCaseForValSourceArgparse(TestCase):
         self.assertTrue('bogus' in (x.dest for x in second_parser._actions))
         self.assertTrue('wilma' in (x.dest for x in second_parser._actions))
 
+    #--------------------------------------------------------------------------
     def test_setup_argparse(self):
         vs = self.setup_value_source()
         n = self.setup_configman_namespace()
