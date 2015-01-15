@@ -198,7 +198,7 @@ class ArgumentParser(argparse.ArgumentParser):
         configman_is_argument = False
 
         # each of argparse's Action types must be handled separately.
-        print 'OOOO', argparse_action_name, argparse_option_strings, argparse_dest
+        #print 'OOOO', argparse_action_name, argparse_option_strings, argparse_dest
         #--------------------------------------------------------------------
         # STORE
         if argparse_action_name == 'store':
@@ -210,11 +210,11 @@ class ArgumentParser(argparse.ArgumentParser):
                         configman_name = configman_name[1:]
                         removed_prefix = True
                 configman_is_argument = not removed_prefix
-                print configman_name, configman_is_argument
+                #print configman_name, configman_is_argument
             else:
                 configman_name = argparse_dest
                 configman_is_argument = not argparse_option_strings
-                print configman_name, configman_is_argument
+                #print configman_name, configman_is_argument
             configman_default = argparse_default
             configman_doc = argparse_help
             if argparse_nargs and argparse_type:
@@ -252,7 +252,15 @@ class ArgumentParser(argparse.ArgumentParser):
         #--------------------------------------------------------------------
         # STORE_CONST
         elif argparse_action_name == 'store_const':
-            configman_name = argparse_dest
+            if argparse_dest is None:
+                configman_name = args[0]
+                for x in range(2):
+                    if configman_name[0] in self.prefix_chars:
+                        configman_name = configman_name[1:]
+                #print configman_name, configman_is_argument
+            else:
+                configman_name = argparse_dest
+                #print configman_name, configman_is_argument
             configman_default = argparse_default
             configman_doc = argparse_help
             if argparse_type:
@@ -270,7 +278,15 @@ class ArgumentParser(argparse.ArgumentParser):
             argparse_action_name == 'store_true'
             or argparse_action_name == 'store_false'
         ):
-            configman_name = argparse_dest
+            if argparse_dest is None:
+                configman_name = args[0]
+                for x in range(2):
+                    if configman_name[0] in self.prefix_chars:
+                        configman_name = configman_name[1:]
+                #print configman_name, configman_is_argument
+            else:
+                configman_name = argparse_dest
+                #print configman_name, configman_is_argument
             configman_default = argparse_default
             configman_doc = argparse_help
             configman_from_string = boolean_converter
@@ -279,7 +295,15 @@ class ArgumentParser(argparse.ArgumentParser):
         #--------------------------------------------------------------------
         # APPEND
         elif argparse_action_name == 'append':
-            configman_name = argparse_dest
+            if argparse_dest is None:
+                configman_name = args[0]
+                for x in range(2):
+                    if configman_name[0] in self.prefix_chars:
+                        configman_name = configman_name[1:]
+                #print configman_name, configman_is_argument
+            else:
+                configman_name = argparse_dest
+                #print configman_name, configman_is_argument
             configman_default = argparse_default
             configman_doc = argparse_help
             if argparse_type:
@@ -291,7 +315,15 @@ class ArgumentParser(argparse.ArgumentParser):
         #--------------------------------------------------------------------
         # APPEND_CONST
         elif argparse_action_name == 'append_const':
-            configman_name = argparse_dest
+            if argparse_dest is None:
+                configman_name = args[0]
+                for x in range(2):
+                    if configman_name[0] in self.prefix_chars:
+                        configman_name = configman_name[1:]
+                #print configman_name, configman_is_argument
+            else:
+                configman_name = argparse_dest
+                #print configman_name, configman_is_argument
             configman_default = argparse_default
             configman_doc = argparse_help
             if argparse_type:

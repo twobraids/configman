@@ -51,6 +51,7 @@ from configman.converters import to_str
 #==============================================================================
 class TestCaseForDefSourceArgparse(TestCase):
 
+    #--------------------------------------------------------------------------
     def setup_argparse(self):
         parser = ArgumentParser(prog='hell')
         parser.add_argument(
@@ -109,12 +110,13 @@ class TestCaseForDefSourceArgparse(TestCase):
         )
         return parser
 
+    #--------------------------------------------------------------------------
     def test_parser_setup(self):
         parser = self.setup_argparse()
         actions = {}
-        for x in parser._actions:
-            if x.dest not in actions:
-                actions[x.dest] = x
+        #for x in parser._actions:
+            #if x.dest not in actions:
+                #actions[x.dest] = x
         cm = ConfigurationManager(
             definition_source=[parser],
             values_source_list=[],
@@ -124,7 +126,6 @@ class TestCaseForDefSourceArgparse(TestCase):
             self.assertTrue(key in options)
 
         self.assertTrue(options.simple_value.default is None)
-        self.assertEqual(options.simple_value.short_form, 's')
         self.assertTrue(
             options.simple_value.from_string_converter is str
         )
@@ -217,9 +218,3 @@ class TestCaseForDefSourceArgparse(TestCase):
         self.assertTrue(
             options.const_collection.number_of_values is not None
         )
-
-
-
-
-
-

@@ -80,8 +80,45 @@ class TestCaseForValSourceArgparse(TestCase):
             '--wilma',
             dest='wilma',
         )
+        arg.add_argument(
+            dest='dwight',
+            nargs='*',
+            type=int
+        )
         vs = type_of_value_source(arg, conf_manager)
         return vs
+
+    #--------------------------------------------------------------------------
+    def setup_a_parser(self, a_parser):
+        a_parser.add_argument(
+            dest='alpha',
+            default=3,
+            help='the first parameter',
+            action='store'
+        )
+        a_parser.add_argument(
+            '--beta',
+            default='the second',
+            help='the first parameter',
+            action='store'
+        )
+        a_parser.add_argument(
+            '--gamma',
+            default=[1, 2, 3],
+            action='store'
+        )
+        a_parser.add_argument(
+            '--delta',
+            action='store_true',
+            default=False,
+        )
+        a_parser.add_argument(
+            'kappa',
+            nargs=2,
+            default=[7, 8],
+            action='store'
+        )
+        return a_parser
 
     #--------------------------------------------------------------------------
     def setup_configman_namespace(self):
@@ -101,7 +138,6 @@ class TestCaseForValSourceArgparse(TestCase):
         n.add_option(
             'gamma',
             default=[1, 2, 3],
-            number_of_values="*",
             from_string_converter=partial(
                 list_converter,
                 item_separator=' ',
@@ -125,7 +161,7 @@ class TestCaseForValSourceArgparse(TestCase):
                 item_converter=int
             ),
             to_string_converter=partial(
-                sequence_to_string,
+                list_to_str,
                 delimiter=' '
             ),
             is_argument=True
@@ -133,6 +169,7 @@ class TestCaseForValSourceArgparse(TestCase):
         for k, o in n.iteritems():
             o.set_value()
         return n
+
 
 
     #--------------------------------------------------------------------------
@@ -157,39 +194,29 @@ class TestCaseForValSourceArgparse(TestCase):
         conf_manager.argv_source = []
 
         vs = ValueSource(argparse, conf_manager)
-        self.assertTrue(vs.parser is None)
         self.assertTrue(
-            vs.parser_class is ControlledErrorReportingArgumentParser
+            vs.argparse_class is ControlledErrorReportingArgumentParser
         )
-        self.assertFalse(vs.known_args)
-        self.assertFalse(vs.parent_parsers)
-
-    #--------------------------------------------------------------------------
-    def test_value_source_init_with_a_parser_1(self):
-        conf_manager = Mock()
-        conf_manager.argv_source = []
-
-        arg = argparse.ArgumentParser()
-
-        self.assertRaises(
-            CantHandleTypeException,
-            ValueSource,
-            arg,
-            conf_manager
+        self.assertTrue(
+            vs.argv_source is tuple(conf_manager.argv_source)
+        )
+        self.assertEqual(
+            vs.parent_parsers,
+            []
+        )
+        self.assertEqual(
+            vs.source,
+            argparse
         )
 
     #--------------------------------------------------------------------------
-    def test_value_source_init_with_a_parser_2(self):
+    def test_value_source_init_with_a_parser(self):
         vs = self.setup_value_source()
 
-        self.assertTrue(vs.parser is None)
         self.assertTrue(
-            vs.parser_class is ControlledErrorReportingArgumentParser
+            vs.argparse_class is ControlledErrorReportingArgumentParser
         )
-        self.assertEqual(vs.known_args, set(['wilma']))
-        self.assertEqual(vs.parent_parsers, [vs.parent_parsers[0]])
-        self.assertFalse(vs.parent_parsers[0].parse_through_configman)
-        self.assertEqual(vs.parent_parsers[0]._brand, 0)
+        self.assertEqual(vs.parent_parsers, [])
 
     #--------------------------------------------------------------------------
     def test_get_known_args(self):
@@ -202,7 +229,7 @@ class TestCaseForValSourceArgparse(TestCase):
         )
 
     #--------------------------------------------------------------------------
-    def test_option_to_command_line_str_1(self):
+    def test_option_to_args_list_1(self):
         n = self.setup_configman_namespace()
         vs = self.setup_value_source()
         expected = {
@@ -210,17 +237,17 @@ class TestCaseForValSourceArgparse(TestCase):
             'beta': '--beta="the second"',
             'gamma': '--gamma="1 2 3"',
             #'delta': '--delta="False"',  # not returned as it is the default
-            'kappa': ['7', '8']
+            'kappa': '7 8'
         }
         for k in n.keys_breadth_first():
-            op = vs._option_to_command_line_str(n[k], k)
+            op = vs._option_to_args_list(n[k], k)
             try:
                 self.assertEqual(op, expected[k])
             except KeyError, key:
                 self.assertTrue('delta' in str(key))
 
     #--------------------------------------------------------------------------
-    def test_option_to_command_line_str_2(self):
+    def test_option_to_args_list_2(self):
         n = self.setup_configman_namespace()
         n.gamma.default = None
         n.gamma.value = None
@@ -230,10 +257,10 @@ class TestCaseForValSourceArgparse(TestCase):
             'beta': '--beta="the second"',
             'gamma': None,
             #'delta': '--delta="False"',  # not returned as it is the default
-            'kappa': ['7', '8']
+            'kappa': '7 8'
         }
         for k in n.keys_breadth_first():
-            op = vs._option_to_command_line_str(n[k], k)
+            op = vs._option_to_args_list(n[k], k)
             try:
                 self.assertEqual(op, expected[k])
             except KeyError, key:
@@ -242,41 +269,34 @@ class TestCaseForValSourceArgparse(TestCase):
     #--------------------------------------------------------------------------
     def test_create_fake_args(self):
         vs = self.setup_value_source()
-        n = self.setup_configman_namespace()
-        conf_manager = Mock()
-        conf_manager.option_definitions = n
-        final = vs.create_fake_args(conf_manager)
+        fake_configuration_manager = Mock()
+        fake_configuration_manager.app_name = 'fake_app'
+        fake_configuration_manager.app_description = 'fake_app_description'
+
+        parser = ArgumentParser(
+            prog=fake_configuration_manager.app_name,
+            description=fake_configuration_manager.app_description,
+            add_help=False,
+            parents=[]
+        )
+        self.setup_a_parser(parser)
+        fake_configuration_manager.option_definitions = \
+            parser.get_required_config()
+        final = vs.create_fake_args(fake_configuration_manager)
         self.assertEqual(final, ['3', '7', '8'])
-
-    #--------------------------------------------------------------------------
-    def test_val_as_str(self):
-        vs = self.setup_value_source()
-        self.assertEqual(vs._val_as_str(1), '1')
-        #self.assertEqual(vs._val_as_str(dont_care(1)), '1')
-        #self.assertEqual(vs._val_as_str(dont_care(None)), '')
-
-    #--------------------------------------------------------------------------
-    #def test_we_care_about_this_value(self):
-        #vs = self.setup_value_source()
-        #dci = dont_care(1)
-        #self.assertFalse(vs._we_care_about_this_value(dci))
-        #dci = dont_care([])
-        #self.assertFalse(vs._we_care_about_this_value(dci))
-        #dci.append('89')
-        #self.assertTrue(vs._we_care_about_this_value(dci))
 
     #--------------------------------------------------------------------------
     def test_get_values_1(self):
         class MyArgumentValueSource(ValueSource):
             def _create_new_argparse_instance(
                 self,
-                parser_class,
+                argparse_class,
                 config_manager,
                 auto_help,
                 parents
             ):
                 mocked_parser = Mock()
-                mocked_namespace = argparse.Namespace()
+                mocked_namespace = DotDict()
                 mocked_namespace.a = 1
                 mocked_namespace.b = 2
                 mocked_parser.parse_known_args.return_value = (
@@ -292,12 +312,8 @@ class TestCaseForValSourceArgparse(TestCase):
         config_manager.option_definitions = self.setup_configman_namespace()
         result = vs.get_values(config_manager, True)
 
-        parser = vs.parent_parsers[0]
         self.assertEqual(vs.extra_args, ['--extra', '--extra'])
-        self.assertTrue(parser.parse_known_args.called_once_with(
-            vs.argv_source
-        ))
-        self.assertTrue(vs.parser is None)
+        print type(result)
         self.assertTrue(isinstance(result, DotDict))
         self.assertEqual(dict(result), {'a': 1, 'b': 2})
         #self.assertEqual(dict(result), {'a': '1', 'b': '2'})
@@ -307,7 +323,7 @@ class TestCaseForValSourceArgparse(TestCase):
         class MyArgumentValueSource(ValueSource):
             def _create_new_argparse_instance(
                 self,
-                parser_class,
+                argparse_class,
                 config_manager,
                 auto_help,
                 parents
@@ -326,19 +342,15 @@ class TestCaseForValSourceArgparse(TestCase):
         config_manager.option_definitions = self.setup_configman_namespace()
         result = vs.get_values(config_manager, False)
 
-        parser = vs.parser
         self.assertFalse(hasattr(vs, 'extra_args'))
-        self.assertTrue(parser.parse_args.called_once_with(
-            vs.argv_source
-        ))
         self.assertTrue(isinstance(result, DotDict))
         self.assertEqual(dict(result), {'a': 1, 'b': 2})  # for when this is
                                                            # switched to real
                                                            # return values
         #self.assertEqual(dict(result), {'a': '1', 'b': '2'})
 
-     #--------------------------------------------------------------------------
-   def test_create_new_argparse_instance(self):
+    #--------------------------------------------------------------------------
+    def test_create_new_argparse_instance(self):
         class MyArgumentValueSource(ValueSource):
             def __init__(self, *args, **kwargs):
                 super(MyArgumentValueSource, self).__init__(*args, **kwargs)
@@ -347,8 +359,6 @@ class TestCaseForValSourceArgparse(TestCase):
                 self.call_counter_proxy(parser, config_manager)
                 return
         vs = self.setup_value_source(MyArgumentValueSource)
-        self.assertTrue(isinstance(vs.parent_parsers[0], argparse.ArgumentParser))
-        self.assertTrue('wilma' in (x.dest for x in vs.parent_parsers[0]._actions))
         n = self.setup_configman_namespace()
         config_manager = Mock()
         config_manager.app_name = 'MyApp'
@@ -365,7 +375,6 @@ class TestCaseForValSourceArgparse(TestCase):
         self.assertTrue(
             isinstance(parser, ControlledErrorReportingArgumentParser)
         )
-        self.assertEqual(parser._brand, 1)
         vs.call_counter_proxy.assert_called_once_with(parser, config_manager)
         self.assertEqual(parser.prog, 'MyApp')
         #self.assertEqual(parser.version, '1.2')  #TODO: fix versions
@@ -391,10 +400,12 @@ class TestCaseForValSourceArgparse(TestCase):
         n = self.setup_configman_namespace()
         config_manager = Mock()
         config_manager.option_definitions = n
-        parser = vs.parent_parsers[0]
-        self.assertTrue('wilma' in (x.dest for x in parser._actions))
-
-        vs._setup_argparse(parser, config_manager)
+        parser = vs._create_new_argparse_instance(
+            vs.argparse_class,
+            config_manager,
+            False,
+            []
+        )
 
         actions = dict((x.dest, x) for x in parser._actions)
         self.assertTrue('alpha' in actions)
@@ -403,20 +414,24 @@ class TestCaseForValSourceArgparse(TestCase):
         self.assertTrue('kappa' in actions)
 
         self.assertTrue('--alpha' not in actions['alpha'].option_strings)
-        self.assertEqual(actions['alpha'].default, 3)
+        self.assertEqual(actions['alpha'].default, argparse.SUPPRESS)
         #self.assertTrue(actions['alpha'].default.dont_care())
 
         self.assertTrue('--beta' in actions['beta'].option_strings)
         self.assertTrue('-b' in actions['beta'].option_strings)
+        self.assertEqual(actions['beta'].default, argparse.SUPPRESS)
         #self.assertTrue(actions['beta'].default.dont_care())
 
         self.assertTrue('--gamma' in actions['gamma'].option_strings)
+        self.assertEqual(actions['gamma'].default, argparse.SUPPRESS)
         #self.assertTrue(actions['gamma'].default.dont_care())
 
         self.assertTrue('--delta' in actions['delta'].option_strings)
+        self.assertEqual(actions['delta'].default, argparse.SUPPRESS)
         #self.assertTrue(actions['delta'].default.dont_care())
 
         self.assertTrue('--kappa' not in actions['kappa'].option_strings)
+        self.assertEqual(actions['kappa'].default, argparse.SUPPRESS)
         #self.assertTrue(actions['kappa'].default.dont_care())
 
 

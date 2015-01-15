@@ -63,7 +63,6 @@ from source_exceptions import CantHandleTypeException
 is_command_line_parser = True
 
 can_handle = (
-    argparse.ArgumentParser,
     argparse,
 )
 
@@ -77,6 +76,7 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
         )
         self.required_config = Namespace()
         self._argparse_subparsers = {}
+        self._extra_argements_cache = []
 
     #--------------------------------------------------------------------------
     def error(self, message):
@@ -114,21 +114,31 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
                     #parser_kwargs['parents'] = [self]
                     #parser_kwargs['add_help'] = False
                     #print "is there help?", parser_kwargs
-                    a_local_subparser = local_subparsers.add_parser(
+                    local_subparser = local_subparsers.add_parser(
                         key,
                         **parser_kwargs
                     )
-                    self._argparse_subparsers[key] = a_local_subparser
+                    self._argparse_subparsers[key] = local_subparser
                 return local_subparsers
             else:
                 the_parser = self
                 for key in self._argparse_subparsers.keys():
                     if qualified_name.startswith(key):
+                        #print '%s is from a subparser %s' % (qualified_name, key)
                         the_parser = self._argparse_subparsers[key]
                         return the_parser.add_argument_from_option(
                             qualified_name,
                             option
                         )
+                if args == (qualified_name.split('.')[-1],):
+                    args = (qualified_name,)
+                elif 'dest' in kwargs:
+                    if kwargs['dest'] != qualified_name:
+                        #print "no match in: ", kwargs['dest'], qualified_name
+                        kwargs['dest'] = qualified_name
+                else:
+                    kwargs['dest'] = qualified_name
+                #print 'creating argparse argument:', args, [(x, kwargs[x]) for x in kwargs.keys_breadth_first()]
                 action = super(
                     ControlledErrorReportingArgumentParser,
                     self
@@ -175,30 +185,47 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
                 args,
                 namespace
             )
-        return self._edit_config(proposed_config, object_hook)
+        #print 'proposed', dir(proposed_config)
+        return self.argparse_namespace_to_dotdict(proposed_config, object_hook)
 
     #--------------------------------------------------------------------------
     def parse_known_args(self, args=None, namespace=None, object_hook=None):
         result = super(ControlledErrorReportingArgumentParser, self) \
             .parse_known_args(args, namespace)
+        print self, 'result form parse_known_args', result
         try:
             an_argparse_namespace, extra_arguments = result
         except TypeError:
             an_argparse_namespace = argparse.Namespace()
             extra_arguments = result
+        #print 'proposed', dir(an_argparse_namespace)
+        print  self, 'extra from parse_known_args', extra_arguments
+        self._extra_argument_cache = extra_arguments
+        for a_sub_parser in self._argparse_subparsers.itervalues():
+            try:
+                extra_arguments.extend(a_sub_parser._extra_argument_cache)
+            except AttributeError:
+                pass
         return (
-            self._edit_config(an_argparse_namespace, object_hook),
+            self.argparse_namespace_to_dotdict(
+                an_argparse_namespace,
+                object_hook
+            ),
             extra_arguments
         )
 
     #--------------------------------------------------------------------------
-    def _edit_config(self, proposed_config, object_hook=None):
+    @staticmethod
+    def argparse_namespace_to_dotdict(proposed_config, object_hook=None):
         if object_hook is None:
             object_hook = DotDict
         config = object_hook()
         for key, value in proposed_config.__dict__.iteritems():
+            #print "argp-namespace", key, value
             config[key] = value
+        #print 'ultimately returning', dict(config)
         return config
+
 
 # -----------------------------------------------------------------------------
 def issubclass_with_no_type_error(potential_subclass, parent_class):
@@ -236,20 +263,20 @@ class ValueSource(object):
         )
 
     #--------------------------------------------------------------------------
-    def _option_to_command_line_str(an_option, key):
-        if 'argparse' in an_option.foreign_data:
-            return self._option_to_command_line_str_with_foreign_data(
-                an_option,
-                key
-            )
-        else:
-            return self._option_to_command_line_str_standard(
-                an_option,
-                key
-            )
+    #def _option_to_args_list(an_option, key):
+        #if 'argparse' in an_option.foreign_data:
+            #return self._option_to_args_list_with_foreign_data(
+                #an_option,
+                #key
+            #)
+        #else:
+            #return self._option_to_args_list_standard(
+                #an_option,
+                #key
+            #)
 
     #--------------------------------------------------------------------------
-    def _option_to_command_line_str(self, an_option, key):
+    def _option_to_args_list(self, an_option, key):
         if an_option.is_argument:
             if an_option.foreign_data is not None:
                 nargs = an_option.foreign_data.argparse.kwargs.get(
@@ -257,6 +284,10 @@ class ValueSource(object):
                     None
                 )
             else:
+                if isinstance(an_option.value, basestring):
+                    return an_option.value
+                if an_option.to_string_converter:
+                    return an_option.to_string_converter(an_option.value)
                 return to_str(an_option.value)
             if (
                 nargs is not None
@@ -285,15 +316,13 @@ class ValueSource(object):
         # of required arguments is not in place at run time.  It may be that
         # some config file or environment will bring them in later.   argparse
         # needs to cope using this placebo argv
-        for key in config_manager.option_definitions.keys_breadth_first():
-            opt = config_manager.option_definitions[key]
-            if isinstance(
-                config_manager.option_definitions[key],
-                Option
-            ):
-                print "kkkk", key, opt.is_argument, opt.value, opt.default
+        #print "----------", self.argv_source
+        #for key in config_manager.option_definitions.keys_breadth_first():  # REMOVE
+            #opt = config_manager.option_definitions[key]  # REMOVE
+            #if isinstance(opt, Option):  # REMOVE
+                #print "kkkk", key, opt.is_argument, opt.value, type(opt.value) # REMOVE
         args = [
-            self._option_to_command_line_str(
+            self._option_to_args_list(
                 config_manager.option_definitions[key],
                 key
             )
@@ -328,6 +357,8 @@ class ValueSource(object):
     #--------------------------------------------------------------------------
     def get_values(self, config_manager, ignore_mismatches, object_hook=None):
         if ignore_mismatches:
+            print 'RESET self.extra_arg'
+            self.extra_args = []
             parser = self._create_new_argparse_instance(
                 self.argparse_class,
                 config_manager,
@@ -339,9 +370,18 @@ class ValueSource(object):
             )
 
             try:
-                argparse_namespace, self.extra_args = namespace_and_extra_args
+                argparse_namespace, unused_args = namespace_and_extra_args
+                print 'extending from', self.extra_args, 'to',
+                self.extra_args.extend(unused_args)
+                print self.extra_args, "with", unused_args
             except TypeError:
                 argparse_namespace = argparse.Namespace()
+                print 'extending from', self.extra_args, 'to',
+                self.extra_args.extend(namespace_and_extra_args)
+                print self.extra_args, 'with', namespace_and_extra_args
+
+            print 'intermediate', dict(argparse_namespace), self.extra_args
+            print '  even though', self.argv_source
         else:
             fake_args = self.create_fake_args(config_manager)
             if '--help' in self.argv_source or "-h" in self.argv_source:
@@ -357,6 +397,7 @@ class ValueSource(object):
             argparse_namespace = parser.parse_args(
                 args=fake_args,
             )
+            #print 'final', dict(argparse_namespace)
         return argparse_namespace
 
     #--------------------------------------------------------------------------
@@ -379,7 +420,9 @@ class ValueSource(object):
 
     #--------------------------------------------------------------------------
     def _setup_argparse(self, parser, config_manager):
+        #print 'setting up a parser'
         for opt_name in config_manager.option_definitions.keys_breadth_first():
+            #print "opt_name", opt_name
             an_option = config_manager.option_definitions[opt_name]
             if isinstance(an_option, Option):
                 parser.add_argument_from_option(opt_name, an_option)

@@ -70,7 +70,7 @@ class Option(object):
         secret=False,
         has_changed=False,
         foreign_data=None,
-	):
+    ):
         self.name = name
         self.short_form = short_form
         self.default = default
@@ -227,7 +227,7 @@ class Option(object):
             reference_value_from=self.reference_value_from,
             secret=self.secret,
             has_changed=self.has_changed,
-            foreign_data=self.foreign_data,        
+            foreign_data=self.foreign_data,
         )
         return o
 
