@@ -71,12 +71,12 @@ can_handle = (
 class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
     #--------------------------------------------------------------------------
     def __init__(self, *args, **kwargs):
+        kwargs['add_help'] = False
         super(ControlledErrorReportingArgumentParser, self).__init__(
             *args, **kwargs
         )
         self.required_config = Namespace()
         self._argparse_subparsers = {}
-        self._extra_argements_cache = []
 
     #--------------------------------------------------------------------------
     def error(self, message):
@@ -111,7 +111,7 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
                 )
                 for key, an_orginal_subparser in original_subparser_action.choices.iteritems():
                     parser_kwargs = an_orginal_subparser.original_kwargs.copy()
-                    #parser_kwargs['parents'] = [self]
+                    parser_kwargs['parents'] = [self]
                     #parser_kwargs['add_help'] = False
                     #print "is there help?", parser_kwargs
                     local_subparser = local_subparsers.add_parser(
@@ -200,12 +200,6 @@ class ControlledErrorReportingArgumentParser(argparse.ArgumentParser):
             extra_arguments = result
         #print 'proposed', dir(an_argparse_namespace)
         print  self, 'extra from parse_known_args', extra_arguments
-        self._extra_argument_cache = extra_arguments
-        for a_sub_parser in self._argparse_subparsers.itervalues():
-            try:
-                extra_arguments.extend(a_sub_parser._extra_argument_cache)
-            except AttributeError:
-                pass
         return (
             self.argparse_namespace_to_dotdict(
                 an_argparse_namespace,
