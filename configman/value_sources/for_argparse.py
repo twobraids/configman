@@ -252,8 +252,8 @@ class ParserContainer(object):
                 *self.subcommand.args,
                 **subcommand_kwargs
             )
-            for a_sub_parser in self.subparser_args_list:
-                subparser_kwargs = copy.copy(self.subcommand.kwargs)
+            for subparser_name in self.subparser_orignal_args.keys_breadth_first():
+                subparser_kwargs = copy.copy(self.subparser_orignal_args[subparser_name].kwargs)
                 if 'dest' in subparser_kwargs:
                     del subparser_kwargs['dest']
                 subparser_kwargs.setdefault('parents', [])
@@ -290,16 +290,7 @@ class ParserContainer(object):
             # this argument represents a subcommand, we must setup the
             # subparsers
             self.subcommand = arguments
-            subparser_action = arguments.flags.subcommand
-            for key, original_subparser in subparser_action.choices.iteritems():
-                subparser_container = DotDict()
-                subparser_container.key = key
-                subparser_container.args = (key,)
-                subparser_container.kwargs = \
-                    original_subparser.original_kwargs.copy()
-                subparser_container.kwargs['add_help'] = \
-                    self._use_argparse_add_help
-                self.subparser_args_list.append(subparser_container)
+            self.subparser_orignal_args = arguments.subparsers
 
         else:
             new_arguments = DotDict()

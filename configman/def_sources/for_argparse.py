@@ -109,6 +109,30 @@ def get_args_and_values(parser, an_action):
 
 
 #==============================================================================
+class ConfigmanSubParsersAction(argparse._SubParsersAction):
+    #--------------------------------------------------------------------------
+    def __init__(self, *args, **kwargs):
+        self.original_args = args
+        self.original_kwargs = kwargs
+        self.subparsers_for_configman = DotDict()
+        super(ConfigmanSubParsersAction, self).__init__(*args, **kwargs)
+        
+    #--------------------------------------------------------------------------
+    def add_parser(self, *args, **kwargs):
+        command_name = args[0]
+        subparsers = self._configman_option.foreign_data.argparse.subparsers
+        subparsers[command_name] = DotDict({
+            "args": args,
+            "kwargs": kwargs
+        })
+        return super(ConfigmanSubParsersAction, self).add_parser(*args, **kwargs)
+
+    #--------------------------------------------------------------------------
+    def add_configman_option(self, an_option):
+        self._configman_option = an_option
+        
+
+#==============================================================================
 class ArgumentParser(argparse.ArgumentParser):
     """this subclass of the standard argparse parser to be used as a drop in
     replacement for argparse.ArgumentParser.  It highjacks the standard
@@ -382,6 +406,7 @@ class ArgumentParser(argparse.ArgumentParser):
     def add_subparsers(self, *args, **kwargs):
 
         kwargs['parser_class'] = self.__class__
+        kwargs['action'] = ConfigmanSubParsersAction
 
         subparser_action = super(ArgumentParser, self).add_subparsers(
             *args,
@@ -422,9 +447,15 @@ class ArgumentParser(argparse.ArgumentParser):
                 'argparse.flags.subcommand': subparser_action,
                 'argparse.args': args,
                 'argparse.kwargs': kwargs,
+                'argparse.subparsers': DotDict(),
             })
         )
+        
+        subparser_action.add_configman_option(
+            self.required_config[configman_name]
+        )
         return subparser_action
+
 
     #--------------------------------------------------------------------------
     def parse_args(self, args=None, namespace=None):
