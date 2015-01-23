@@ -154,7 +154,7 @@ class FinalStageConfigmanParser(IntermediateConfigmanParser):
     #--------------------------------------------------------------------------
     def __init__(self, *args, **kwargs):
         self.get_parser_id()
-        print self.id(), "creating FinalStageConfigmanParser"
+        print self.id, "creating FinalStageConfigmanParser"
         super(FinalStageConfigmanParser, self).__init__(
             *args, **kwargs
         )
@@ -230,6 +230,7 @@ class ParserContainer(object):
         admin_parser_class=ConfigmanAdminParser,
     ):
         # create admin parser to be used a a parent parser
+        print self.id, "MMMM", to_str(main_parser_class),
         admin_parser = admin_parser_class(
             *self.main_parser_args.args,
             **self.main_parser_args.kwargs
@@ -240,7 +241,9 @@ class ParserContainer(object):
         # create the main parser
         self.main_parser_args.kwargs['parents'].append(admin_parser)
         main_parser = main_parser_class(
-            *self.main_parser_args)
+            *self.main_parser_args.args,
+            **self.main_parser_args.kwargs
+        )
         if self.subcommand is not None:
             # add any subparsers to the parent parser
             subcommand_kwargs = copy.copy(self.subcommand.kwargs)
@@ -248,23 +251,25 @@ class ParserContainer(object):
             subcommand_kwargs.setdefault('parents', [])
             if 'parents' in subcommand_kwargs:
                 del subcommand_kwargs['parents']
+            if 'action' in subcommand_kwargs:
+                del subcommand_kwargs['action']
             local_subparser_action = main_parser.add_subparsers(
                 *self.subcommand.args,
                 **subcommand_kwargs
             )
-            for subparser_name in self.subparser_orignal_args.keys_breadth_first():
-                print self.id, "LLLLLL", self.subparser_orignal_args[subparser_name]
-                subparser_kwargs = copy.copy(self.subparser_orignal_args[subparser_name].kwargs)
+            for subparser_name in self.subcommand.subparsers.keys():
+                print self.id, "LLLLLL", self.subcommand.subparsers[subparser_name]
+                subparser_kwargs = copy.copy(self.subcommand.subparsers[subparser_name].kwargs)
+                subparser_args = self.subcommand.subparsers[subparser_name].args
                 if 'dest' in subparser_kwargs:
                     del subparser_kwargs['dest']
                 subparser_kwargs.setdefault('parents', [])
                 subparser_kwargs['parents'].append(admin_parser)
-                # need to add parser, how do I get it to be my subparser class?
                 local_subparser = local_subparser_action.add_parser(
-                    *a_sub_parser.args,
+                    *subparser_args,
                     **subparser_kwargs
                 )
-                self.subparsers[a_sub_parser.key] = local_subparser
+                self.subparsers[subparser_name] = local_subparser
 
         # add the actual arguments to the appropriate main or subparsers
         for an_argument_args in self.arguments:
