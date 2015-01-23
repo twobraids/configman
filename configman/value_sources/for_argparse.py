@@ -176,7 +176,7 @@ class IntermediateConfigmanSubParser(IntermediateConfigmanParser):
     #--------------------------------------------------------------------------
     def __init__(self, *args, **kwargs):
         self.get_parser_id()
-        print self.id, "creating ConfigmanSubParser"
+        print self.id, "creating ConfigmanSubParser", kwargs.keys()
         super(IntermediateConfigmanSubParser, self).__init__(
             *args, **kwargs
         )
@@ -230,12 +230,14 @@ class ParserContainer(object):
         admin_parser_class=ConfigmanAdminParser,
     ):
         # create admin parser to be used a a parent parser
-        print self.id, "MMMM", to_str(main_parser_class),
+        print self.id, "MMMM", to_str(main_parser_class)
+
         admin_parser = admin_parser_class(
             *self.main_parser_args.args,
             **self.main_parser_args.kwargs
         )
         for admin_args in self.admin_arguments:
+            admin_args.kwargs['default'] = argparse.SUPPRESS
             admin_parser.add_argument(*admin_args.args, **admin_args.kwargs)
 
         # create the main parser
@@ -257,6 +259,7 @@ class ParserContainer(object):
                 *self.subcommand.args,
                 **subcommand_kwargs
             )
+            local_subparser_action.default = argparse.SUPPRESS
             for subparser_name in self.subcommand.subparsers.keys():
                 print self.id, "LLLLLL", self.subcommand.subparsers[subparser_name]
                 subparser_kwargs = copy.copy(self.subcommand.subparsers[subparser_name].kwargs)
