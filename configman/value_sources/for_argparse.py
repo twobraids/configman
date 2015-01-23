@@ -253,6 +253,7 @@ class ParserContainer(object):
                 **subcommand_kwargs
             )
             for subparser_name in self.subparser_orignal_args.keys_breadth_first():
+                print self.id, "LLLLLL", self.subparser_orignal_args[subparser_name]
                 subparser_kwargs = copy.copy(self.subparser_orignal_args[subparser_name].kwargs)
                 if 'dest' in subparser_kwargs:
                     del subparser_kwargs['dest']
