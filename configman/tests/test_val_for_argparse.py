@@ -64,7 +64,7 @@ from configman.value_sources.for_argparse import (
     issubclass_with_no_type_error,
     ValueSource,
     argparse,
-    ControlledErrorReportingArgumentParser,
+    IntermediateConfigmanParser,
 )
 
 #==============================================================================
@@ -195,7 +195,7 @@ class TestCaseForValSourceArgparse(TestCase):
 
         vs = ValueSource(argparse, conf_manager)
         self.assertTrue(
-            vs.argparse_class is ControlledErrorReportingArgumentParser
+            vs.argparse_class is IntermediateConfigmanParser
         )
         self.assertTrue(
             vs.argv_source is tuple(conf_manager.argv_source)
@@ -214,7 +214,7 @@ class TestCaseForValSourceArgparse(TestCase):
         vs = self.setup_value_source()
 
         self.assertTrue(
-            vs.argparse_class is ControlledErrorReportingArgumentParser
+            vs.argparse_class is IntermediateConfigmanParser
         )
         self.assertEqual(vs.parent_parsers, [])
 
@@ -366,14 +366,14 @@ class TestCaseForValSourceArgparse(TestCase):
         config_manager.app_description = "it's the app"
         parent = Mock()
         parser = vs._create_new_argparse_instance(
-            ControlledErrorReportingArgumentParser,
+            IntermediateConfigmanParser,
             config_manager,
             False,
             vs.parent_parsers
         )
         parser.add_argument('--bogus', dest='bogus', action='store', default=2)
         self.assertTrue(
-            isinstance(parser, ControlledErrorReportingArgumentParser)
+            isinstance(parser, IntermediateConfigmanParser)
         )
         vs.call_counter_proxy.assert_called_once_with(parser, config_manager)
         self.assertEqual(parser.prog, 'MyApp')
@@ -384,7 +384,7 @@ class TestCaseForValSourceArgparse(TestCase):
         self.assertTrue('wilma' in (x.dest for x in parser._actions))
 
         second_parser = vs._create_new_argparse_instance(
-            ControlledErrorReportingArgumentParser,
+            IntermediateConfigmanParser,
             config_manager,
             True,
             [parser]
