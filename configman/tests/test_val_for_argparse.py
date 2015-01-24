@@ -48,24 +48,36 @@ from os import environ
 
 from functools import partial
 
-from configman import Namespace
+from configman import Namespace, ConfigurationManager
 from configman.converters import (
+    class_converter,
+    boolean_converter,
     list_converter,
     list_to_str,
     to_str,
 )
 
 from configman.config_file_future_proxy import ConfigFileFutureProxy
+from configman.commandline import command_line
 from configman.dotdict import DotDict
 from configman.value_sources.source_exceptions import CantHandleTypeException
 
 from configman.def_sources.for_argparse import ArgumentParser
 from configman.value_sources.for_argparse import (
-    issubclass_with_no_type_error,
+    #issubclass_with_no_type_error,
     ValueSource,
     argparse,
     IntermediateConfigmanParser,
 )
+
+#------------------------------------------------------------------------------
+def quote_stripping_list_of_ints(a_string):
+    quoteless = a_string.strip('\'"')
+    return list_converter(
+        quoteless,
+        item_separator=' ',
+        item_converter=int
+    )
 
 #==============================================================================
 class TestCaseForValSourceArgparse(TestCase):
@@ -89,38 +101,6 @@ class TestCaseForValSourceArgparse(TestCase):
         return vs
 
     #--------------------------------------------------------------------------
-    def setup_a_parser(self, a_parser):
-        a_parser.add_argument(
-            dest='alpha',
-            default=3,
-            help='the first parameter',
-            action='store'
-        )
-        a_parser.add_argument(
-            '--beta',
-            default='the second',
-            help='the first parameter',
-            action='store'
-        )
-        a_parser.add_argument(
-            '--gamma',
-            default=[1, 2, 3],
-            action='store'
-        )
-        a_parser.add_argument(
-            '--delta',
-            action='store_true',
-            default=False,
-        )
-        a_parser.add_argument(
-            'kappa',
-            nargs=2,
-            default=[7, 8],
-            action='store'
-        )
-        return a_parser
-
-    #--------------------------------------------------------------------------
     def setup_configman_namespace(self):
         n = Namespace()
         n.add_option(
@@ -137,302 +117,302 @@ class TestCaseForValSourceArgparse(TestCase):
         )
         n.add_option(
             'gamma',
-            default=[1, 2, 3],
-            from_string_converter=partial(
-                list_converter,
-                item_separator=' ',
-                item_converter=int
-            ),
+            default="1 2 3",
+            from_string_converter=quote_stripping_list_of_ints,
             to_string_converter=partial(
                 list_to_str,
                 delimiter=' '
             ),
+            secret=True,
         )
         n.add_option(
             'delta',
             default=False,
+            from_string_converter=boolean_converter
         )
-        n.add_option(
-            'kappa',
-            default=[7, 8],
-            from_string_converter=partial(
-                list_converter,
-                item_separator=' ',
-                item_converter=int
-            ),
-            to_string_converter=partial(
-                list_to_str,
-                delimiter=' '
-            ),
-            is_argument=True
-        )
-        for k, o in n.iteritems():
-            o.set_value()
         return n
 
-
-
     #--------------------------------------------------------------------------
-    def test_issubclass_with_no_type_error(self):
-
-        class A(object):
-            pass
-
-        class B(object):
-            pass
-
-        class C(A):
-            pass
-
-        self.assertTrue(issubclass_with_no_type_error(C, A))
-        self.assertFalse(issubclass_with_no_type_error(B, A))
-        self.assertFalse(issubclass_with_no_type_error(None, A))
-
-    #--------------------------------------------------------------------------
-    def test_value_source_init_with_module(self):
-        conf_manager = Mock()
-        conf_manager.argv_source = []
-
-        vs = ValueSource(argparse, conf_manager)
-        self.assertTrue(
-            vs.argparse_class is IntermediateConfigmanParser
+    def test_basic_01_defaults(self):
+        option_definitions = self.setup_configman_namespace()
+        cm = ConfigurationManager(
+            definition_source=option_definitions,
+            values_source_list=[command_line],
+            argv_source=[],
+            use_auto_help=False,
         )
-        self.assertTrue(
-            vs.argv_source is tuple(conf_manager.argv_source)
-        )
-        self.assertEqual(
-            vs.parent_parsers,
-            []
-        )
-        self.assertEqual(
-            vs.source,
-            argparse
-        )
+        config = cm.get_config()
 
-    #--------------------------------------------------------------------------
-    def test_value_source_init_with_a_parser(self):
-        vs = self.setup_value_source()
-
-        self.assertTrue(
-            vs.argparse_class is IntermediateConfigmanParser
-        )
-        self.assertEqual(vs.parent_parsers, [])
-
-    #--------------------------------------------------------------------------
-    def test_get_known_args(self):
-        config_manager = Mock()
-        config_manager.option_definitions = self.setup_configman_namespace()
-        vs = self.setup_value_source()
-        self.assertEqual(
-            vs._get_known_args(config_manager),
-            set(['alpha', 'beta', 'gamma', 'delta', 'kappa'])
-        )
-
-    #--------------------------------------------------------------------------
-    def test_option_to_args_list_1(self):
-        n = self.setup_configman_namespace()
-        vs = self.setup_value_source()
         expected = {
-            'alpha': '3',
-            'beta': '--beta="the second"',
-            'gamma': '--gamma="1 2 3"',
-            #'delta': '--delta="False"',  # not returned as it is the default
-            'kappa': '7 8'
+            "alpha": 3,
+            "beta": "the second",
+            "gamma": [1, 2, 3],
+            "delta": False,
+            "admin.print_conf": None,
+            "admin.dump_conf": '',
+            "admin.strict": False,
+            "admin.expose_secrets": False
         }
-        for k in n.keys_breadth_first():
-            op = vs._option_to_args_list(n[k], k)
-            try:
-                self.assertEqual(op, expected[k])
-            except KeyError, key:
-                self.assertTrue('delta' in str(key))
+
+        for k in config.keys_breadth_first():
+            self.assertEqual(config[k], expected[k])
 
     #--------------------------------------------------------------------------
-    def test_option_to_args_list_2(self):
-        n = self.setup_configman_namespace()
-        n.gamma.default = None
-        n.gamma.value = None
-        vs = self.setup_value_source()
+    def test_basic_02_change_all(self):
+        option_definitions = self.setup_configman_namespace()
+        cm = ConfigurationManager(
+            definition_source=option_definitions,
+            values_source_list=[command_line],
+            argv_source=[
+                "16",
+                "-b=THE SECOND",
+                '--gamma="88 99 111 333"',
+                "--delta",
+            ],
+            use_auto_help=False,
+        )
+        config = cm.get_config()
+
         expected = {
-            'alpha': '3',
-            'beta': '--beta="the second"',
-            'gamma': None,
-            #'delta': '--delta="False"',  # not returned as it is the default
-            'kappa': '7 8'
+            "alpha": 16,
+            "beta": 'THE SECOND',
+            "gamma": [88, 99, 111, 333],
+            "delta": True,
+            "admin.print_conf": None,
+            "admin.dump_conf": '',
+            "admin.strict": False,
+            "admin.expose_secrets": False
         }
-        for k in n.keys_breadth_first():
-            op = vs._option_to_args_list(n[k], k)
-            try:
-                self.assertEqual(op, expected[k])
-            except KeyError, key:
-                self.assertTrue('delta' in str(key))
+
+        for k in config.keys_breadth_first():
+            self.assertEqual(config[k], expected[k])
 
     #--------------------------------------------------------------------------
-    def test_create_fake_args(self):
-        vs = self.setup_value_source()
-        fake_configuration_manager = Mock()
-        fake_configuration_manager.app_name = 'fake_app'
-        fake_configuration_manager.app_description = 'fake_app_description'
-
-        parser = ArgumentParser(
-            prog=fake_configuration_manager.app_name,
-            description=fake_configuration_manager.app_description,
-            add_help=False,
-            parents=[]
+    def test_basic_02_change_all(self):
+        option_definitions = self.setup_configman_namespace()
+        cm = ConfigurationManager(
+            definition_source=option_definitions,
+            values_source_list=[command_line],
+            argv_source=[
+                "16",
+                "--b=THE SECOND",
+                '--gamma="88 99 111 333"',
+                "--delta",
+            ],
+            use_auto_help=False,
         )
-        self.setup_a_parser(parser)
-        fake_configuration_manager.option_definitions = \
-            parser.get_required_config()
-        final = vs.create_fake_args(fake_configuration_manager)
-        self.assertEqual(final, ['3', '7', '8'])
+        config = cm.get_config()
+
+        expected = {
+            "alpha": 16,
+            "beta": 'THE SECOND',
+            "gamma": [88, 99, 111, 333],
+            "delta": True,
+            "admin.print_conf": None,
+            "admin.dump_conf": '',
+            "admin.strict": False,
+            "admin.expose_secrets": False
+        }
+
+        for k in config.keys_breadth_first():
+            self.assertEqual(config[k], expected[k])
 
     #--------------------------------------------------------------------------
-    def test_get_values_1(self):
-        class MyArgumentValueSource(ValueSource):
-            def _create_new_argparse_instance(
-                self,
-                argparse_class,
-                config_manager,
-                auto_help,
-                parents
-            ):
-                mocked_parser = Mock()
-                mocked_namespace = DotDict()
-                mocked_namespace.a = 1
-                mocked_namespace.b = 2
-                mocked_parser.parse_known_args.return_value = (
-                    mocked_namespace,
-                    ['--extra', '--extra']
-                )
-                return mocked_parser
-
-        vs = self.setup_value_source(
-            type_of_value_source=MyArgumentValueSource
+    def test_basic_03_with_some_admin(self):
+        option_definitions = self.setup_configman_namespace()
+        cm = ConfigurationManager(
+            definition_source=option_definitions,
+            values_source_list=[command_line],
+            argv_source=[
+                "0",
+                "--admin.expose_secrets",
+                '--gamma="-1 -2 -3 -4 -5 -6"',
+                "--delta",
+                "--admin.strict",
+            ],
+            use_auto_help=False,
         )
-        config_manager = Mock()
-        config_manager.option_definitions = self.setup_configman_namespace()
-        result = vs.get_values(config_manager, True)
+        config = cm.get_config()
 
-        self.assertEqual(vs.extra_args, ['--extra', '--extra'])
-        print type(result)
-        self.assertTrue(isinstance(result, DotDict))
-        self.assertEqual(dict(result), {'a': 1, 'b': 2})
-        #self.assertEqual(dict(result), {'a': '1', 'b': '2'})
+        expected = {
+            "alpha": 0,
+            "beta": 'the second',
+            "gamma": [-1, -2, -3, -4, -5, -6],
+            "delta": True,
+            "admin.print_conf": None,
+            "admin.dump_conf": '',
+            "admin.strict": True,
+            "admin.expose_secrets": True
+        }
+
+        for k in config.keys_breadth_first():
+            self.assertEqual(config[k], expected[k])
 
     #--------------------------------------------------------------------------
-    def test_get_values_2(self):
-        class MyArgumentValueSource(ValueSource):
-            def _create_new_argparse_instance(
-                self,
-                argparse_class,
-                config_manager,
-                auto_help,
-                parents
-            ):
-                mocked_parser = Mock()
-                mocked_namespace = argparse.Namespace()
-                mocked_namespace.a = 1
-                mocked_namespace.b = 2
-                mocked_parser.parse_args.return_value = mocked_namespace
-                return mocked_parser
-
-        vs = self.setup_value_source(
-            type_of_value_source=MyArgumentValueSource
+    def test_basic_04_argparse_doesnt_dominate(self):
+        option_definitions = self.setup_configman_namespace()
+        other_value_source = {
+            "gamma": [38, 28, 18, 8]
+        }
+        cm = ConfigurationManager(
+            definition_source=option_definitions,
+            values_source_list=[other_value_source, command_line],
+            argv_source=[
+                "0",
+                "--admin.expose_secrets",
+                "--delta",
+                "--admin.strict",
+            ],
+            use_auto_help=False,
         )
-        config_manager = Mock()
-        config_manager.option_definitions = self.setup_configman_namespace()
-        result = vs.get_values(config_manager, False)
+        config = cm.get_config()
 
-        self.assertFalse(hasattr(vs, 'extra_args'))
-        self.assertTrue(isinstance(result, DotDict))
-        self.assertEqual(dict(result), {'a': 1, 'b': 2})  # for when this is
-                                                           # switched to real
-                                                           # return values
-        #self.assertEqual(dict(result), {'a': '1', 'b': '2'})
+        expected = {
+            "alpha": 0,
+            "beta": 'the second',
+            "gamma": [38, 28, 18, 8],
+            "delta": True,
+            "admin.print_conf": None,
+            "admin.dump_conf": '',
+            "admin.strict": True,
+            "admin.expose_secrets": True
+        }
+
+        for k in config.keys_breadth_first():
+            self.assertEqual(config[k], expected[k])
 
     #--------------------------------------------------------------------------
-    def test_create_new_argparse_instance(self):
-        class MyArgumentValueSource(ValueSource):
-            def __init__(self, *args, **kwargs):
-                super(MyArgumentValueSource, self).__init__(*args, **kwargs)
-                self.call_counter_proxy = Mock()
-            def _setup_argparse(self, parser, config_manager):
-                self.call_counter_proxy(parser, config_manager)
-                return
-        vs = self.setup_value_source(MyArgumentValueSource)
-        n = self.setup_configman_namespace()
-        config_manager = Mock()
-        config_manager.app_name = 'MyApp'
-        config_manager.app_version = '1.2'
-        config_manager.app_description = "it's the app"
-        parent = Mock()
-        parser = vs._create_new_argparse_instance(
-            IntermediateConfigmanParser,
-            config_manager,
-            False,
-            vs.parent_parsers
+    def test_basic_05_argparse_overrides_when_appropriate(self):
+        option_definitions = self.setup_configman_namespace()
+        other_value_source = {
+            "gamma": [38, 28, 18, 8]
+        }
+        cm = ConfigurationManager(
+            definition_source=option_definitions,
+            values_source_list=[other_value_source, command_line],
+            argv_source=[
+                "0",
+                "--admin.expose_secrets",
+                "--delta",
+                "--admin.strict",
+                '--gamma="8 18 28 38"',
+            ],
+            use_auto_help=False,
         )
-        parser.add_argument('--bogus', dest='bogus', action='store', default=2)
-        self.assertTrue(
-            isinstance(parser, IntermediateConfigmanParser)
-        )
-        vs.call_counter_proxy.assert_called_once_with(parser, config_manager)
-        self.assertEqual(parser.prog, 'MyApp')
-        #self.assertEqual(parser.version, '1.2')  #TODO: fix versions
-        self.assertEqual(parser.description, "it's the app")
-        self.assertTrue('help' not in (x.dest for x in parser._actions))
-        self.assertTrue('bogus' in (x.dest for x in parser._actions))
-        self.assertTrue('wilma' in (x.dest for x in parser._actions))
+        config = cm.get_config()
 
-        second_parser = vs._create_new_argparse_instance(
-            IntermediateConfigmanParser,
-            config_manager,
-            True,
-            [parser]
-        )
-        self.assertEqual(second_parser._brand, 2)
-        self.assertTrue('help' in (x.dest for x in second_parser._actions))
-        self.assertTrue('bogus' in (x.dest for x in second_parser._actions))
-        self.assertTrue('wilma' in (x.dest for x in second_parser._actions))
+        expected = {
+            "alpha": 0,
+            "beta": 'the second',
+            "gamma": [8, 18, 28, 38],
+            "delta": True,
+            "admin.print_conf": None,
+            "admin.dump_conf": '',
+            "admin.strict": True,
+            "admin.expose_secrets": True
+        }
+
+        for k in config.keys_breadth_first():
+            self.assertEqual(config[k], expected[k])
+
 
     #--------------------------------------------------------------------------
-    def test_setup_argparse(self):
-        vs = self.setup_value_source()
-        n = self.setup_configman_namespace()
-        config_manager = Mock()
-        config_manager.option_definitions = n
-        parser = vs._create_new_argparse_instance(
-            vs.argparse_class,
-            config_manager,
-            False,
-            []
+    def test_basic_06_argparse_class_expansion(self):
+        option_definitions = self.setup_configman_namespace()
+        other_value_source = {
+            "gamma": [38, 28, 18, 8]
+        }
+        other_definition_source = Namespace()
+        other_definition_source.add_option(
+            "a_class",
+            default="configman.tests.test_val_for_modules.Alpha",
+            from_string_converter=class_converter
         )
+        cm = ConfigurationManager(
+            definition_source=[option_definitions, other_definition_source],
+            values_source_list=[other_value_source, command_line],
+            argv_source=[
+                "0",
+                "--admin.expose_secrets",
+                "--delta",
+                "--admin.strict",
+                '--gamma="8 18 28 38"',
+                '--a_class=configman.tests.test_val_for_modules.Beta'
+            ],
+            use_auto_help=False,
+        )
+        config = cm.get_config()
 
-        actions = dict((x.dest, x) for x in parser._actions)
-        self.assertTrue('alpha' in actions)
-        self.assertTrue('beta' in actions)
-        self.assertTrue('gamma' in actions)
-        self.assertTrue('kappa' in actions)
+        expected = {
+            "alpha": 0,
+            "beta": 'the second',
+            "gamma": [8, 18, 28, 38],
+            "delta": True,
+            "admin.print_conf": None,
+            "admin.dump_conf": '',
+            "admin.strict": True,
+            "admin.expose_secrets": True,
+            "a_class": class_converter(
+                "configman.tests.test_val_for_modules.Beta"
+            ),
+            "b": 23
+        }
 
-        self.assertTrue('--alpha' not in actions['alpha'].option_strings)
-        self.assertEqual(actions['alpha'].default, argparse.SUPPRESS)
-        #self.assertTrue(actions['alpha'].default.dont_care())
+        for k in config.keys_breadth_first():
+            self.assertEqual(config[k], expected[k])
 
-        self.assertTrue('--beta' in actions['beta'].option_strings)
-        self.assertTrue('-b' in actions['beta'].option_strings)
-        self.assertEqual(actions['beta'].default, argparse.SUPPRESS)
-        #self.assertTrue(actions['beta'].default.dont_care())
+    #--------------------------------------------------------------------------
+    def test_basic_07_argparse_multilevel_class_expansion(self):
+        option_definitions = self.setup_configman_namespace()
+        other_value_source = {
+            "gamma": [38, 28, 18, 8]
+        }
+        other_definition_source = Namespace()
+        other_definition_source.add_option(
+            "a_class",
+            default="configman.tests.test_val_for_modules.Alpha",
+            from_string_converter=class_converter
+        )
+        cm = ConfigurationManager(
+            definition_source=[option_definitions, other_definition_source],
+            values_source_list=[other_value_source, command_line],
+            argv_source=[
+                "0",
+                "--admin.expose_secrets",
+                "--delta",
+                '--gamma="8 18 28 38"',
+                '--a_class=configman.tests.test_val_for_modules.Delta',
+                '--d=34'
+            ],
+            use_auto_help=False,
+        )
+        config = cm.get_config()
 
-        self.assertTrue('--gamma' in actions['gamma'].option_strings)
-        self.assertEqual(actions['gamma'].default, argparse.SUPPRESS)
-        #self.assertTrue(actions['gamma'].default.dont_care())
+        expected = {
+            "alpha": 0,
+            "beta": 'the second',
+            "gamma": [8, 18, 28, 38],
+            "delta": True,
+            "admin.print_conf": None,
+            "admin.dump_conf": '',
+            "admin.strict": False,
+            "admin.expose_secrets": True,
+            "a_class": class_converter(
+                "configman.tests.test_val_for_modules.Delta"
+            ),
+            "d": 34,
+            "dd": class_converter(
+                "configman.tests.test_val_for_modules.Beta"
+            ),
+            'b': 23,
+        }
 
-        self.assertTrue('--delta' in actions['delta'].option_strings)
-        self.assertEqual(actions['delta'].default, argparse.SUPPRESS)
-        #self.assertTrue(actions['delta'].default.dont_care())
+        for k in config.keys_breadth_first():
+            self.assertEqual(config[k], expected[k])
 
-        self.assertTrue('--kappa' not in actions['kappa'].option_strings)
-        self.assertEqual(actions['kappa'].default, argparse.SUPPRESS)
-        #self.assertTrue(actions['kappa'].default.dont_care())
+
+
+
 
 
 

@@ -116,7 +116,7 @@ class ConfigmanSubParsersAction(argparse._SubParsersAction):
         self.original_kwargs = kwargs
         self.subparsers_for_configman = DotDict()
         super(ConfigmanSubParsersAction, self).__init__(*args, **kwargs)
-        
+
     #--------------------------------------------------------------------------
     def add_parser(self, *args, **kwargs):
         command_name = args[0]
@@ -130,7 +130,7 @@ class ConfigmanSubParsersAction(argparse._SubParsersAction):
     #--------------------------------------------------------------------------
     def add_configman_option(self, an_option):
         self._configman_option = an_option
-        
+
 
 #==============================================================================
 class ArgumentParser(argparse.ArgumentParser):
@@ -222,7 +222,6 @@ class ArgumentParser(argparse.ArgumentParser):
         configman_is_argument = False
 
         # each of argparse's Action types must be handled separately.
-        #print 'OOOO', argparse_action_name, argparse_option_strings, argparse_dest
         #--------------------------------------------------------------------
         # STORE
         if argparse_action_name == 'store':
@@ -234,11 +233,9 @@ class ArgumentParser(argparse.ArgumentParser):
                         configman_name = configman_name[1:]
                         removed_prefix = True
                 configman_is_argument = not removed_prefix
-                #print configman_name, configman_is_argument
             else:
                 configman_name = argparse_dest
                 configman_is_argument = not argparse_option_strings
-                #print configman_name, configman_is_argument
             configman_default = argparse_default
             configman_doc = argparse_help
             if argparse_nargs and argparse_type:
@@ -281,10 +278,8 @@ class ArgumentParser(argparse.ArgumentParser):
                 for x in range(2):
                     if configman_name[0] in self.prefix_chars:
                         configman_name = configman_name[1:]
-                #print configman_name, configman_is_argument
             else:
                 configman_name = argparse_dest
-                #print configman_name, configman_is_argument
             configman_default = argparse_default
             configman_doc = argparse_help
             if argparse_type:
@@ -307,10 +302,8 @@ class ArgumentParser(argparse.ArgumentParser):
                 for x in range(2):
                     if configman_name[0] in self.prefix_chars:
                         configman_name = configman_name[1:]
-                #print configman_name, configman_is_argument
             else:
                 configman_name = argparse_dest
-                #print configman_name, configman_is_argument
             configman_default = argparse_default
             configman_doc = argparse_help
             configman_from_string = boolean_converter
@@ -324,10 +317,8 @@ class ArgumentParser(argparse.ArgumentParser):
                 for x in range(2):
                     if configman_name[0] in self.prefix_chars:
                         configman_name = configman_name[1:]
-                #print configman_name, configman_is_argument
             else:
                 configman_name = argparse_dest
-                #print configman_name, configman_is_argument
             configman_default = argparse_default
             configman_doc = argparse_help
             if argparse_type:
@@ -344,10 +335,8 @@ class ArgumentParser(argparse.ArgumentParser):
                 for x in range(2):
                     if configman_name[0] in self.prefix_chars:
                         configman_name = configman_name[1:]
-                #print configman_name, configman_is_argument
             else:
                 configman_name = argparse_dest
-                #print configman_name, configman_is_argument
             configman_default = argparse_default
             configman_doc = argparse_help
             if argparse_type:
@@ -416,7 +405,6 @@ class ArgumentParser(argparse.ArgumentParser):
                 self._optionals._registries,
                 subparser_action
             )
-        #print "subparser action name:", argparse_action_name
         self._argparse_subparsers = subparser_action
 
         if "dest" not in kwargs or kwargs['dest'] is None:
@@ -450,7 +438,7 @@ class ArgumentParser(argparse.ArgumentParser):
                 'argparse.subparsers': DotDict(),
             })
         )
-        
+
         subparser_action.add_configman_option(
             self.required_config[configman_name]
         )
@@ -474,9 +462,6 @@ class ArgumentParser(argparse.ArgumentParser):
             app_description=self.description,
             use_auto_help=False,
         )
-
-        #for k in configuration_manager.option_definitions.keys_breadth_first():
-            #print k
 
         conf =  configuration_manager.get_config()
         return conf

@@ -111,20 +111,17 @@ class IntermediateConfigmanParser(argparse.ArgumentParser):
                 args,
                 namespace
             )
-        print self.id, "about to return from parse_args"
         return self.argparse_namespace_to_dotdict(proposed_config, object_hook)
 
     #--------------------------------------------------------------------------
     def parse_known_args(self, args=None, namespace=None, object_hook=None):
         result = super(IntermediateConfigmanParser, self) \
             .parse_known_args(args, namespace)
-        print self.id,  to_str(self.__class__).split('.')[-1], self.prog, 'result form parse_known_args', result
         try:
             an_argparse_namespace, extra_arguments = result
         except TypeError:
             an_argparse_namespace = argparse.Namespace()
             extra_arguments = result
-        print self.id, "about to return from parse_known_args"
         return (
             self.argparse_namespace_to_dotdict(
                 an_argparse_namespace,
@@ -140,9 +137,7 @@ class IntermediateConfigmanParser(argparse.ArgumentParser):
             object_hook = DotDict
         config = object_hook()
         for key, value in proposed_config.__dict__.iteritems():
-            #print "argp-namespace", key, value
             config[key] = value
-        print 'ultimately returning', dict(config)
         return config
 
 counter = 0
@@ -154,7 +149,6 @@ class FinalStageConfigmanParser(IntermediateConfigmanParser):
     #--------------------------------------------------------------------------
     def __init__(self, *args, **kwargs):
         self.get_parser_id()
-        print self.id, "creating FinalStageConfigmanParser"
         super(FinalStageConfigmanParser, self).__init__(
             *args, **kwargs
         )
@@ -166,7 +160,6 @@ class HelplessConfigmanParser(IntermediateConfigmanParser):
     def __init__(self, *args, **kwargs):
         kwargs['add_help'] = False
         self.get_parser_id()
-        print self.id, "creating HelplessConfigmanParser"
         super(HelplessConfigmanParser, self).__init__(
             *args, **kwargs
         )
@@ -176,7 +169,6 @@ class IntermediateConfigmanSubParser(IntermediateConfigmanParser):
     #--------------------------------------------------------------------------
     def __init__(self, *args, **kwargs):
         self.get_parser_id()
-        print self.id, "creating ConfigmanSubParser", kwargs.keys()
         super(IntermediateConfigmanSubParser, self).__init__(
             *args, **kwargs
         )
@@ -190,7 +182,6 @@ class ConfigmanAdminParser(IntermediateConfigmanParser):
         kwargs['add_help'] = False
         kwargs['prog'] = 'admin%s' % self.id
         kwargs['parents'] = []
-        print self.id, "creating ConfigmanAdminParser"
         super(ConfigmanAdminParser, self).__init__(
             *args, **kwargs
         )
@@ -230,8 +221,6 @@ class ParserContainer(object):
         admin_parser_class=ConfigmanAdminParser,
     ):
         # create admin parser to be used a a parent parser
-        print self.id, "MMMM", to_str(main_parser_class)
-
         admin_parser = admin_parser_class(
             *self.main_parser_args.args,
             **self.main_parser_args.kwargs
@@ -261,7 +250,6 @@ class ParserContainer(object):
             )
             local_subparser_action.default = argparse.SUPPRESS
             for subparser_name in self.subcommand.subparsers.keys():
-                print self.id, "LLLLLL", self.subcommand.subparsers[subparser_name]
                 subparser_kwargs = copy.copy(self.subcommand.subparsers[subparser_name].kwargs)
                 subparser_args = self.subcommand.subparsers[subparser_name].args
                 if 'dest' in subparser_kwargs:
@@ -320,11 +308,13 @@ class ParserContainer(object):
     #--------------------------------------------------------------------------
     def _add_argument_from_configman_option(self, qualified_name, option):
         opt_name = qualified_name
+        kwargs = DotDict()
 
         if option.is_argument:  # is positional argument
             option_name = opt_name
         else:
             option_name = '--%s' % opt_name
+            kwargs.dest = opt_name
 
         if option.short_form:
             option_short_form = '-%s' % option.short_form
@@ -332,7 +322,6 @@ class ParserContainer(object):
         else:
             args = (option_name,)
 
-        kwargs = DotDict()
         if option.from_string_converter in (bool, boolean_converter):
             kwargs.action = 'store_true'
         else:
@@ -340,17 +329,23 @@ class ParserContainer(object):
 
         kwargs.default = argparse.SUPPRESS
         kwargs.help = option.doc
-        if not option.is_argument:
-            kwargs.dest = opt_name
 
         new_arguments = DotDict()
         new_arguments.args = args
         new_arguments.kwargs = kwargs
+        new_arguments.qualified_name = qualified_name
+
+        if (isinstance(option.default, collections.Sequence)
+            and not isinstance(option.default, basestring)):
+            if option.is_argument:
+                kwargs.nargs=len(option.default)
+            else:
+                kwargs.nargs="+"
 
         if qualified_name.startswith('admin'):
             self.admin_arguments.append (new_arguments)
         else:
-            self.aguments.append (new_arguments)
+            self.arguments.append (new_arguments)
 
     #--------------------------------------------------------------------------
     def add_argument_from_option(self, qualified_name, option):
@@ -360,11 +355,11 @@ class ParserContainer(object):
             self._add_argument_from_configman_option(qualified_name, option)
 
 # -----------------------------------------------------------------------------
-def issubclass_with_no_type_error(potential_subclass, parent_class):
-    try:
-        return issubclass(potential_subclass, parent_class)
-    except TypeError:
-        return False
+#def issubclass_with_no_type_error(potential_subclass, parent_class):
+    #try:
+        #return issubclass(potential_subclass, parent_class)
+    #except TypeError:
+        #return False
 
 
 #==============================================================================
@@ -447,11 +442,6 @@ class ValueSource(object):
         # of required arguments is not in place at run time.  It may be that
         # some config file or environment will bring them in later.   argparse
         # needs to cope using this placebo argv
-        #print "----------", self.argv_source
-        #for key in config_manager.option_definitions.keys_breadth_first():  # REMOVE
-            #opt = config_manager.option_definitions[key]  # REMOVE
-            #if isinstance(opt, Option):  # REMOVE
-                #print "kkkk", key, opt.is_argument, opt.value, type(opt.value) # REMOVE
         args = [
             self._option_to_args_list(
                 config_manager.option_definitions[key],
@@ -479,16 +469,13 @@ class ValueSource(object):
             if x is not None and x.strip() != ''
         ]
         try:
-            print "CCCCC", final_arg_list + self.extra_args
             return final_arg_list + self.extra_args
         except (AttributeError, TypeError):
-            print "DDDDD", final_arg_list
             return final_arg_list
 
     #--------------------------------------------------------------------------
     def get_values(self, config_manager, ignore_mismatches, object_hook=None):
         if ignore_mismatches:
-            print 'RESET self.extra_arg'
             self.extra_args = []
             parser = self._create_new_argparse_instance(
                 {
@@ -505,23 +492,15 @@ class ValueSource(object):
 
             try:
                 argparse_namespace, unused_args = namespace_and_extra_args
-                print 'extending from', self.extra_args, 'to',
                 self.extra_args.extend(unused_args)
-                print self.extra_args, "with", unused_args
             except TypeError:
                 argparse_namespace = argparse.Namespace()
-                print 'extending from', self.extra_args, 'to',
                 self.extra_args.extend(namespace_and_extra_args)
-                print self.extra_args, 'with', namespace_and_extra_args
-
-            print 'intermediate', dict(argparse_namespace), self.extra_args
-            print '  even though', self.argv_source
         else:
             fake_args = self.create_fake_args(config_manager)
             if '--help' in self.argv_source or "-h" in self.argv_source:
                 fake_args.append("--help")
 
-            print "fake args", fake_args
             parser = self._create_new_argparse_instance(
                 {
                     "main_parser_class": FinalStageConfigmanParser,
@@ -531,22 +510,9 @@ class ValueSource(object):
                 config_manager,
                 True,
             )
-            #print "FINAL:"
-            #print '   parser', to_str(type(parser)).split('.')[-1]
-            #for p in parser._actions:
-                #print '      ', to_str(p)
-                #try:
-                    #for a in p._parsers:
-                        #print '       -->', to_str(a)
-                #except AttributeError:
-                    #pass
-            #print '       subparsers', parser._argparse_subparsers
-
-            print 'FINAL:', parser.id
             argparse_namespace = parser.parse_args(
                 args=fake_args,
             )
-            print 'final', dict(argparse_namespace)
         return argparse_namespace
 
     #--------------------------------------------------------------------------
@@ -568,12 +534,10 @@ class ValueSource(object):
 
     #--------------------------------------------------------------------------
     def _setup_argparse(self, parser, parser_classes, config_manager):
-        print 'setting up parser', parser.id
         # need to ensure that admin options are added first, since they'll
         # go into a subparser and the subparser must be complete before
         # given to any other parser as a parent
         for opt_name in config_manager.option_definitions.keys_breadth_first():
-            print "    (%s) opt_name: %s"  % (parser.id, opt_name)
             an_option = config_manager.option_definitions[opt_name]
             if isinstance(an_option, Option):
                 parser.add_argument_from_option(opt_name, an_option)
