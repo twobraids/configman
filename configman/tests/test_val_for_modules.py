@@ -86,7 +86,7 @@ class Beta(RequiredConfig):
 class Delta(RequiredConfig):
     required_config = Namespace()
     required_config.add_option(
-        'messy',
+        'd',
         doc='messy',
         default=-99
     )
