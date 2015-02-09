@@ -55,6 +55,7 @@ from configman.dotdict import (
     create_key_translating_dot_dict,
 )
 from configman import Namespace, RequiredConfig
+from configman.config_file_future_proxy import ConfigFileFutureProxy
 from configman.converters import class_converter
 from configman.datetime_util import datetime_from_ISO_string
 from configman.config_exceptions import NotAnOptionError
@@ -2138,13 +2139,15 @@ c.string =   from ini
 
         cm = config_manager.ConfigurationManager(
             (n,),
-            argv_source=[]
+            values_source_list=[ConfigFileFutureProxy, getopt],
+            argv_source=[],
         )
         opts = cm.get_option_names()
         for an_opt in opts:
             self.assertTrue(
                 isinstance(cm.option_definitions[an_opt], Option)
             )
+        print opts
         self.assertEqual(len(opts), 10)  # there must be exactly 10 options
 
     #--------------------------------------------------------------------------

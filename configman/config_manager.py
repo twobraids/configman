@@ -199,23 +199,33 @@ class ConfigurationManager(object):
         self.option_definitions = Namespace()
         self.definition_source_list = definition_source_list
 
+        command_line_value_source = command_line
         if values_source_list is None:
             # nothing set, assume defaults
             if use_admin_controls:
                 values_source_list = (
                     ConfigFileFutureProxy,
                     environment,
-                    command_line
+                    command_line_value_source
                 )
             else:
                 values_source_list = (
                     environment,
-                    command_line
+                    command_line_value_source
                 )
+        # determine which command_line facility to use for help
+        if self.use_auto_help:
+            for a_value_source in values_source_list:
+                if inspect.ismodule(a_value_source):
+                    handler = type_handler_dispatch[a_value_source][0].ValueSource
+                    try:
+                        if handler.command_line_value_source:
+                            handler._setup_auto_help(self)
+                            break
+                    except AttributeError:
+                        # not a commandline source, ok to ignore exception
+                        pass
 
-        if self.use_auto_help and command_line in values_source_list:
-            cmd_handler = type_handler_dispatch[command_line]
-            cmd_handler[0].ValueSource._setup_auto_help(self)
 
         admin_tasks_done = False
         self.admin_controls_list = [
@@ -228,8 +238,8 @@ class ConfigurationManager(object):
         ]
         self.options_banned_from_help = options_banned_from_help
 
-        if use_auto_help:
-            self._setup_auto_help()
+        #if use_auto_help:
+            #self._setup_auto_help()
         if use_admin_controls:
             admin_options = self._setup_admin_options(values_source_list)
             self.definition_source_list.append(admin_options)

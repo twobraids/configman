@@ -382,7 +382,7 @@ class TestCaseForValSourceArgparse(TestCase):
                 "--delta",
                 '--gamma="8 18 28 38"',
                 '--a_class=configman.tests.test_val_for_modules.Delta',
-                '--d=34'
+                '--messy=34'
             ],
             use_auto_help=False,
         )
@@ -400,7 +400,7 @@ class TestCaseForValSourceArgparse(TestCase):
             "a_class": class_converter(
                 "configman.tests.test_val_for_modules.Delta"
             ),
-            "d": 34,
+            "messy": 34,
             "dd": class_converter(
                 "configman.tests.test_val_for_modules.Beta"
             ),

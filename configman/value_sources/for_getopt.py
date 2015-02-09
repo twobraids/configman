@@ -117,6 +117,7 @@ class ValueSource(object):
         )
         try:
             if ignore_mismatches:
+                print "self.argv_source", self.argv_source
                 fn = ValueSource.getopt_with_ignore
             else:
                 fn = getopt.gnu_getopt
@@ -219,6 +220,7 @@ class ValueSource(object):
             if args[0] == '--':
                 prog_args += args[1:]
                 break
+            print  "args[0]", args[0]
             if args[0].startswith('--'):
                 try:
                     opts, args = getopt.do_longs(
