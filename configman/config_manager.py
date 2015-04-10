@@ -16,7 +16,7 @@ import warnings
 # import these symbols from here rather than their origin definition location.
 # PyFlakes may erroneously flag some of these as unused
 from configman.command_line import command_line
-from configman.converters import to_string_converters
+from configman.converters import to_string_converters, to_str
 from configman.config_exceptions import NotAnOptionError
 from configman.config_file_future_proxy import ConfigFileFutureProxy
 from configman.def_sources import setup_definitions
@@ -145,7 +145,7 @@ class ConfigurationManager(object):
         self._config = None  # eventual container for DOM-like config object
 
         self.option_definitions = Namespace()
-        self.definition_source_list = definition_source_list
+        # self.definition_source_list = definition_source_list
 
         if values_source_list is None:
             # nothing set, assume defaults
@@ -169,14 +169,17 @@ class ConfigurationManager(object):
             'admin.print_conf',
             'admin.strict',
             'admin.expose_secrets',
+            'aaawhy',
         ]
         self.options_banned_from_help = options_banned_from_help
 
-        if use_auto_help:
-            self._setup_auto_help()
         if use_admin_controls:
             admin_options = self._setup_admin_options(values_source_list)
-            self.definition_source_list.append(admin_options)
+            self.definition_source_list = [admin_options]
+            self.definition_source_list.extend(definition_source_list)
+            # self.definition_source_list.append(admin_options)
+        if use_auto_help:
+            self._setup_auto_help()
 
         # iterate through the option definitions to create the nested dict
         # hierarchy of all the options called 'option_definitions'
@@ -590,6 +593,9 @@ class ConfigurationManager(object):
                     ].append(
                         key
                     )
+                if self.option_definitions.aaawhy.default:
+                    print >>sys.stderr, key, "[default] ->", \
+                          self.option_definitions[key].default,
 
                 for a_value_source in self.values_source_list:
                     try:
@@ -607,6 +613,9 @@ class ConfigurationManager(object):
                         # been an exact match for what was returned.
                         opt.has_changed = opt.default != val_src_dict[key]
                         opt.default = val_src_dict[key]
+                        if self.option_definitions.aaawhy.default:
+                            print >>sys.stderr, to_str(a_value_source.__class__), '->', \
+                                  opt.default,
                         if key in all_reference_values:
                             # make sure that this value gets propagated to keys
                             # even if the keys have already been overlaid
@@ -614,6 +623,8 @@ class ConfigurationManager(object):
                     except KeyError, x:
                         pass  # okay, that source doesn't have this value
 
+                if self.option_definitions.aaawhy.default:
+                    print >>sys.stderr, 'done'
             # expansion process:
             # step through all the keys converting them to their proper
             # types and bringing in any new keys in the process
@@ -810,6 +821,11 @@ class ConfigurationManager(object):
             name='expose_secrets',
             default=False,
             doc='should options marked secret get written out or hidden?'
+        )
+        base_namespace.add_option(
+            name='aaawhy',
+            default=False,
+            doc='reveal what overlaid what',
         )
         # only offer the config file admin options if they've been requested in
         # the values source list
