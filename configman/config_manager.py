@@ -169,7 +169,7 @@ class ConfigurationManager(object):
             'admin.print_conf',
             'admin.strict',
             'admin.expose_secrets',
-            'aaawhy',
+            'why',
         ]
         self.options_banned_from_help = options_banned_from_help
 
@@ -593,7 +593,7 @@ class ConfigurationManager(object):
                     ].append(
                         key
                     )
-                if self.option_definitions.aaawhy.default:
+                if self.option_definitions.why.default:
                     print >>sys.stderr, key, "[default] ->", \
                           self.option_definitions[key].default,
 
@@ -613,8 +613,8 @@ class ConfigurationManager(object):
                         # been an exact match for what was returned.
                         opt.has_changed = opt.default != val_src_dict[key]
                         opt.default = val_src_dict[key]
-                        if self.option_definitions.aaawhy.default:
-                            print >>sys.stderr, to_str(a_value_source.__class__), '->', \
+                        if self.option_definitions.why.default:
+                            print >>sys.stderr, '[%s]' % to_str(a_value_source.__class__), '->', \
                                   opt.default,
                         if key in all_reference_values:
                             # make sure that this value gets propagated to keys
@@ -623,8 +623,8 @@ class ConfigurationManager(object):
                     except KeyError, x:
                         pass  # okay, that source doesn't have this value
 
-                if self.option_definitions.aaawhy.default:
-                    print >>sys.stderr, 'done'
+                if self.option_definitions.why.default:
+                    print >>sys.stderr, ''
             # expansion process:
             # step through all the keys converting them to their proper
             # types and bringing in any new keys in the process
@@ -799,6 +799,11 @@ class ConfigurationManager(object):
     #--------------------------------------------------------------------------
     def _setup_admin_options(self, values_source_list):
         base_namespace = Namespace()
+        base_namespace.add_option(
+            name='why',
+            default=False,
+            doc='reveal what overlaid what',
+        )
         base_namespace.admin = admin = Namespace()
         admin.add_option(
             name='print_conf',
@@ -821,11 +826,6 @@ class ConfigurationManager(object):
             name='expose_secrets',
             default=False,
             doc='should options marked secret get written out or hidden?'
-        )
-        base_namespace.add_option(
-            name='aaawhy',
-            default=False,
-            doc='reveal what overlaid what',
         )
         # only offer the config file admin options if they've been requested in
         # the values source list
