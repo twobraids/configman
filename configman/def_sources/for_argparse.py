@@ -320,13 +320,11 @@ class ArgumentParser(argparse.ArgumentParser):
         # STORE
         if argparse_action_name == 'store':
             if argparse_dest is None:
-                configman_name = args[0]
-                removed_prefix = False
-                for x in range(2):
-                    if configman_name[0] in self.prefix_chars:
-                        configman_name = configman_name[1:]
-                        removed_prefix = True
-                configman_is_argument = not removed_prefix
+                configman_name = self._get_option_name(args)
+                print "ttt", args, configman_name
+                if not configman_name:
+                    configman_name = args[0]
+                    print 'sss', configman_name
             else:
                 configman_name = argparse_dest
                 configman_is_argument = not argparse_option_strings
@@ -379,10 +377,11 @@ class ArgumentParser(argparse.ArgumentParser):
         # STORE_CONST
         elif argparse_action_name == 'store_const':
             if argparse_dest is None:
-                configman_name = args[0]
-                for x in range(2):
-                    if configman_name[0] in self.prefix_chars:
-                        configman_name = configman_name[1:]
+                configman_name = self._get_option_name(args)
+                print "ttt", args, configman_name
+                if not configman_name:
+                    configman_name = args[0]
+                    print 'sss', configman_name
             else:
                 configman_name = argparse_dest
             configman_default = argparse_default
@@ -402,10 +401,11 @@ class ArgumentParser(argparse.ArgumentParser):
             or argparse_action_name == 'store_false'
         ):
             if argparse_dest is None:
-                configman_name = args[0]
-                for x in range(2):
-                    if configman_name[0] in self.prefix_chars:
-                        configman_name = configman_name[1:]
+                configman_name = self._get_option_name(args)
+                print "ttt", args, configman_name
+                if not configman_name:
+                    configman_name = args[0]
+                    print 'sss', configman_name
             else:
                 configman_name = argparse_dest
             configman_default = argparse_default
@@ -416,10 +416,11 @@ class ArgumentParser(argparse.ArgumentParser):
         # APPEND
         elif argparse_action_name == 'append':
             if argparse_dest is None:
-                configman_name = args[0]
-                for x in range(2):
-                    if configman_name[0] in self.prefix_chars:
-                        configman_name = configman_name[1:]
+                configman_name = self._get_option_name(args)
+                print "ttt", args, configman_name
+                if not configman_name:
+                    configman_name = args[0]
+                    print 'sss', configman_name
             else:
                 configman_name = argparse_dest
             configman_default = argparse_default
@@ -433,10 +434,11 @@ class ArgumentParser(argparse.ArgumentParser):
         # APPEND_CONST
         elif argparse_action_name == 'append_const':
             if argparse_dest is None:
-                configman_name = args[0]
-                for x in range(2):
-                    if configman_name[0] in self.prefix_chars:
-                        configman_name = configman_name[1:]
+                configman_name = self._get_option_name(args)
+                print "ttt", args, configman_name
+                if not configman_name:
+                    configman_name = args[0]
+                    print 'sss', configman_name
             else:
                 configman_name = argparse_dest
             configman_default = argparse_default
@@ -630,6 +632,22 @@ class ArgumentParser(argparse.ArgumentParser):
         )
         return conf
 
+    #--------------------------------------------------------------------------
+    def _get_option_name(self, args):
+        # argparse is loose in the manner that it names arguments.  Sometimes
+        # it comes in as the 'dest' kwarg, othertimes it is deduced from args
+        # as the first "long" style argument in the args.  This method
+        long_name = []
+        short_name = None
+        for an_option in args:
+            if an_option[0] in self.prefix_chars:
+                if an_option[1] in self.prefix_chars:
+                    return an_option[2:]
+                if not short_name:
+                    short_name = an_option[1:]
+        if short_name:
+            return short_name
+        return None
 
 #------------------------------------------------------------------------------
 def setup_definitions(source, destination):
