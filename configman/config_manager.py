@@ -612,31 +612,35 @@ class ConfigurationManager(object):
         own configuration options, bring those into the current namespace and
         then proceed to overlay/expand those.
         """
-        new_keys_discovered = True  # loop control, False breaks the loop
+        new_keys_have_been_discovered = True  # loop control, False breaks the loop
         finished_keys = set()
         all_reference_values = {}
 
-        while new_keys_discovered:  # loop until nothing more is done
-            # keys holds a list of all keys in the option definitons in
-            # breadth first order using this form: [ 'x', 'y', 'z', 'x.a',
-            # 'x.b', 'z.a', 'z.b', 'x.a.j', 'x.a.k', 'x.b.h']
-            keys = [
+        while new_keys_have_been_discovered:  # loop until nothing more is done
+            # names_of_all_exsting_options holds a list of all keys in the
+            # option definitons in breadth first order using this form:
+            # [ 'x', 'y', 'z', 'x.a', 'x.b', 'z.a', 'z.b', 'x.a.j', 'x.a.k',
+            # 'x.b.h']
+            names_of_all_exsting_options = [
                 x for x
                 in self.option_definitions.keys_breadth_first()
                 if isinstance(self.option_definitions[x], Option)
             ]
-            new_keys_discovered = False  # setup to break loop
+            new_keys_have_been_discovered = False  # setup to break loop
 
             # create alternate paths options
             set_of_reference_value_option_names = \
                 self._create_reference_value_options(
-                    keys,
+                    names_of_all_exsting_options,
                     finished_keys
                 )
-            for a_ref_value_key in set_of_reference_value_option_names:
-                if a_ref_value_key not in all_reference_values:
-                    all_reference_values[a_ref_value_key] = []
-            all_keys = list(set_of_reference_value_option_names) + keys
+
+            for a_ref_option_name in set_of_reference_value_option_names:
+                if a_ref_option_name not in all_reference_values:
+                    all_reference_values[a_ref_option_name] = []
+
+            all_keys = list(set_of_reference_value_option_names) \
+                + names_of_all_exsting_options
 
             # previous versions of this method pulled the values from the
             # values sources deeper within the following nested loops.
@@ -720,7 +724,7 @@ class ConfigurationManager(object):
                 # apply the from string conversion to make the real value
                 an_option.set_value(an_option.default)
                 # new values have been seen, don't let loop break
-                new_keys_discovered = True
+                new_keys_have_been_discovered = True
                 try:
                     try:
                         # try to fetch new requirements from this value
@@ -756,11 +760,22 @@ class ConfigurationManager(object):
                         # targets
                         continue
                     # some new Options to be brought in may have already been
-                    # seen and in the known_keys set.  They must be marked
-                    # as unseen so that the new default doesn't overwrite any
-                    # of the overlays that have already taken place.
+                    # seen and in the finished_keys set.  They must be reset
+                    # as unfinished so that a new default doesn't permanently
+                    # overwrite any of the values already placed by the
+                    # overlays.  So we've got to remove those keys from the
+                    # finished keys list.
+                    # Before we can do that however, we need the fully
+                    # qualified names for the new keys.
+                    qualified_parent_name_list = key.rsplit('.', 1)
+                    if len(qualified_parent_name_list) > 1:
+                        qualified_parent_name = qualified_parent_name_list[0]
+                    else:
+                        qualified_parent_name = ''
+
                     finished_keys = finished_keys.difference(
-                        finished_keys.intersection(new_requirements.keys())
+                        '.'.join((qualified_parent_name, ref_option_name))
+                        for ref_option_name in new_requirements
                     )
                     # add the new Options to the namespace
                     new_namespace = new_requirements.safe_copy(
