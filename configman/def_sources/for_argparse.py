@@ -4,7 +4,7 @@
 
 """this module introduces support for argparse as a data definition source
 for configman.  Rather than write using configman's data definition language,
-programs can instead use the familiar argparse method."""
+programsd can instead use the familiar argparse method."""
 
 import argparse
 import inspect
@@ -320,11 +320,11 @@ class ArgumentParser(argparse.ArgumentParser):
         # STORE
         if argparse_action_name == 'store':
             if argparse_dest is None:
-                configman_name = self._get_option_name(args)
-                print "ttt", args, configman_name
+                configman_name, configman_is_argument = self._get_option_name(
+                    args
+                )
                 if not configman_name:
                     configman_name = args[0]
-                    print 'sss', configman_name
             else:
                 configman_name = argparse_dest
                 configman_is_argument = not argparse_option_strings
@@ -377,11 +377,11 @@ class ArgumentParser(argparse.ArgumentParser):
         # STORE_CONST
         elif argparse_action_name == 'store_const':
             if argparse_dest is None:
-                configman_name = self._get_option_name(args)
-                print "ttt", args, configman_name
+                configman_name, configman_is_argument = self._get_option_name(
+                    args
+                )
                 if not configman_name:
                     configman_name = args[0]
-                    print 'sss', configman_name
             else:
                 configman_name = argparse_dest
             configman_default = argparse_default
@@ -401,11 +401,11 @@ class ArgumentParser(argparse.ArgumentParser):
             or argparse_action_name == 'store_false'
         ):
             if argparse_dest is None:
-                configman_name = self._get_option_name(args)
-                print "ttt", args, configman_name
+                configman_name, configman_is_argument = self._get_option_name(
+                    args
+                )
                 if not configman_name:
                     configman_name = args[0]
-                    print 'sss', configman_name
             else:
                 configman_name = argparse_dest
             configman_default = argparse_default
@@ -416,11 +416,11 @@ class ArgumentParser(argparse.ArgumentParser):
         # APPEND
         elif argparse_action_name == 'append':
             if argparse_dest is None:
-                configman_name = self._get_option_name(args)
-                print "ttt", args, configman_name
+                configman_name, configman_is_argument = self._get_option_name(
+                    args
+                )
                 if not configman_name:
                     configman_name = args[0]
-                    print 'sss', configman_name
             else:
                 configman_name = argparse_dest
             configman_default = argparse_default
@@ -434,11 +434,11 @@ class ArgumentParser(argparse.ArgumentParser):
         # APPEND_CONST
         elif argparse_action_name == 'append_const':
             if argparse_dest is None:
-                configman_name = self._get_option_name(args)
-                print "ttt", args, configman_name
+                configman_name, configman_is_argument = self._get_option_name(
+                    args
+                )
                 if not configman_name:
                     configman_name = args[0]
-                    print 'sss', configman_name
             else:
                 configman_name = argparse_dest
             configman_default = argparse_default
@@ -564,6 +564,7 @@ class ArgumentParser(argparse.ArgumentParser):
         # load the config_manager within the scope of the method that uses it
         # so that we avoid circular references in the outer scope
         from configman.config_manager import ConfigurationManager
+
         configuration_manager = ConfigurationManager(
             definition_source=[self.get_required_config()],
             values_source_list=self.value_source_list,
@@ -642,11 +643,13 @@ class ArgumentParser(argparse.ArgumentParser):
         for an_option in args:
             if an_option[0] in self.prefix_chars:
                 if an_option[1] in self.prefix_chars:
-                    return an_option[2:]
+                    return an_option[2:], False
                 if not short_name:
                     short_name = an_option[1:]
+            else:
+                return an_option, True
         if short_name:
-            return short_name
+            return short_name, False
         return None
 
 #------------------------------------------------------------------------------
